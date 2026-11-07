@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Industrias Acevedo - Portal Comercial & Telemetría de Pedidos</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              cobalt: '#0822A0',
+              royal: '#2563EB',
+              dark: '#0A192F',
+              ice: '#F8FAFC',
+              cyan: '#00F2FE',
+              emerald: '#10B981'
+            }
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #0A192F; }
+    ::-webkit-scrollbar-thumb { background: #0822A0; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #2563EB; }
+
+    /* PANTALLA INTRO MULTI-PASO */
+    #hero-logo-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      background: linear-gradient(135deg, #0A192F 0%, #0822A0 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      transition: transform 0.8s cubic-bezier(0.77, 0, 0.175, 1), opacity 0.8s ease;
+      will-change: transform, opacity;
+    }
+
+    #hero-logo-screen.screen-hidden {
+      transform: translateY(-100%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* ENVOLTORIO DE SCROLL UNIFICADO */
+    .boon-hero-wrapper {
+      height: 600vh;
+      position: relative;
+      background: #0A192F;
+    }
+
+    .boon-sticky-container {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .split-left, .split-right {
+      transition: transform 0.1s ease-out, opacity 0.1s ease-out;
+      will-change: transform, opacity;
+    }
+
+    #hero-content-layer {
+      transition: opacity 0.2s ease-out;
+      will-change: opacity;
+    }
+
+    #behind-categories-layer {
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      will-change: opacity, transform;
+    }
+
+    /* ESTILOS DEL PORTÓN INTEGRADOS CON LA PALETA CORPORATIVA */
+    .finca-gate-door {
+      transition: transform 0.1s linear;
+      will-change: transform;
+      background: #0A192F;
+    }
+
+    .wood-slats-pattern {
+      background: repeating-linear-gradient(
+        90deg,
+        #0822A0,
+        #0822A0 32px,
+        #05156b 33px,
+        #2563EB 35px,
+        #2563EB 68px,
+        #0A192F 70px
+      );
+      box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+    }
+
+    .rivet-bar {
+      background: linear-gradient(180deg, #1e3a8a 0%, #0A192F 100%);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+    }
+
+    /* CAPA DE DESVANECIDO A BLANCO */
+    #fade-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: #F8FAFC;
+      pointer-events: none;
+      z-index: 25;
+      opacity: 0;
+      transition: opacity 0.1s ease-out;
+      will-change: opacity;
+    }
+
+    /* ESTILOS PARA LA SECCIÓN SOBRE NOSOTROS Y SUS EFECTOS LATERALES */
+    .about-section-wrapper {
+      position: relative;
+      background: #0822A0;
+      color: #ffffff;
+      overflow: hidden;
+    }
+
+    .about-animate-left {
+      opacity: 0;
+      transform: translateX(-100px);
+      transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.8s ease;
+      will-change: transform, opacity;
+    }
+
+    .about-animate-right {
+      opacity: 0;
+      transform: translateX(100px);
+      transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.8s ease;
+      will-change: transform, opacity;
+    }
+
+    .about-section-wrapper.active .about-animate-left,
+    .about-section-wrapper.active .about-animate-right {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    /* EFECTO DE APARICIÓN PARA EL PIE DE PÁGINA */
+    .footer-animate {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+      will-change: opacity, transform;
+    }
+
+    .footer-animate.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* EFECTO MARQUEE / CARRUSEL INFINITO HORIZONTAL */
+    @keyframes marqueeScroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    .marquee-track {
+      display: flex;
+      width: max-content;
+      animation: marqueeScroll 35s linear infinite;
+    }
+
+    .marquee-track:hover {
+      animation-play-state: paused;
+    }
+
+    /* EFECTO DE TRANSICIÓN PARA EL ZOOM DE PANTALLA COMPLETA */
+    #productZoomOverlay {
+      transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+  </style>
+</head>
+<body class="bg-[#F8FAFC] font-sans text-slate-800 antialiased relative selection:bg-brand-royal selection:text-white">
+
+  <!-- OVERLAY DE DESVANECIDO A BLANCO -->
+  <div id="fade-overlay"></div>
+
+  <!-- PANTALLA INICIAL LOGO -->
+  <div id="hero-logo-screen">
+    <div class="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:32px_32px]"></div>
+
+    <div class="relative z-10 flex flex-col items-center text-center px-4">
+      <div class="w-28 h-28 sm:w-36 sm:h-36 bg-[#0822A0] rounded-3xl flex items-center justify-center text-white shadow-2xl shadow-blue-500/30 border-2 border-blue-400/40 mb-6 p-2 animate-pulse">
+        <img src="Logo.png" alt="Logo Industrias Acevedo" class="w-full h-full object-contain">
+      </div>
+
+      <h1 class="text-3xl sm:text-5xl font-extrabold tracking-widest text-white mb-2">
+        ACEVEDO
+      </h1>
+      <p class="text-sm sm:text-base font-bold tracking-[0.35em] text-blue-200 uppercase mb-8">
+        INDUSTRIAS
+      </p>
+
+      <button onclick="unlockScreen()" class="flex flex-col items-center text-blue-200 hover:text-brand-cyan transition-colors group cursor-pointer">
+        <span class="text-xs sm:text-sm font-bold tracking-widest uppercase mb-3 px-4 py-2 bg-blue-900/60 rounded-full border border-blue-400/30 animate-pulse text-brand-cyan">
+          <i class="fa-solid fa-angles-down mr-1"></i> Mueve el scroll para desplazarte
+        </span>
+
+        <div class="w-8 h-12 border-2 border-blue-300/50 rounded-full flex justify-center p-1 group-hover:border-brand-cyan">
+          <div class="w-1.5 h-3 bg-brand-cyan rounded-full animate-bounce"></div>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <div id="main-wrapper">
+
+    <!-- BARRA INFORMATIVA SUPERIOR -->
+    <div class="bg-[#0822A0] text-white text-xs font-medium py-2 px-4 sm:px-8 border-b border-blue-900/40">
+      <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-2">
+        <div class="flex items-center gap-3">
+          <span class="relative flex h-2.5 w-2.5">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+          </span>
+          <span class="tracking-wide">Atención en Línea & Taller Activo 24/7</span>
+          <span class="hidden md:inline text-blue-300">|</span>
+          <span class="hidden md:inline text-slate-200">
+            <i class="fa-solid fa-location-dot text-brand-cyan mr-1"></i> Jericó, Antioquia — Cobertura Regional
+          </span>
+        </div>
+        <div class="flex items-center gap-4">
+          <a href="https://wa.me/573000000000" target="_blank" class="hover:text-brand-cyan transition-colors flex items-center gap-1.5 font-semibold">
+            <i class="fa-brands fa-whatsapp text-emerald-400 text-sm"></i> Soporte WhatsApp
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- HEADER -->
+    <header id="main-header" class="sticky top-0 z-50 backdrop-blur-md bg-white/95 border-b border-slate-200/80 shadow-sm transition-all">
+      <div class="max-w-7xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between gap-4">
+        
+        <a href="#inicio" class="flex items-center gap-3 group">
+          <div class="w-12 h-12 bg-[#0822A0] rounded-xl flex items-center justify-center text-white shadow-md shadow-blue-900/20 group-hover:bg-blue-700 transition-all border border-blue-400/30 p-1">
+            <img src="Logo.png" alt="Logo Industrias Acevedo" class="w-full h-full object-contain">
+          </div>
+          <div class="flex flex-col leading-none">
+            <span class="font-extrabold tracking-wider text-lg text-[#0822A0]">ACEVEDO</span>
+            <span class="text-[10px] font-bold tracking-[0.25em] text-slate-500 uppercase">INDUSTRIAS</span>
+          </div>
+        </a>
+
+        <nav class="hidden lg:flex items-center gap-1 xl:gap-2 text-sm font-semibold text-slate-700">
+          <a href="#inicio" onclick="scrollToCategory(0)" class="px-3 py-2 rounded-lg hover:text-[#0822A0] hover:bg-slate-100 transition-colors">Inicio</a>
+          
+          <div class="relative group">
+            <button class="px-3 py-2 rounded-lg hover:text-[#0822A0] hover:bg-slate-100 transition-colors flex items-center gap-1 cursor-pointer">
+              <span>Nuestros Productos</span>
+              <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 group-hover:text-[#0822A0] transition-transform group-hover:rotate-180"></i>
+            </button>
+            <div class="absolute left-0 top-full pt-2 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+              <div class="bg-white rounded-xl shadow-xl border border-slate-100 p-2 flex flex-col space-y-1">
+                <a href="javascript:void(0)" onclick="scrollToCategory(0)" class="px-3 py-2 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-[#0822A0] rounded-lg transition-colors flex items-center gap-2">
+                  <i class="fa-solid fa-cubes text-brand-cyan"></i> Hierro
+                </a>
+                <a href="javascript:void(0)" onclick="scrollToCategory(1)" class="px-3 py-2 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-[#0822A0] rounded-lg transition-colors flex items-center gap-2">
+                  <i class="fa-solid fa-vector-square text-brand-royal"></i> Aluminio
+                </a>
+                <a href="javascript:void(0)" onclick="scrollToCategory(2)" class="px-3 py-2 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-[#0822A0] rounded-lg transition-colors flex items-center gap-2">
+                  <i class="fa-regular fa-square text-emerald-500"></i> Vidrio
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <a href="javascript:void(0)" onclick="scrollToCotizador()" class="px-3 py-2 rounded-lg hover:text-[#0822A0] hover:bg-slate-100 transition-colors">Cotizador Express</a>
+          <a href="#pedidos" class="px-3 py-2 rounded-lg hover:text-[#0822A0] hover:bg-slate-100 transition-colors">Mis Pedidos</a>
+          <a href="#sobre-nosotros" class="px-3 py-2 rounded-lg hover:text-[#0822A0] hover:bg-slate-100 transition-colors">Sobre Nosotros</a>
+        </nav>
+
+        <div class="flex items-center gap-2 sm:gap-3">
+          <div class="hidden sm:flex items-center gap-2">
+            <button onclick="openAuthModal('login')" class="px-3.5 py-2 text-xs font-extrabold text-[#0822A0] hover:bg-blue-50 rounded-xl transition-colors cursor-pointer">
+              Iniciar Sesión
+            </button>
+            <button onclick="openAuthModal('register')" class="px-4 py-2 bg-[#0822A0] hover:bg-blue-700 text-white text-xs font-extrabold rounded-xl shadow-md transition-all cursor-pointer">
+              Registro
+            </button>
+          </div>
+
+          <div class="relative">
+            <button onclick="toggleNotificationsDropdown()" class="relative p-2.5 text-slate-700 hover:text-[#0822A0] hover:bg-slate-100 rounded-xl transition-colors flex items-center justify-center cursor-pointer">
+              <i class="fa-regular fa-bell text-lg text-[#0822A0]"></i>
+              <span id="notifCountBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white shadow-sm">2</span>
+            </button>
+
+            <div id="notifDropdown" class="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 hidden z-50 overflow-hidden transform origin-top-right transition-all">
+              <div class="p-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                  <i class="fa-solid fa-bell text-brand-cyan"></i>
+                  <span class="font-extrabold text-xs uppercase tracking-wider">Notificaciones de Taller</span>
+                </div>
+                <button onclick="markAllNotificationsRead()" class="text-[10px] text-brand-cyan hover:underline font-bold cursor-pointer">
+                  Marcar leídas
+                </button>
+              </div>
+
+              <div id="notifListContainer" class="max-h-80 overflow-y-auto divide-y divide-slate-100">
+                <div class="p-3.5 hover:bg-blue-50/50 transition-colors flex gap-3 items-start bg-blue-50/20">
+                  <div class="w-8 h-8 rounded-xl bg-blue-600/10 text-[#0822A0] flex items-center justify-center shrink-0 mt-0.5">
+                    <i class="fa-solid fa-gears text-sm"></i>
+                  </div>
+                  <div class="flex-1 space-y-1">
+                    <div class="flex justify-between items-center">
+                      <span class="text-xs font-black text-slate-900">Orden ORD-2026-88</span>
+                      <span class="text-[10px] text-slate-400">Hace 10 min</span>
+                    </div>
+                    <p class="text-[11px] text-slate-600 leading-tight">Tu portón ha iniciado la Fase de Corte CNC en taller.</p>
+                  </div>
+                </div>
+
+                <div class="p-3.5 hover:bg-blue-50/50 transition-colors flex gap-3 items-start bg-blue-50/20">
+                  <div class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+                    <i class="fa-solid fa-receipt text-sm"></i>
+                  </div>
+                  <div class="flex-1 space-y-1">
+                    <div class="flex justify-between items-center">
+                      <span class="text-xs font-black text-slate-900">Anticipo Aprobado</span>
+                      <span class="text-[10px] text-slate-400">Ayer</span>
+                    </div>
+                    <p class="text-[11px] text-slate-600 leading-tight">Se confirmó el pago del 50% para la orden en curso.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-3 bg-slate-50 border-t border-slate-100 text-center">
+                <a href="#pedidos" onclick="toggleNotificationsDropdown()" class="text-[11px] font-bold text-[#0822A0] hover:underline">
+                  Ver historial completo de pedidos →
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <button onclick="toggleCartDrawer()" class="relative p-2.5 text-slate-700 hover:text-[#0822A0] hover:bg-slate-100 rounded-xl transition-colors flex items-center gap-2 cursor-pointer">
+            <div class="relative">
+              <i class="fa-solid fa-cart-shopping text-lg text-[#0822A0]"></i>
+              <span id="cartCountBadge" class="absolute -top-2 -right-2 bg-blue-600 text-white text-[10px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow-sm">0</span>
+            </div>
+            <span class="hidden sm:inline text-xs font-bold text-slate-700" id="cartTotalHeader">$0 COP</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- SECCIÓN HERO -->
+    <section id="inicio" class="boon-hero-wrapper">
+      <div class="boon-sticky-container px-4">
+        <div class="absolute inset-0 bg-[#0A192F] bg-[linear-gradient(to_right,#1e3a8a20_1px,transparent_1px),gradient(to_bottom,#1e3a8a20_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+
+        <div id="hero-content-layer" class="z-20 flex flex-col items-center justify-center text-center max-w-5xl mx-auto space-y-8 select-none pointer-events-auto transition-all duration-300">
+          <h1 class="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white leading-none">
+            <span id="title-left" class="split-left inline-block">Estructuras Metálicas &nbsp;</span>
+            <span id="title-right" class="split-right inline-block">& Vidriería</span>
+          </h1>
+
+          <p id="sub-desc" class="split-left text-sm sm:text-lg text-slate-300 max-w-3xl mx-auto font-normal leading-relaxed">
+            Diseño, corte y fabricación industrial en <strong class="text-white font-bold">Hierro, Aluminio y Vidrio</strong>. Desde Jericó, Antioquia para proyectos arquitectónicos e industriales.
+          </p>
+
+          <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2 w-full">
+            <div id="btn-left" class="split-left w-full sm:w-auto">
+              <button onclick="scrollToCotizador()" class="w-full sm:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2.5 cursor-pointer">
+                <i class="fa-solid fa-calculator text-base"></i> Cotizador Express
+              </button>
+            </div>
+            <div id="btn-right" class="split-right w-full sm:w-auto">
+              <button onclick="scrollToCategory(0)" class="w-full sm:w-auto px-8 py-4 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-600/60 text-white font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2.5 backdrop-blur-sm cursor-pointer">
+                <i class="fa-solid fa-layer-group text-base"></i> Ver Categorías
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="behind-categories-layer" class="absolute inset-0 z-10 flex flex-col items-center justify-between pt-12 sm:pt-16 pb-12 px-4 pointer-events-none opacity-0 scale-95">
+          <div class="text-center pt-4 sm:pt-6">
+            <span class="text-xs font-extrabold text-brand-cyan tracking-widest uppercase block mb-1">Catálogo</span>
+            <h2 id="stanzza-title" class="text-3xl sm:text-5xl font-black text-white tracking-wide uppercase transition-all duration-300">
+              HIERRO
+            </h2>
+          </div>
+
+          <div class="relative w-full flex-1 max-h-[55vh] flex items-center justify-center my-4 overflow-hidden">
+            <div id="stanzza-img-box" class="relative rounded-3xl overflow-hidden shadow-2xl transition-all duration-100 ease-out border border-white/20 bg-slate-900" style="width: 320px; height: 230px;">
+              <img id="stanzza-img" src="https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=80" alt="Categoría" class="w-full h-full object-cover">
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
+            </div>
+          </div>
+
+          <div class="pb-4 w-full max-w-md mx-auto pointer-events-auto flex items-center gap-3">
+            <button onclick="scrollToCotizador()" class="flex-1 py-3.5 bg-[#0822A0] hover:bg-blue-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-2xl border border-blue-400/40 transition-all flex items-center justify-center gap-2 cursor-pointer">
+              <i class="fa-solid fa-sliders text-brand-cyan"></i> Cotización Personalizada
+            </button>
+            <button onclick="openGalleryModalForCurrentCategory()" class="flex-1 py-3.5 bg-slate-800 hover:bg-slate-700 text-brand-cyan font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-2xl border border-brand-cyan/40 transition-all flex items-center justify-center gap-2 cursor-pointer">
+              <i class="fa-solid fa-images"></i> Ver Catálogo
+            </button>
+          </div>
+        </div>
+
+        <div id="iron-gate-container" class="absolute inset-0 z-20 pointer-events-none opacity-0 flex">
+          <div id="gate-door-left" class="finca-gate-door w-1/2 h-full border-r-8 border-blue-950 shadow-2xl flex flex-col justify-between p-3 sm:p-6 relative overflow-hidden">
+            <div class="relative z-10 border-8 border-blue-900/80 h-full w-full rounded-lg flex flex-col justify-between overflow-hidden shadow-2xl bg-slate-950">
+              <div class="h-1/2 w-full wood-slats-pattern relative border-b-8 border-blue-950"></div>
+              <div class="h-12 w-full rivet-bar border-y-2 border-blue-500/30"></div>
+              <div class="h-1/2 w-full wood-slats-pattern relative border-t-8 border-blue-950"></div>
+            </div>
+          </div>
+
+          <div id="gate-door-right" class="finca-gate-door w-1/2 h-full border-l-8 border-blue-950 shadow-2xl flex flex-col justify-between p-3 sm:p-6 relative overflow-hidden">
+            <div class="relative z-10 border-8 border-blue-900/80 h-full w-full rounded-lg flex flex-col justify-between overflow-hidden shadow-2xl bg-slate-950">
+              <div class="h-1/2 w-full wood-slats-pattern relative border-b-8 border-blue-950"></div>
+              <div class="h-12 w-full rivet-bar border-y-2 border-blue-500/30"></div>
+              <div class="h-1/2 w-full wood-slats-pattern relative border-t-8 border-blue-950"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="revealed-cotizador-layer" class="absolute inset-0 z-20 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+          <div class="w-full max-w-6xl bg-slate-900/95 backdrop-blur-xl border border-blue-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl overflow-y-auto max-h-[90vh] no-scrollbar">
+            
+            <div class="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4 border-b border-slate-800 pb-4">
+              <div>
+                <span class="text-xs font-bold text-brand-cyan uppercase tracking-widest block mb-1">Consola Oficial Acevedo</span>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Cotizador Inteligente de Estructuras</h2>
+              </div>
+              <button onclick="resetQuoteForm()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-blue-300 rounded-xl transition-colors border border-slate-700 flex items-center gap-2 self-start md:self-auto">
+                <i class="fa-solid fa-rotate-left"></i> Reiniciar
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              <div class="lg:col-span-7 space-y-6">
+                <div>
+                  <label class="block text-xs font-extrabold text-brand-cyan uppercase tracking-wider mb-3">
+                    1. Seleccione el Tipo de Proyecto
+                  </label>
+                  <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5" id="productSelector">
+                    <button type="button" onclick="selectProduct('porton', this)" class="product-btn p-3 rounded-xl border border-blue-500 bg-blue-600/30 text-white font-bold text-xs flex flex-col items-center gap-1.5 transition-all">
+                      <i class="fa-solid fa-warehouse text-xl text-brand-cyan"></i>
+                      <span>Portón / Garaje</span>
+                    </button>
+                    <button type="button" onclick="selectProduct('puerta', this)" class="product-btn p-3 rounded-xl border border-slate-700 bg-slate-900/50 text-slate-300 font-bold text-xs flex flex-col items-center gap-1.5 hover:border-slate-500 transition-all">
+                      <i class="fa-solid fa-door-closed text-xl text-blue-400"></i>
+                      <span>Puerta</span>
+                    </button>
+                    <button type="button" onclick="selectProduct('cabina', this)" class="product-btn p-3 rounded-xl border border-slate-700 bg-slate-900/50 text-slate-300 font-bold text-xs flex flex-col items-center gap-1.5 hover:border-slate-500 transition-all">
+                      <i class="fa-solid fa-shower text-xl text-teal-400"></i>
+                      <span>Cabina Baño</span>
+                    </button>
+                    <button type="button" onclick="selectProduct('ventana', this)" class="product-btn p-3 rounded-xl border border-slate-700 bg-slate-900/50 text-slate-300 font-bold text-xs flex flex-col items-center gap-1.5 hover:border-slate-500 transition-all">
+                      <i class="fa-solid fa-window-maximize text-xl text-indigo-400"></i>
+                      <span>Ventana</span>
+                    </button>
+                    <button type="button" onclick="selectProduct('encerramiento', this)" class="product-btn p-3 rounded-xl border border-slate-700 bg-slate-900/50 text-slate-300 font-bold text-xs flex flex-col items-center gap-1.5 hover:border-slate-500 transition-all">
+                      <i class="fa-solid fa-border-all text-xl text-amber-400"></i>
+                      <span>Encerramiento</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-extrabold text-blue-300 uppercase tracking-wider mb-3">
+                    2. Seleccione el Material / Especificación
+                  </label>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" id="materialSelectorContainer"></div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-extrabold text-blue-300 uppercase tracking-wider mb-3">
+                    3. Dimensiones Estimadas
+                  </label>
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label class="block text-[11px] font-semibold text-slate-400 mb-1">Alto (Metros) *</label>
+                      <input type="number" id="inputAlto" value="2.4" step="0.1" min="0.5" oninput="calculateQuote()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white text-sm font-bold focus:outline-none focus:border-brand-cyan">
+                    </div>
+                    <div>
+                      <label class="block text-[11px] font-semibold text-slate-400 mb-1">Ancho (Metros) *</label>
+                      <input type="number" id="inputAncho" value="3.0" step="0.1" min="0.5" oninput="calculateQuote()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white text-sm font-bold focus:outline-none focus:border-brand-cyan">
+                    </div>
+                    <div>
+                      <label class="block text-[11px] font-semibold text-slate-400 mb-1">Calibre / Calidad</label>
+                      <input type="number" id="inputEspesor" value="14" step="1" min="1" oninput="calculateQuote()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white text-sm font-bold focus:outline-none focus:border-brand-cyan">
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-extrabold text-blue-300 uppercase tracking-wider mb-2">
+                    4. Adjunte Fotografía o Plano (Opcional)
+                  </label>
+                  <div class="border-2 border-dashed border-slate-700 hover:border-brand-cyan rounded-2xl p-3 text-center bg-slate-950/40 transition-all cursor-pointer relative group">
+                    <input type="file" id="fileUpload" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="handleFileUpload(this)">
+                    <div class="space-y-1">
+                      <i class="fa-solid fa-cloud-arrow-up text-xl text-blue-400 group-hover:scale-110 transition-transform"></i>
+                      <div class="text-xs font-bold text-white" id="fileNameLabel">Cargar Plano CAD / Foto de referencia</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="lg:col-span-5">
+                <div class="bg-gradient-to-b from-slate-800 to-blue-950 rounded-2xl p-6 border border-blue-500/40 shadow-2xl flex flex-col justify-between h-full space-y-6">
+                  <div>
+                    <div class="flex items-center justify-between pb-4 border-b border-slate-700">
+                      <h3 class="font-extrabold text-white text-base">Resumen Presupuestal</h3>
+                      <span class="text-[10px] font-bold text-brand-cyan bg-blue-900/60 px-2.5 py-1 rounded-full border border-blue-400/30">Cálculo en Tiempo Real</span>
+                    </div>
+
+                    <div class="py-4 space-y-3 text-xs sm:text-sm">
+                      <div class="flex justify-between">
+                        <span class="text-slate-300">Proyecto Seleccionado:</span>
+                        <span class="font-bold text-brand-cyan" id="summaryProduct">Portón / Garaje</span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span class="text-slate-300">Material / Especificación:</span>
+                        <span class="font-bold text-white" id="summaryMaterial">Hierro Heavy + Madera</span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span class="text-slate-300">Área Estimada:</span>
+                        <span class="font-bold text-slate-200" id="summaryArea">7.20 m²</span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span class="text-slate-300">Tarifa Promedio m²:</span>
+                        <span class="font-bold text-slate-200" id="summaryRate">$ 280.000 COP</span>
+                      </div>
+                      <div class="pt-3 border-t border-slate-700 flex justify-between items-baseline">
+                        <span class="text-sm font-extrabold text-white">Costo Total:</span>
+                        <span class="text-xl sm:text-2xl font-black text-white" id="summaryTotal">$ 2.016.000 COP</span>
+                      </div>
+                    </div>
+
+                    <div class="bg-emerald-950/60 border border-emerald-500/50 rounded-xl p-3.5 space-y-1">
+                      <div class="text-[10px] sm:text-xs font-extrabold text-emerald-400 uppercase tracking-wide flex items-center gap-1.5">
+                        <i class="fa-solid fa-shield-halved"></i> Anticipo Requerido (50%)
+                      </div>
+                      <div class="text-lg sm:text-xl font-black text-emerald-300" id="summaryAdvance">
+                        $ 1.008.000 COP
+                      </div>
+                    </div>
+                  </div>
+
+                  <button onclick="addQuoteToCart()" class="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="fa-solid fa-circle-check"></i> Añadir Cotización al Carrito
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <p id="boon-scroll-hint" class="absolute bottom-8 text-xs font-bold text-blue-200 tracking-widest uppercase animate-bounce flex items-center gap-2 z-30">
+          <span>Haz scroll hacia abajo para explorar</span> <i class="fa-solid fa-arrow-down"></i>
+        </p>
+      </div>
+    </section>
+
+    <!-- ESTADO DE PEDIDOS -->
+    <section id="pedidos" class="py-10 sm:py-14 max-w-7xl mx-auto px-4 sm:px-8 relative z-30">
+      <div class="text-center max-w-2xl mx-auto mb-8">
+        <span class="text-xs font-extrabold text-[#0822A0] uppercase tracking-widest block mb-1">Telemetría y Rastreo de Taller</span>
+        <h2 class="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Estado e Historial de Mis Pedidos</h2>
+        <p class="text-slate-500 text-xs sm:text-sm mt-2">Consulte en tiempo real el progreso de fabricación, ensamble y logística de despacho de sus estructuras metálicas.</p>
+      </div>
+
+      <div class="max-w-xl mx-auto mb-8 flex gap-2 p-1.5 bg-white border border-slate-200 rounded-2xl shadow-sm focus-within:ring-2 focus-within:ring-brand-royal transition-all">
+        <div class="flex items-center pl-4 text-slate-400">
+          <i class="fa-solid fa-barcode text-lg"></i>
+        </div>
+        <input type="text" id="orderInput" value="ORD-2026-88" placeholder="Ingrese N° de Orden (ej. ORD-2026-88)" class="flex-1 bg-transparent px-2 py-3 text-sm font-extrabold text-slate-800 uppercase focus:outline-none">
+        <button onclick="buscarOrden()" class="px-6 py-3 bg-[#0822A0] hover:bg-blue-700 text-white text-xs font-extrabold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer">
+          <i class="fa-solid fa-magnifying-glass"></i> Consultar
+        </button>
+      </div>
+
+      <div id="orderCard" class="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden max-w-5xl mx-auto transition-all">
+        <div class="p-6 sm:p-8 bg-gradient-to-r from-slate-900 via-slate-800 to-[#0822A0] text-white flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="bg-blue-500/30 text-brand-cyan text-[10px] font-black tracking-widest uppercase px-2.5 py-1 rounded-md border border-blue-400/30">Orden de Trabajo Activa</span>
+              <span class="text-xs text-slate-300 font-semibold" id="orderDate">Fecha Emisión: 18 Sep, 2026</span>
+            </div>
+            <h3 class="text-xl sm:text-2xl font-black tracking-wide" id="orderTitle">ORD-2026-88 — Portón Finca Campestre</h3>
+            <p class="text-xs text-slate-300 flex items-center gap-2" id="orderSpec">
+              <i class="fa-solid fa-layer-group text-brand-cyan"></i> Hierro Heavy + Madera de Teca &nbsp;|&nbsp; 7.20 m² (2.4m x 3.0m)
+            </p>
+          </div>
+
+          <div class="flex flex-col items-start md:items-end gap-1 border-t md:border-t-0 border-slate-700/80 pt-4 md:pt-0">
+            <span class="text-[10px] font-extrabold text-slate-300 uppercase tracking-widest">Etapa Actual</span>
+            <span class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-xs font-black" id="orderBadge">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+              <span id="orderStageName">Fase 3: En Fabricación CNC</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="p-6 sm:p-10 border-b border-slate-100 bg-slate-50/50">
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-6 relative">
+            <div class="flex sm:flex-col items-center sm:text-center gap-4 sm:gap-2 relative z-10">
+              <div class="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-emerald-500/20 shrink-0">
+                <i class="fa-solid fa-check"></i>
+              </div>
+              <div class="sm:pt-1">
+                <h4 class="text-xs font-extrabold text-slate-900">1. Solicitud</h4>
+                <p class="text-[11px] text-slate-500">Recibido en Sistema</p>
+                <span class="text-[10px] font-bold text-emerald-600 block mt-0.5">Completado (18 Sep)</span>
+              </div>
+            </div>
+
+            <div class="flex sm:flex-col items-center sm:text-center gap-4 sm:gap-2 relative z-10">
+              <div class="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-emerald-500/20 shrink-0">
+                <i class="fa-solid fa-check"></i>
+              </div>
+              <div class="sm:pt-1">
+                <h4 class="text-xs font-extrabold text-slate-900">2. Cotización</h4>
+                <p class="text-[11px] text-slate-500">Abono 50% Confirmado</p>
+                <span class="text-[10px] font-bold text-emerald-600 block mt-0.5">Completado (19 Sep)</span>
+              </div>
+            </div>
+
+            <div class="flex sm:flex-col items-center sm:text-center gap-4 sm:gap-2 relative z-10">
+              <div class="w-12 h-12 rounded-2xl bg-[#0822A0] text-white flex items-center justify-center font-bold text-lg shadow-lg shadow-blue-900/30 ring-4 ring-blue-100 shrink-0 animate-bounce">
+                <i class="fa-solid fa-gears"></i>
+              </div>
+              <div class="sm:pt-1">
+                <h4 class="text-xs font-extrabold text-[#0822A0]">3. Fabricación</h4>
+                <p class="text-[11px] font-bold text-blue-900">Corte y Ensamble CNC</p>
+                <span class="text-[10px] font-extrabold text-blue-600 block mt-0.5">En Proceso (Hoy)</span>
+              </div>
+            </div>
+
+            <div class="flex sm:flex-col items-center sm:text-center gap-4 sm:gap-2 relative z-10 opacity-50">
+              <div class="w-12 h-12 rounded-2xl bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-lg shrink-0">
+                <i class="fa-solid fa-truck-ramp-box"></i>
+              </div>
+              <div class="sm:pt-1">
+                <h4 class="text-xs font-extrabold text-slate-700">4. Despacho</h4>
+                <p class="text-[11px] text-slate-500">Entrega en Sitio</p>
+                <span class="text-[10px] font-bold text-slate-400 block mt-0.5">Estimado: 24 Sep</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div class="lg:col-span-7 space-y-4">
+            <h4 class="text-xs font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+              <i class="fa-solid fa-clock-rotate-left text-brand-royal"></i> Bitácora en Vivo del Taller
+            </h4>
+            <div class="space-y-4 relative border-l-2 border-slate-200 ml-3 pl-6 pt-2">
+              <div class="relative group">
+                <div class="absolute -left-[31px] top-1 w-3.5 h-3.5 rounded-full bg-[#0822A0] ring-4 ring-white"></div>
+                <div class="bg-blue-50/60 border border-blue-100 rounded-2xl p-4">
+                  <div class="flex items-center justify-between text-xs mb-1">
+                    <span class="font-black text-[#0822A0]">Corte Plasma CNC y Preparación de Perfiles</span>
+                    <span class="text-[10px] text-slate-400 font-semibold">21 Sep - 10:30 AM</span>
+                  </div>
+                  <p class="text-xs text-slate-600">Se han cortado los perfiles estructurales de hierro calibre 14. Inicio del proceso de ensamble de marco y bisagras reforzadas.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="lg:col-span-5 space-y-6">
+            <div class="bg-slate-900 text-white rounded-2xl p-6 shadow-md space-y-4 border border-slate-800">
+              <h4 class="text-xs font-extrabold text-brand-cyan uppercase tracking-wider pb-3 border-b border-slate-800 flex items-center justify-between">
+                <span>Estado Financiero</span>
+                <i class="fa-solid fa-receipt"></i>
+              </h4>
+              <div class="space-y-2.5 text-xs">
+                <div class="flex justify-between text-slate-300">
+                  <span>Valor Total Proyecto:</span>
+                  <span class="font-extrabold text-white">$ 2.016.000 COP</span>
+                </div>
+                <div class="flex justify-between text-emerald-400">
+                  <span>Anticipo Pagado (50%):</span>
+                  <span class="font-extrabold">$ 1.008.000 COP</span>
+                </div>
+                <div class="flex justify-between text-amber-300 pt-2 border-t border-slate-800 font-bold">
+                  <span>Saldo Contra-Entrega:</span>
+                  <span class="text-sm font-black">$ 1.008.000 COP</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SOBRE NOSOTROS -->
+    <section id="sobre-nosotros" class="about-section-wrapper py-20 px-4 sm:px-8 border-t border-blue-900/60 relative z-30">
+      <div class="max-w-7xl mx-auto">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          <div class="lg:col-span-6 space-y-8 about-animate-left">
+            <div>
+              <span class="text-xs font-extrabold text-brand-cyan tracking-[0.3em] uppercase block mb-3">TRADICIÓN E INNOVACIÓN</span>
+              <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
+                Maestros Artesanos en Jericó, Antioquia
+              </h2>
+              <p class="text-blue-100 text-sm sm:text-base mt-4 leading-relaxed font-normal">
+                Industrias Acevedo combina la herencia técnica de la carpintería metálica artesanal con la precisión del mecanizado moderno. Atendemos proyectos estructurales en Hierro, soluciones en Aluminio y vidriería.
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="bg-blue-950/60 border border-blue-400/30 rounded-2xl p-5 backdrop-blur-sm shadow-xl flex flex-col justify-between">
+                <div class="w-10 h-10 rounded-xl bg-brand-cyan/20 text-brand-cyan flex items-center justify-center mb-3">
+                  <i class="fa-solid fa-industry text-lg"></i>
+                </div>
+                <h3 class="text-sm font-extrabold text-white">Taller Propio 24/7</h3>
+              </div>
+
+              <div class="bg-blue-950/60 border border-blue-400/30 rounded-2xl p-5 backdrop-blur-sm shadow-xl flex flex-col justify-between">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-3">
+                  <i class="fa-solid fa-award text-lg"></i>
+                </div>
+                <h3 class="text-sm font-extrabold text-white">Calidad Certificada</h3>
+              </div>
+            </div>
+
+            <div>
+              <a href="javascript:void(0)" onclick="scrollToCotizador()" class="inline-flex items-center gap-2 px-6 py-3.5 bg-white hover:bg-blue-50 text-[#0822A0] text-xs font-extrabold rounded-xl shadow-lg transition-all cursor-pointer">
+                <span>Conocer Más Sobre Nosotros</span> <i class="fa-solid fa-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+
+          <div class="lg:col-span-6 about-animate-right">
+            <div class="relative rounded-3xl overflow-hidden shadow-2xl border border-white/20 bg-slate-900 group">
+              <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1200&q=80" alt="Taller Industrias Acevedo" class="w-full h-[400px] object-cover group-hover:scale-105 transition-transform duration-700">
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent"></div>
+              
+              <div class="absolute bottom-6 left-6 right-6 p-4 bg-slate-900/90 backdrop-blur-md rounded-2xl border border-blue-500/30 shadow-xl">
+                <div class="text-xs font-extrabold text-white mb-1">Planta de Procesamiento Regional</div>
+                <p class="text-[11px] text-slate-300">Jericó, Antioquia — Envíos e Instalaciones en toda la subregión del Suroeste.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PIE DE PÁGINA -->
+    <footer id="main-footer-section" class="bg-slate-950 text-slate-300 py-16 border-t border-slate-800 relative z-30 footer-animate">
+      <div class="max-w-7xl mx-auto px-4 sm:px-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 pb-12 border-b border-slate-800/80">
+          <div class="space-y-3">
+            <h4 class="text-white text-base font-extrabold tracking-wide">INDUSTRIAS ACEVEDO</h4>
+            <p class="text-sm text-slate-400 leading-relaxed font-normal">
+              Fabricación de estructuras metálicas, puertas, ventanas y cristalería con precisión digital.
+            </p>
+          </div>
+
+          <div class="space-y-3">
+            <h4 class="text-white text-base font-extrabold tracking-wide">Líneas de Producción</h4>
+            <ul class="space-y-2 text-sm text-slate-400 font-normal">
+              <li><a href="javascript:void(0)" onclick="scrollToCategory(0)" class="hover:text-brand-cyan transition-colors">Carpintería en Hierro</a></li>
+              <li><a href="javascript:void(0)" onclick="scrollToCategory(1)" class="hover:text-brand-cyan transition-colors">Sistemas de Aluminio</a></li>
+              <li><a href="javascript:void(0)" onclick="scrollToCategory(2)" class="hover:text-brand-cyan transition-colors">Vidrio Templado y Biselado</a></li>
+            </ul>
+          </div>
+
+          <div class="space-y-3">
+            <h4 class="text-white text-base font-extrabold tracking-wide">Atención Comercial</h4>
+            <p class="text-sm text-slate-400 font-normal">Jericó, Antioquia, Colombia</p>
+            <p class="text-sm text-slate-400 font-normal">PBX: +57 (604) 000-0000</p>
+            <p class="text-sm text-slate-400 font-normal">contacto@industriasacevedo.com</p>
+          </div>
+
+          <div class="space-y-3">
+            <h4 class="text-white text-base font-extrabold tracking-wide">Seguridad SSL Certificada</h4>
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center gap-3 shadow-lg">
+              <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                <i class="fa-solid fa-lock text-lg"></i>
+              </div>
+              <div>
+                <div class="text-sm font-bold text-white">RNF14: SSL / HTTPS 256-Bit</div>
+                <div class="text-xs text-slate-400">Navegación y pagos seguros</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-400">
+          <div>© 2026 Industrias Acevedo S.A.S. Todos los derechos reservados.</div>
+          <div>Cumplimiento estricto de la <strong class="text-slate-200">Ley 1581 de 2012 (Habeas Data - RNF13)</strong> sobre protección de datos personales en Colombia.</div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- AGENTE DE CONTACTO FLOTANTE -->
+  <div class="fixed bottom-6 right-6 z-50 flex items-center gap-3 group">
+    <div class="hidden sm:group-hover:flex items-center bg-slate-900 text-white text-xs font-bold py-2.5 px-4 rounded-2xl shadow-xl border border-blue-500/40 animate-fade-in">
+      <span>¿Necesitas asesoría en vidrio, aluminio o hierro?</span>
+    </div>
+    <a href="https://wa.me/573000000000" target="_blank" class="w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full flex items-center justify-center shadow-2xl shadow-blue-600/50 border-2 border-white/30 transition-all hover:scale-110 cursor-pointer">
+      <i class="fa-solid fa-headset text-2xl"></i>
+    </a>
+  </div>
+
+  <!-- COOKIES -->
+  <div id="cookieConsentBanner" class="fixed bottom-6 left-6 z-50 max-w-sm bg-slate-900/95 backdrop-blur-xl border border-blue-500/30 rounded-3xl p-5 shadow-2xl text-white transition-all duration-500 transform translate-y-0 opacity-100">
+    <div class="flex items-start gap-3.5">
+      <div class="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-400/30 text-brand-cyan flex items-center justify-center shrink-0 mt-0.5">
+        <i class="fa-solid fa-cookie-bite text-lg"></i>
+      </div>
+      <div class="space-y-2">
+        <h4 class="text-xs font-extrabold text-white uppercase tracking-wider">Aviso de Cookies y Privacidad</h4>
+        <p class="text-[11px] text-slate-300 leading-relaxed">
+          Utilizamos cookies propias y de terceros para optimizar tu experiencia y analizar el tráfico de nuestro cotizador, en cumplimiento de la política de protección de datos.
+        </p>
+        <div class="flex items-center gap-2 pt-1">
+          <button onclick="acceptCookies()" class="flex-1 py-2 bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-[11px] uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer">
+            Aceptar
+          </button>
+          <button onclick="rejectCookies()" class="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[11px] rounded-xl transition-all border border-slate-700 cursor-pointer">
+            Rechazar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CATÁLOGO -->
+  <div id="galleryModal" class="fixed inset-0 z-50 hidden flex flex-col justify-center items-center">
+    <div class="absolute inset-0 bg-slate-950/85 backdrop-blur-2xl" onclick="closeGalleryModal()"></div>
+    
+    <div class="relative w-full z-15 flex flex-col items-center px-4">
+      <div class="max-w-7xl w-full flex justify-between items-center mb-8 px-6">
+        <div>
+          <span id="galleryModalSubtitle" class="text-xs font-extrabold text-brand-cyan uppercase tracking-widest block mb-1">Catálogo Exclusivo</span>
+          <h3 id="galleryModalTitle" class="text-2xl sm:text-3xl font-black text-white">Galería Fotográfica</h3>
+        </div>
+        <button onclick="closeGalleryModal()" class="w-12 h-12 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white rounded-full flex items-center justify-center cursor-pointer border border-slate-700 shadow-xl transition-all">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </div>
+
+      <div class="w-full overflow-hidden py-4 relative">
+        <div id="marqueeTrackContainer" class="marquee-track flex gap-6 px-4"></div>
+      </div>
+      
+      <p class="text-xs text-slate-400 mt-6 tracking-wide flex items-center gap-2">
+        <i class="fa-solid fa-hand-pointer text-brand-cyan"></i> Coloca el cursor sobre cualquier tarjeta para pausar | Haz clic para ver información ampliada
+      </p>
+    </div>
+  </div>
+
+  <!-- ZOOM MODAL -->
+  <div id="productZoomOverlay" class="fixed inset-0 z-[60] hidden opacity-0 pointer-events-none flex flex-col justify-end sm:justify-center items-center bg-slate-950/95 backdrop-blur-3xl p-4 sm:p-8">
+    <button onclick="closeProductZoom()" class="absolute top-6 right-6 z-20 w-12 h-12 bg-slate-800/80 hover:bg-slate-700 text-white rounded-full flex items-center justify-center cursor-pointer border border-slate-700 shadow-2xl transition-all">
+      <i class="fa-solid fa-xmark text-xl"></i>
+    </button>
+    <div class="max-w-4xl w-full bg-slate-900 border border-blue-500/40 rounded-3xl overflow-hidden shadow-2xl grid grid-cols-1 md:grid-cols-2 max-h-[85vh]">
+      <div class="h-64 md:h-full relative">
+        <img id="zoomProductImg" src="" alt="Detalle" class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent md:hidden"></div>
+      </div>
+      <div class="p-6 sm:p-8 flex flex-col justify-between space-y-6 overflow-y-auto">
+        <div class="space-y-4">
+          <span class="text-xs font-extrabold text-brand-cyan uppercase tracking-widest block">Información Técnica del Producto</span>
+          <h3 id="zoomProductTitle" class="text-2xl sm:text-3xl font-black text-white"></h3>
+          <p id="zoomProductDesc" class="text-sm text-slate-300 leading-relaxed"></p>
+          
+          <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+            <div class="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
+              <i class="fa-solid fa-circle-info text-brand-cyan"></i> Especificaciones de Taller
+            </div>
+            <p class="text-xs text-slate-400">Fabricación a la medida bajo estándares de calidad industrial Acevedo. Garantía directa sobre soldadura, acabados anticorrosivos y herrajes.</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 pt-4 border-t border-slate-800">
+          <button onclick="scrollToCotizador(); closeProductZoom(); closeGalleryModal();" class="flex-1 py-3.5 bg-[#0822A0] hover:bg-blue-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer">
+            <i class="fa-solid fa-calculator text-brand-cyan"></i> Cotizar Esta Medida
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE AUTENTICACIÓN (CONECTADO A ADMIN.HTML + GOOGLE Y APPLE) -->
+  <div id="authModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onclick="closeAuthModal()"></div>
+    <div class="relative bg-slate-900 border border-blue-500/40 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl z-10 text-white">
+      <div class="flex justify-between items-center mb-6 pb-3 border-b border-slate-800">
+        <h3 id="authModalTitle" class="text-lg font-extrabold text-white">Iniciar Sesión</h3>
+        <button onclick="closeAuthModal()" class="text-slate-400 hover:text-white cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <!-- Botones de Autenticación Social (Google / Apple) -->
+      <div class="space-y-2.5 mb-5">
+        <button onclick="handleSocialAuth('Google')" class="w-full py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2.5 border border-slate-200 shadow-sm cursor-pointer">
+          <i class="fa-brands fa-google text-blue-600 text-sm"></i>
+          <span>Continuar con Google</span>
+        </button>
+        <button onclick="handleSocialAuth('Apple')" class="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2.5 border border-slate-700 shadow-sm cursor-pointer">
+          <i class="fa-brands fa-apple text-base"></i>
+          <span>Continuar con Apple</span>
+        </button>
+      </div>
+
+      <!-- Divisor "O" -->
+      <div class="relative flex py-2 items-center mb-4">
+        <div class="flex-grow border-t border-slate-800"></div>
+        <span class="flex-shrink mx-3 text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">o con correo</span>
+        <div class="flex-grow border-t border-slate-800"></div>
+      </div>
+
+      <!-- Formulario Tradicional -->
+      <div class="space-y-4 text-xs">
+        <div id="registerFields" class="hidden space-y-4">
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Nombre Completo</label>
+            <input type="text" placeholder="Ej. Carlos Acevedo" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-brand-cyan">
+          </div>
+        </div>
+        <div>
+          <label class="block text-slate-400 font-bold mb-1">Correo Electrónico</label>
+          <input type="email" id="loginEmailField" placeholder="Usuario" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-brand-cyan">
+        </div>
+        <div>
+          <label class="block text-slate-400 font-bold mb-1">Contraseña</label>
+          <input type="password" id="loginPasswordField" placeholder="••••••••" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-brand-cyan">
+        </div>
+
+        <button onclick="handleAuthSubmit()" class="w-full mt-4 py-3.5 bg-[#0822A0] hover:bg-blue-600 text-white font-extrabold uppercase rounded-xl transition-all shadow-lg cursor-pointer">
+          Continuar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DRAWER CARRITO -->
+  <div id="cartDrawer" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="toggleCartDrawer()"></div>
+    <div class="absolute top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl p-6 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+          <h3 class="font-extrabold text-slate-900 text-lg flex items-center gap-2">
+            <i class="fa-solid fa-cart-shopping text-[#0822A0]"></i> Su Carrito de Compras
+          </h3>
+          <button onclick="toggleCartDrawer()" class="p-2 text-slate-400 hover:text-slate-800 cursor-pointer">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+        <div id="cartItemsList" class="py-6 space-y-4 text-xs text-slate-600">
+          <p class="text-center py-8 text-slate-400">El carrito se encuentra vacío actualmente.</p>
+        </div>
+      </div>
+
+      <div class="border-t border-slate-200 pt-4 space-y-4">
+        <div class="flex justify-between items-baseline font-black text-slate-900 text-base">
+          <span>Subtotal:</span>
+          <span id="cartDrawerSubtotal">$0 COP</span>
+        </div>
+        <button onclick="alert('Iniciando pasarela de pago segura...')" class="w-full py-3.5 bg-[#0822A0] hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-lg transition-all cursor-pointer">
+          Procesar Pedido / Pagar Anticipo →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleNotificationsDropdown() {
+      const dropdown = document.getElementById('notifDropdown');
+      dropdown.classList.toggle('hidden');
+    }
+
+    function markAllNotificationsRead() {
+      document.getElementById('notifCountBadge').innerText = '0';
+      document.getElementById('notifCountBadge').classList.add('hidden');
+      const container = document.getElementById('notifListContainer');
+      const items = container.querySelectorAll('.bg-blue-50\\/20');
+      items.forEach(item => {
+        item.classList.remove('bg-blue-50/20');
+      });
+    }
+
+    window.addEventListener('click', function(e) {
+      const notifBtn = document.querySelector('button[onclick="toggleNotificationsDropdown()"]');
+      const dropdown = document.getElementById('notifDropdown');
+      if (notifBtn && dropdown && !notifBtn.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.add('hidden');
+      }
+    });
+
+    const heroScreen = document.getElementById('hero-logo-screen');
+    let isUnlocked = false;
+
+    function unlockScreen() {
+      if (!isUnlocked) {
+        heroScreen.classList.add('screen-hidden');
+        isUnlocked = true;
+      }
+    }
+
+    window.addEventListener('wheel', (e) => {
+      if (e.deltaY > 0 && !isUnlocked) unlockScreen();
+    }, { passive: true });
+
+    function acceptCookies() {
+      const banner = document.getElementById('cookieConsentBanner');
+      banner.classList.add('translate-y-10', 'opacity-0');
+      setTimeout(() => banner.style.display = 'none', 500);
+      localStorage.setItem('acevedo_cookies_accepted', 'true');
+    }
+
+    function rejectCookies() {
+      const banner = document.getElementById('cookieConsentBanner');
+      banner.classList.add('translate-y-10', 'opacity-0');
+      setTimeout(() => banner.style.display = 'none', 500);
+      localStorage.setItem('acevedo_cookies_accepted', 'false');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      if (localStorage.getItem('acevedo_cookies_accepted')) {
+        document.getElementById('cookieConsentBanner').style.display = 'none';
+      }
+    });
+
+    const catalogData = {
+      HIERRO: [
+        { title: "Portón de Hierro Forjado Heavy", desc: "Acabado con madera texturizada y alta resistencia perimetral, diseñado para fincas y accesos principales exigentes.", img: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=800&q=80" },
+        { title: "Puerta de Seguridad en Hierro", desc: "Estructura blindada con cerradura de alta seguridad y perfilería reforzada de calibre industrial.", img: "https://images.unsplash.com/photo-1541888946425-d0fbb18f1f3e?auto=format&fit=crop&w=800&q=80" },
+        { title: "Rejas y Protectores Antirrobo", desc: "Diseños personalizados en hierro forjado para ventanas y balcones con pintura electrostática anticorrosiva.", img: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80" }
+      ],
+      ALUMINIO: [
+        { title: "Estructuras en Aluminio Arquitectónico", desc: "Perfiles optimizados para ventanería y fachadas comerciales con máxima durabilidad frente al clima.", img: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=800&q=80" },
+        { title: "Ventana Corrediza Serie 7000", desc: "Sistema hermético con aislamiento acústico y térmico superior, ideal para construcciones modernas.", img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80" },
+        { title: "Puerta Divisoria de Aluminio", desc: "Perfiles minimalistas para oficinas y espacios residenciales con acabados de lujo.", img: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80" }
+      ],
+      VIDRIO: [
+        { title: "Vidrio Templado & Cabinas de Baño", desc: "Cristal de seguridad de alto espesor con herrajes importados en acero inoxidable.", img: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80" },
+        { title: "Fachada en Vidrio Templado", desc: "Soluciones estéticas y de control solar para locales comerciales y edificios corporativos.", img: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80" },
+        { title: "Baranda de Vidrio para Balcón", desc: "Paneles de cristal templado autoportantes con sistema de anclaje invisible de alta seguridad.", img: "https://images.unsplash.com/photo-1507089947368-19c1da9775ae?auto=format&fit=crop&w=800&q=80" }
+      ]
+    };
+
+    let activeCategoryKey = 'HIERRO';
+
+    function openGalleryModalForCurrentCategory() {
+      const currentTitle = document.getElementById('stanzza-title').innerText.trim().toUpperCase();
+      activeCategoryKey = catalogData[currentTitle] ? currentTitle : 'HIERRO';
+      
+      document.getElementById('galleryModalSubtitle').innerText = `Catálogo Exclusivo: ${activeCategoryKey}`;
+      document.getElementById('galleryModalTitle').innerText = `Estructuras y Productos en ${activeCategoryKey}`;
+
+      const trackContainer = document.getElementById('marqueeTrackContainer');
+      const items = catalogData[activeCategoryKey] || [];
+      const duplicatedItems = [...items, ...items, ...items];
+
+      trackContainer.innerHTML = duplicatedItems.map((item, index) => `
+        <div onclick="openProductZoom('${encodeURIComponent(item.title)}', '${encodeURIComponent(item.desc)}', '${encodeURIComponent(item.img)}')" class="w-[320px] sm:w-[380px] shrink-0 bg-slate-900/90 rounded-3xl overflow-hidden border border-blue-500/30 shadow-2xl group transition-all duration-300 hover:scale-[1.03] hover:border-brand-cyan cursor-pointer">
+          <div class="h-52 overflow-hidden relative">
+            <img src="${item.img}" alt="${item.title}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
+            <span class="absolute bottom-3 right-3 bg-blue-600/90 text-white text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full shadow-md">Ver Detalle 🔍</span>
+          </div>
+          <div class="p-6 space-y-2">
+            <h4 class="font-extrabold text-base text-white group-hover:text-brand-cyan transition-colors">${item.title}</h4>
+            <p class="text-xs text-slate-300 leading-relaxed line-clamp-2">${item.desc}</p>
+          </div>
+        </div>
+      `).join('');
+
+      document.getElementById('galleryModal').classList.remove('hidden');
+    }
+
+    function closeGalleryModal() {
+      document.getElementById('galleryModal').classList.add('hidden');
+    }
+
+    function openProductZoom(title, desc, img) {
+      document.getElementById('zoomProductTitle').innerText = decodeURIComponent(title);
+      document.getElementById('zoomProductDesc').innerText = decodeURIComponent(desc);
+      document.getElementById('zoomProductImg').src = decodeURIComponent(img);
+      
+      const zoomOverlay = document.getElementById('productZoomOverlay');
+      zoomOverlay.classList.remove('hidden');
+      setTimeout(() => {
+        zoomOverlay.classList.remove('opacity-0', 'pointer-events-none');
+      }, 10);
+    }
+
+    function closeProductZoom() {
+      const zoomOverlay = document.getElementById('productZoomOverlay');
+      zoomOverlay.classList.add('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        zoomOverlay.classList.add('hidden');
+      }, 400);
+    }
+
+    function openAuthModal(mode) {
+      const modal = document.getElementById('authModal');
+      const title = document.getElementById('authModalTitle');
+      const regFields = document.getElementById('registerFields');
+      
+      if(mode === 'login') {
+        title.innerText = 'Iniciar Sesión en Acevedo';
+        regFields.classList.add('hidden');
+      } else {
+        title.innerText = 'Crear Nueva Cuenta';
+        regFields.classList.remove('hidden');
+      }
+      modal.classList.remove('hidden');
+    }
+
+    function closeAuthModal() {
+      document.getElementById('authModal').classList.add('hidden');
+    }
+
+    function handleSocialAuth(provider) {
+      alert(`Iniciando autenticación rápida con ${provider}...`);
+      closeAuthModal();
+    }
+
+    function handleAuthSubmit() {
+      const emailInput = document.getElementById('loginEmailField').value.trim();
+      const passwordInput = document.getElementById('loginPasswordField').value.trim();
+
+      const adminEmail = "admin@industriasacevedo.com";
+      const adminPassword = "AdminPassword2026*";
+
+      if (emailInput === adminEmail && passwordInput === adminPassword) {
+        window.location.href = "Admin.html";
+      } else {
+        alert('¡Acceso procesado con éxito!');
+        closeAuthModal();
+      }
+    }
+
+    const productosData = {
+      porton: {
+        nombre: "Portón / Garaje",
+        altoDef: 2.4,
+        anchoDef: 3.0,
+        materiales: [
+          { name: "Hierro Heavy + Madera", rate: 280000 },
+          { name: "Hierro Forjado Industrial", rate: 240000 },
+          { name: "Aluminio Automatizado", rate: 310000 }
+        ]
+      },
+      puerta: {
+        nombre: "Puerta",
+        altoDef: 2.1,
+        anchoDef: 0.9,
+        materiales: [
+          { name: "Hierro de Seguridad", rate: 210000 },
+          { name: "Aluminio Arquitectónico", rate: 250000 },
+          { name: "Vidrio Templado con Marco", rate: 270000 }
+        ]
+      },
+      cabina: {
+        nombre: "Cabina de Baño",
+        altoDef: 1.9,
+        anchoDef: 1.2,
+        materiales: [
+          { name: "Vidrio Templado 6mm", rate: 190000 },
+          { name: "Vidrio Templado 8mm Esmerilado", rate: 240000 },
+          { name: "Aluminio Acrílico Económico", rate: 130000 }
+        ]
+      },
+      ventana: {
+        nombre: "Ventana",
+        altoDef: 1.2,
+        anchoDef: 1.5,
+        materiales: [
+          { name: "Aluminio Serie 7000", rate: 160000 },
+          { name: "Aluminio Pro Acústico", rate: 220000 },
+          { name: "Hierro Forjado Antirrobo", rate: 180000 }
+        ]
+      },
+      encerramiento: {
+        nombre: "Encerramiento / Balcón",
+        altoDef: 1.1,
+        anchoDef: 4.0,
+        materiales: [
+          { name: "Vidrio Templado + Acero", rate: 290000 },
+          { name: "Hierro Estructural", rate: 195000 }
+        ]
+      }
+    };
+
+    let currentProductKey = 'porton';
+    let currentMaterialName = 'Hierro Heavy + Madera';
+    let currentRate = 280000;
+
+    function selectProduct(productKey, btnElement) {
+      currentProductKey = productKey;
+      const prod = productosData[productKey];
+
+      document.querySelectorAll('.product-btn').forEach(b => {
+        b.classList.remove('border-blue-500', 'bg-blue-600/30', 'text-white');
+        b.classList.add('border-slate-700', 'bg-slate-900/50', 'text-slate-300');
+      });
+      if(btnElement) {
+        btnElement.classList.remove('border-slate-700', 'bg-slate-900/50', 'text-slate-300');
+        btnElement.classList.add('border-blue-500', 'bg-blue-600/30', 'text-white');
+      }
+
+      document.getElementById('inputAlto').value = prod.altoDef;
+      document.getElementById('inputAncho').value = prod.anchoDef;
+
+      const container = document.getElementById('materialSelectorContainer');
+      container.innerHTML = '';
+
+      prod.materiales.forEach((mat, idx) => {
+        const isFirst = idx === 0;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `material-btn p-3 rounded-xl border text-xs font-bold flex justify-between items-center transition-all cursor-pointer ${
+          isFirst ? 'border-blue-500 bg-blue-600/30 text-white' : 'border-slate-700 bg-slate-900/50 text-slate-300 hover:border-slate-500'
+        }`;
+        btn.onclick = function() { selectMaterial(mat.name, mat.rate, this); };
+        btn.innerHTML = `<span>${mat.name}</span><span class="text-[10px] font-extrabold text-brand-cyan">$ ${mat.rate.toLocaleString('es-CO')}/m²</span>`;
+        container.appendChild(btn);
+      });
+
+      selectMaterial(prod.materiales[0].name, prod.materiales[0].rate, container.children[0]);
+    }
+
+    function selectMaterial(matName, rate, btn) {
+      currentMaterialName = matName;
+      currentRate = rate;
+
+      document.querySelectorAll('.material-btn').forEach(b => {
+        b.classList.remove('border-blue-500', 'bg-blue-600/30', 'text-white');
+        b.classList.add('border-slate-700', 'bg-slate-900/50', 'text-slate-300');
+      });
+      if(btn) {
+        btn.classList.remove('border-slate-700', 'bg-slate-900/50', 'text-slate-300');
+        btn.classList.add('border-blue-500', 'bg-blue-600/30', 'text-white');
+      }
+
+      calculateQuote();
+    }
+
+    function calculateQuote() {
+      const alto = parseFloat(document.getElementById('inputAlto').value) || 0;
+      const ancho = parseFloat(document.getElementById('inputAncho').value) || 0;
+      const area = (alto * ancho).toFixed(2);
+      const total = area * currentRate;
+      const advance = total * 0.5;
+
+      document.getElementById('summaryProduct').innerText = productosData[currentProductKey].nombre;
+      document.getElementById('summaryMaterial').innerText = currentMaterialName;
+      document.getElementById('summaryArea').innerText = `${area} m²`;
+      document.getElementById('summaryRate').innerText = `$ ${currentRate.toLocaleString('es-CO')} COP`;
+      document.getElementById('summaryTotal').innerText = `$ ${total.toLocaleString('es-CO')} COP`;
+      document.getElementById('summaryAdvance').innerText = `$ ${advance.toLocaleString('es-CO')} COP`;
+    }
+
+    function resetQuoteForm() {
+      selectProduct('porton', document.querySelectorAll('.product-btn')[0]);
+    }
+
+    function handleFileUpload(input) {
+      if(input.files && input.files[0]) {
+        document.getElementById('fileNameLabel').innerText = `Cargado: ${input.files[0].name}`;
+      }
+    }
+
+    let cart = [];
+
+    function addQuoteToCart() {
+      const alto = parseFloat(document.getElementById('inputAlto').value) || 0;
+      const ancho = parseFloat(document.getElementById('inputAncho').value) || 0;
+      const area = (alto * ancho).toFixed(2);
+      const total = area * currentRate;
+
+      cart.push({
+        title: `${productosData[currentProductKey].nombre} - ${currentMaterialName} (${area} m²)`,
+        price: total,
+        qty: 1
+      });
+
+      updateCartUI();
+      toggleCartDrawer();
+    }
+
+    function updateCartUI() {
+      const count = cart.reduce((acc, item) => acc + item.qty, 0);
+      const subtotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
+
+      document.getElementById('cartCountBadge').innerText = count;
+      document.getElementById('cartTotalHeader').innerText = `$ ${subtotal.toLocaleString('es-CO')} COP`;
+      document.getElementById('cartDrawerSubtotal').innerText = `$ ${subtotal.toLocaleString('es-CO')} COP`;
+
+      const listContainer = document.getElementById('cartItemsList');
+      if (cart.length === 0) {
+        listContainer.innerHTML = `<p class="text-center py-8 text-slate-400">El carrito se encuentra vacío actualmente.</p>`;
+      } else {
+        listContainer.innerHTML = cart.map((item, index) => `
+          <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
+            <div>
+              <div class="font-bold text-slate-800">${item.title}</div>
+              <div class="text-[10px] text-slate-500">${item.qty} x $ ${item.price.toLocaleString('es-CO')} COP</div>
+            </div>
+            <button onclick="removeFromCart(${index})" class="text-red-500 hover:text-red-700 p-1 cursor-pointer">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        `).join('');
+      }
+    }
+
+    function removeFromCart(index) {
+      cart.splice(index, 1);
+      updateCartUI();
+    }
+
+    function toggleCartDrawer() {
+      document.getElementById('cartDrawer').classList.toggle('hidden');
+    }
+
+    const titleLeft = document.getElementById('title-left');
+    const titleRight = document.getElementById('title-right');
+    const subDesc = document.getElementById('sub-desc');
+    const btnLeft = document.getElementById('btn-left');
+    const btnRight = document.getElementById('btn-right');
+    const heroContentLayer = document.getElementById('hero-content-layer');
+    const boonScrollHint = document.getElementById('boon-scroll-hint');
+    const boonWrapper = document.querySelector('.boon-hero-wrapper');
+    const categoriesLayer = document.getElementById('behind-categories-layer');
+
+    const stanzzaTitle = document.getElementById('stanzza-title');
+    const stanzzaImgBox = document.getElementById('stanzza-img-box');
+    const stanzzaImg = document.getElementById('stanzza-img');
+
+    const ironGateContainer = document.getElementById('iron-gate-container');
+    const gateDoorLeft = document.getElementById('gate-door-left');
+    const gateDoorRight = document.getElementById('gate-door-right');
+    const revealedCotizadorLayer = document.getElementById('revealed-cotizador-layer');
+    const fadeOverlay = document.getElementById('fade-overlay');
+
+    const categoriesData = [
+      { name: "HIERRO", img: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=80" },
+      { name: "ALUMINIO", img: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1200&q=80" },
+      { name: "VIDRIO", img: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=80" }
+    ];
+
+    window.addEventListener('scroll', () => {
+      if (!isUnlocked) return;
+
+      const rect = boonWrapper.getBoundingClientRect();
+      const totalScrollable = rect.height - window.innerHeight;
+      if (totalScrollable <= 0) return;
+
+      const scrollProgress = Math.min(Math.max(-rect.top / totalScrollable, 0), 1);
+
+      const translateDist = Math.min(scrollProgress * 300, 150);
+      titleLeft.style.transform = `translateX(-${translateDist}vw)`;
+      titleRight.style.transform = `translateX(${translateDist}vw)`;
+      subDesc.style.transform = `translateX(-${translateDist * 1.2}vw)`;
+      btnLeft.style.transform = `translateX(-${translateDist * 1.5}vw)`;
+      btnRight.style.transform = `translateX(${translateDist * 1.5}vw)`;
+
+      const heroOpacity = Math.max(1 - (scrollProgress * 8), 0);
+      heroContentLayer.style.opacity = heroOpacity;
+      heroContentLayer.style.pointerEvents = heroOpacity > 0.1 ? 'auto' : 'none';
+      boonScrollHint.style.opacity = scrollProgress > 0.03 ? '0' : '1';
+
+      if (scrollProgress >= 0.15 && scrollProgress < 0.55) {
+        const catProgress = (scrollProgress - 0.15) / 0.40;
+        
+        categoriesLayer.style.opacity = Math.min(catProgress * 5, 1);
+        categoriesLayer.style.transform = `scale(${0.98 + (catProgress * 0.02)})`;
+        categoriesLayer.style.pointerEvents = "auto";
+
+        let index = Math.floor(catProgress * 3);
+        if (index >= 3) index = 2;
+        const localProgress = (catProgress * 3) - index;
+
+        if (stanzzaTitle.innerText !== categoriesData[index].name) {
+          stanzzaTitle.innerText = categoriesData[index].name;
+          stanzzaImg.src = categoriesData[index].img;
+        }
+
+        const baseWidth = 320;
+        const baseHeight = 230;
+        const currentWidth = baseWidth + (window.innerWidth - baseWidth) * localProgress;
+        const currentHeight = baseHeight + (window.innerHeight - baseHeight) * localProgress;
+
+        stanzzaImgBox.style.width = `${currentWidth}px`;
+        stanzzaImgBox.style.height = `${currentHeight}px`;
+        stanzzaImgBox.style.borderRadius = localProgress > 0.85 ? `${(1 - localProgress) * 160}px` : `1.5rem`;
+      } else {
+        categoriesLayer.style.opacity = "0";
+        categoriesLayer.style.pointerEvents = "none";
+      }
+
+      if (scrollProgress >= 0.55) {
+        ironGateContainer.style.opacity = "1";
+        const gateProgress = Math.min((scrollProgress - 0.55) / 0.33, 1);
+        const doorMove = Math.min(gateProgress * 100, 100);
+        
+        gateDoorLeft.style.transform = `translateX(-${doorMove}%)`;
+        gateDoorRight.style.transform = `translateX(${doorMove}%)`;
+
+        const cotiOpacity = Math.min(gateProgress * 2.5, 1);
+        revealedCotizadorLayer.style.opacity = cotiOpacity;
+        revealedCotizadorLayer.style.transform = `scale(${0.9 + (cotiOpacity * 0.1)})`;
+        revealedCotizadorLayer.style.pointerEvents = "auto";
+      } else {
+        ironGateContainer.style.opacity = "0";
+        gateDoorLeft.style.transform = `translateX(0%)`;
+        gateDoorRight.style.transform = `translateX(0%)`;
+        revealedCotizadorLayer.style.opacity = "0";
+        revealedCotizadorLayer.style.pointerEvents = "none";
+      }
+
+      if (scrollProgress >= 0.85) {
+        const fadeProgress = (scrollProgress - 0.85) / 0.15;
+        fadeOverlay.style.opacity = Math.min(fadeProgress, 1);
+      } else {
+        fadeOverlay.style.opacity = 0;
+      }
+    });
+
+    const aboutSection = document.getElementById('sobre-nosotros');
+    const footerSection = document.getElementById('main-footer-section');
+    
+    const observerOptions = {
+      root: null,
+      threshold: 0.25
+    };
+
+    const sectionObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('active');
+        }
+      });
+    }, observerOptions);
+
+    sectionObserver.observe(aboutSection);
+    sectionObserver.observe(footerSection);
+
+    function scrollToCategory(catIndex) {
+      if (!isUnlocked) unlockScreen();
+      const rect = boonWrapper.getBoundingClientRect();
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const totalScrollable = boonWrapper.offsetHeight - window.innerHeight;
+      const offsets = [0.20, 0.35, 0.50];
+      window.scrollTo({
+        top: rect.top + scrollTop + (totalScrollable * offsets[catIndex]),
+        behavior: 'smooth'
+      });
+    }
+
+    function scrollToCotizador() {
+      if (!isUnlocked) unlockScreen();
+      const rect = boonWrapper.getBoundingClientRect();
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const totalScrollable = boonWrapper.offsetHeight - window.innerHeight;
+      window.scrollTo({
+        top: rect.top + scrollTop + (totalScrollable * 0.75),
+        behavior: 'smooth'
+      });
+    }
+
+    function buscarOrden() {
+      const code = document.getElementById('orderInput').value.trim().toUpperCase();
+      if (!code) return;
+      
+      const card = document.getElementById('orderCard');
+      card.classList.add('opacity-50', 'scale-98');
+      
+      setTimeout(() => {
+        if(code === 'ORD-2026-88') {
+          document.getElementById('orderTitle').innerText = 'ORD-2026-88 — Portón Finca Campestre';
+          document.getElementById('orderSpec').innerHTML = '<i class="fa-solid fa-layer-group text-brand-cyan"></i> Hierro Heavy + Madera de Teca &nbsp;|&nbsp; 7.20 m² (2.4m x 3.0m)';
+          document.getElementById('orderStageName').innerText = 'Fase 3: En Fabricación CNC';
+        } else {
+          document.getElementById('orderTitle').innerText = `${code} — Estructura Personalizada Acevedo`;
+          document.getElementById('orderSpec').innerHTML = '<i class="fa-solid fa-layer-group text-brand-cyan"></i> Vidrio Templado & Aluminio &nbsp;|&nbsp; En Proceso de Taller';
+          document.getElementById('orderStageName').innerText = 'Fase 2: Cotizado & Validado';
+        }
+        card.classList.remove('opacity-50', 'scale-98');
+      }, 300);
+    }
+
+    selectProduct('porton', document.querySelectorAll('.product-btn')[0]);
+  </script>
+</body>
+</html>
+```[cite: 1]

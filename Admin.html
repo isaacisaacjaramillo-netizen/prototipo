@@ -1,0 +1,2350 @@
+<!DOCTYPE html>
+<html lang="es" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Cerrajería Maestra Pro (AluStruct 5D Engine)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            cobalt: '#0822A0',
+                            royal: '#2563EB',
+                            dark: '#0A192F',
+                            ice: '#F8FAFC',
+                            cyan: '#00F2FE', 
+                            emerald: '#10B981'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Three.js y OrbitControls desde CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(71, 85, 105, 1); }
+
+        /* Estilo Glassmorphism para el panel 5D */
+        .glass-panel {
+            background: rgba(11, 17, 32, 0.88);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Input Range Custom Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #1e293b;
+            border-radius: 3px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -5px;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+            transition: all 0.2s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: #0ea5e9;
+        }
+
+        .metric-card {
+            background: rgba(26, 36, 56, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+        .metric-card:hover {
+            border-color: rgba(56, 189, 248, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .phase-step {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .phase-step.active {
+            background: rgba(14, 165, 233, 0.15);
+            border-color: #38bdf8;
+            color: #38bdf8;
+        }
+
+        #sidebar-panel-5d {
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+        }
+        #sidebar-panel-5d.collapsed {
+            transform: translateX(calc(-100% - 24px));
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        @media print {
+            body * { visibility: hidden; }
+            #printable-receipt, #printable-receipt * { visibility: visible; }
+            #printable-receipt { position: absolute; left: 0; top: 0; width: 100%; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-royal selection:text-white transition-colors duration-300" onclick="closeFloatingInfoOnClickOutside(event)">
+
+    <!-- Modal Login de Control de Acceso por Roles -->
+    <div id="loginModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-md hidden">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md p-8 shadow-2xl text-center space-y-6">
+            <div class="w-16 h-16 rounded-2xl bg-brand-royal/10 border border-brand-royal/20 mx-auto flex items-center justify-center text-brand-royal dark:text-brand-cyan text-2xl">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            <div>
+                <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">Iniciar Sesión por Rol</h2>
+                <p class="text-xs text-slate-500 mt-1">Seleccione el perfil para simular permisos diferenciados</p>
+            </div>
+            <div class="space-y-3 text-left">
+                <div>
+                    <label class="block text-xs font-bold mb-1">Perfil de Usuario</label>
+                    <select id="userRoleSelect" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 rounded-xl text-xs font-semibold">
+                        <option value="admin">Administrador Maestro (Acceso Total)</option>
+                        <option value="cerrajero">Cerrajero Operativo (Sólo Consulta de Caja y Pedidos)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold mb-1">Contraseña</label>
+                    <input type="password" value="123456" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 rounded-xl text-xs" placeholder="••••••••">
+                </div>
+            </div>
+            <button onclick="loginUser()" class="w-full bg-brand-royal hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs transition-colors shadow-lg">Entrar al Sistema</button>
+        </div>
+    </div>
+
+    <!-- TARJETA FLOTANTE DE LECTURA PROTEGIDA (POPOVER) -->
+    <div id="floatingInfoCard" class="fixed z-50 hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-2xl w-80 max-w-sm text-xs space-y-3 backdrop-blur-md">
+        <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
+            <span id="floatingCardTag" class="px-2 py-0.5 bg-brand-royal/10 text-brand-royal dark:text-brand-cyan font-bold rounded text-[10px]">Lectura Protegida</span>
+            <button onclick="closeFloatingInfo()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+        <h4 id="floatingCardTitle" class="font-bold text-sm text-slate-900 dark:text-slate-100">Información del Registro</h4>
+        <div id="floatingCardBody" class="space-y-2 text-slate-600 dark:text-slate-300"></div>
+        <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2" id="floatingCardFooter"></div>
+    </div>
+
+    <!-- Modal Formulario Dinámico CRUD -->
+    <div id="appModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-black/70 backdrop-blur-sm hidden">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modalTitle" class="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square text-brand-royal dark:text-brand-cyan"></i> Formulario
+                </h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div id="modalBody" class="text-sm text-slate-600 dark:text-slate-300 mb-6 space-y-4"></div>
+            <div class="flex justify-end gap-3" id="modalFooter">
+                <button onclick="closeModal()" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-colors">Cancelar</button>
+                <button onclick="saveAdvancedCrud()" id="modalSaveBtn" class="px-4 py-2 bg-brand-royal hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm">Guardar Registro</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL INTEGRADO: ALUSTRUST 5D ENGINE (SEBAS2) -->
+    <div id="modal3D5D" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-[96vw] h-[94vh] shadow-2xl flex flex-col relative overflow-hidden text-slate-100">
+            
+            <!-- Lienzo WebGL Container 3D/5D -->
+            <div id="webgl-container-5d" class="absolute inset-0 z-10 w-full h-full"></div>
+
+            <!-- UI Overlay Header Superior -->
+            <header class="absolute top-4 left-4 z-20 pointer-events-auto flex items-center space-x-3">
+                <button id="btn-toggle-sidebar" title="Ocultar / Mostrar Panel" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-slate-300 hover:text-cyan-400 hover:border-cyan-500/40 transition">
+                    <i class="fa-solid fa-bars-staggered"></i>
+                </button>
+
+                <div class="glass-panel px-4 py-2.5 rounded-xl flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+                        <i class="fa-solid fa-layer-group text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-sm font-bold tracking-wide text-slate-100 uppercase">AluStruct 5D Engine</h1>
+                        <p class="text-xs text-slate-400">Configurador Estructural de Aluminio & Vidrio</p>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Top Floating Toolbar (Quick Toggles) & Close Modal -->
+            <div class="absolute top-4 right-4 z-20 pointer-events-auto flex space-x-2">
+                <button id="btn-wireframe" title="Modo Wireframe" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-slate-300 hover:text-cyan-400 hover:border-cyan-500/40 transition">
+                    <i class="fa-solid fa-vector-square"></i>
+                </button>
+                <button id="btn-grid" title="Alternar Rejilla de Suelo" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-slate-300 hover:text-cyan-400 hover:border-cyan-500/40 transition">
+                    <i class="fa-solid fa-border-all"></i>
+                </button>
+                <button id="btn-reset-cam" title="Restablecer Cámara" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-slate-300 hover:text-cyan-400 hover:border-cyan-500/40 transition">
+                    <i class="fa-solid fa-camera-rotate"></i>
+                </button>
+                <button onclick="closeModal3D()" title="Cerrar Estudio" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-rose-400 hover:bg-rose-500/20 transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Sidebar Control Dashboard (Sebas2) -->
+            <aside id="sidebar-panel-5d" class="absolute left-4 top-20 bottom-4 w-96 z-20 pointer-events-auto glass-panel rounded-2xl flex flex-col overflow-hidden">
+                <!-- Tabs Header -->
+                <div class="flex border-b border-slate-700/50 bg-slate-900/50 p-1.5 gap-1 shrink-0">
+                    <button id="tab-btn-plan" class="tab-btn flex-1 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5" onclick="switchTab5D('plan')">
+                        <i class="fa-solid fa-file-import"></i> Plano
+                    </button>
+                    <button id="tab-btn-geom" class="tab-btn flex-1 py-2 rounded-lg text-xs font-semibold text-cyan-400 bg-slate-800/80 transition flex items-center justify-center gap-1.5" onclick="switchTab5D('geom')">
+                        <i class="fa-solid fa-cube"></i> 3D Geom
+                    </button>
+                    <button id="tab-btn-phase" class="tab-btn flex-1 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5" onclick="switchTab5D('phase')">
+                        <i class="fa-solid fa-timeline"></i> 4D Tiempo
+                    </button>
+                    <button id="tab-btn-metrics" class="tab-btn flex-1 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5" onclick="switchTab5D('metrics')">
+                        <i class="fa-solid fa-chart-pie"></i> 5D Costes
+                    </button>
+                </div>
+
+                <!-- Scrollable Tab Contents -->
+                <div class="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar">
+
+                    <!-- TAB 0: PLANO 2D -->
+                    <div id="tab-plan" class="tab-content-5d hidden space-y-5">
+                        <div>
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-2 flex items-center gap-2">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> Cargar Plano 2D de Referencia
+                            </h3>
+                            <p class="text-xs text-slate-400 mb-4">Sube un archivo de imagen (PNG/JPG) del plano para proyectarlo en el suelo como guía 3D.</p>
+                            
+                            <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-700 hover:border-cyan-500/50 rounded-xl cursor-pointer bg-slate-900/50 transition">
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <i class="fa-solid fa-image text-2xl text-cyan-400 mb-2"></i>
+                                    <p class="text-xs text-slate-300 font-semibold">Seleccionar imagen de plano</p>
+                                    <p class="text-[10px] text-slate-500 mt-1">PNG, JPG, WEBP</p>
+                                </div>
+                                <input type="file" id="input-plan-file" class="hidden" accept="image/*" onchange="handlePlanUpload(event)">
+                            </label>
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-700/50 space-y-4">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-2 flex items-center gap-2">
+                                <i class="fa-solid fa-sliders"></i> Ajustes del Plano 2D
+                            </h3>
+                            <div>
+                                <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                    <span>Opacidad del Plano Guía</span>
+                                    <span id="val-plan-opacity" class="font-mono text-cyan-400">0.70</span>
+                                </div>
+                                <input type="range" id="input-plan-opacity" min="0.0" max="1.0" step="0.05" value="0.70" class="w-full">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 1: 3D GEOMETRÍA & MATERIALES -->
+                    <div id="tab-geom" class="tab-content-5d space-y-5">
+                        <div>
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-3 flex items-center gap-2">
+                                <i class="fa-solid fa-arrows-up-down-left-right"></i> Geometría de la Fachada/Módulo
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                        <span>Ancho Total (X)</span>
+                                        <span id="val-width" class="font-mono text-cyan-400">4.5 m</span>
+                                    </div>
+                                    <input type="range" id="input-width" min="2.0" max="12.0" step="0.5" value="4.5" class="w-full">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                        <span>Altura Total (Y)</span>
+                                        <span id="val-height" class="font-mono text-cyan-400">3.6 m</span>
+                                    </div>
+                                    <input type="range" id="input-height" min="2.0" max="9.0" step="0.3" value="3.6" class="w-full">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                        <span>Profundidad (Z)</span>
+                                        <span id="val-depth" class="font-mono text-cyan-400">3.0 m</span>
+                                    </div>
+                                    <input type="range" id="input-depth" min="1.5" max="8.0" step="0.5" value="3.0" class="w-full">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                        <span>Nº Modulaciones Horizontales (Mullions)</span>
+                                        <span id="val-divisions-x" class="font-mono text-cyan-400">3</span>
+                                    </div>
+                                    <input type="range" id="input-divisions-x" min="1" max="8" step="1" value="3" class="w-full">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                        <span>Nº Travesaños Verticales (Transoms)</span>
+                                        <span id="val-divisions-y" class="font-mono text-cyan-400">2</span>
+                                    </div>
+                                    <input type="range" id="input-divisions-y" min="1" max="5" step="1" value="2" class="w-full">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Perfiles de Aluminio -->
+                        <div class="pt-4 border-t border-slate-700/50">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-3 flex items-center gap-2">
+                                <i class="fa-solid fa-shapes"></i> Perfilería de Aluminio (Alloy 6063-T6)
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                        <span>Ancho de Perfil de Aluminio</span>
+                                        <span id="val-profile-width" class="font-mono text-cyan-400">80 mm</span>
+                                    </div>
+                                    <input type="range" id="input-profile-width" min="40" max="160" step="10" value="80" class="w-full">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                        <span>Profundidad de Perfil (Inercia)</span>
+                                        <span id="val-profile-depth" class="font-mono text-cyan-400">120 mm</span>
+                                    </div>
+                                    <input type="range" id="input-profile-depth" min="60" max="220" step="10" value="120" class="w-full">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                        <span>Acabado del Aluminio</span>
+                                        <span id="val-alu-finish-name" class="font-mono text-cyan-400">Anodizado Plata</span>
+                                    </div>
+                                    <div class="flex gap-2 pt-1">
+                                        <button onclick="setAluFinish(0xd1d5db, 0.85, 0.25, 'Anodizado Plata')" class="w-7 h-7 rounded-full bg-slate-300 border-2 border-cyan-400 focus:outline-none" title="Anodizado Natural"></button>
+                                        <button onclick="setAluFinish(0x1e293b, 0.7, 0.4, 'Negro Mate Electroestático')" class="w-7 h-7 rounded-full bg-slate-800 border-2 border-transparent hover:border-slate-400 focus:outline-none" title="Negro Mate"></button>
+                                        <button onclick="setAluFinish(0xb45309, 0.8, 0.35, 'Bronce Arquitectónico')" class="w-7 h-7 rounded-full bg-amber-700 border-2 border-transparent hover:border-slate-400 focus:outline-none" title="Bronce Anodizado"></button>
+                                        <button onclick="setAluFinish(0xf8fafc, 0.4, 0.5, 'Blanco Lacado RAL 9016')" class="w-7 h-7 rounded-full bg-white border-2 border-transparent hover:border-slate-400 focus:outline-none" title="Blanco RAL 9016"></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Propiedades del Vidrio DGU -->
+                        <div class="pt-4 border-t border-slate-700/50">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-3 flex items-center gap-2">
+                                <i class="fa-solid fa-glasses"></i> Panel de Vidrio DGU / Acristalamiento
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                        <span>Espesor del Vidrio</span>
+                                        <span id="val-glass-thick" class="font-mono text-cyan-400">14 mm</span>
+                                    </div>
+                                    <input type="range" id="input-glass-thick" min="6" max="32" step="2" value="14" class="w-full">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                        <span>Transmisión Lumínica (VLT)</span>
+                                        <span id="val-transmission" class="font-mono text-cyan-400">0.92</span>
+                                    </div>
+                                    <input type="range" id="input-transmission" min="0.0" max="1.0" step="0.05" value="0.92" class="w-full">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                        <span>Tono / Tinte del Vidrio</span>
+                                        <span id="val-glass-tint-name" class="font-mono text-cyan-400">Neutro Incoloro</span>
+                                    </div>
+                                    <div class="flex gap-2 pt-1">
+                                        <button onclick="setGlassTint(0xffffff, 'Neutro Incoloro')" class="w-7 h-7 rounded-full bg-slate-100 border-2 border-cyan-400 focus:outline-none" title="Incoloro"></button>
+                                        <button onclick="setGlassTint(0x93c5fd, 'Azul Control Solar')" class="w-7 h-7 rounded-full bg-blue-300 border-2 border-transparent hover:border-slate-400 focus:outline-none" title="Azul Solar"></button>
+                                        <button onclick="setGlassTint(0xa7f3d0, 'Verde Esmeralda')" class="w-7 h-7 rounded-full bg-emerald-200 border-2 border-transparent hover:border-slate-400 focus:outline-none" title="Verde"></button>
+                                        <button onclick="setGlassTint(0xfde047, 'Bronce Solar')" class="w-7 h-7 rounded-full bg-amber-200 border-2 border-transparent hover:border-slate-400 focus:outline-none" title="Bronce"></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 2: 4D CRONOGRAMA & FASES -->
+                    <div id="tab-phase" class="tab-content-5d hidden space-y-5">
+                        <div>
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-2 flex items-center gap-2">
+                                <i class="fa-solid fa-clock"></i> Secuencia Constructiva (4D)
+                            </h3>
+                            <p class="text-xs text-slate-400 mb-4">Simulación paso a paso de la instalación en obra.</p>
+
+                            <div class="space-y-3 mb-6">
+                                <div class="flex justify-between text-xs text-slate-300">
+                                    <span>Fase Solicitada:</span>
+                                    <span id="val-phase-num" class="font-bold text-cyan-400">Fase 3 - Acristalamiento y Sellado</span>
+                                </div>
+                                <input type="range" id="input-phase" min="1" max="3" step="1" value="3" class="w-full">
+                            </div>
+
+                            <div class="space-y-3">
+                                <div id="phase-card-1" class="phase-step active p-3 rounded-xl border border-slate-700 bg-slate-800/40 flex items-start gap-3">
+                                    <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">1</div>
+                                    <div>
+                                        <h4 class="text-xs font-bold text-slate-200">Platinas de Anclaje de Acero</h4>
+                                        <p class="text-[11px] text-slate-400 mt-0.5">Fijación de consolas metálicas regulables a forjados.</p>
+                                        <span class="inline-block mt-2 text-[10px] bg-slate-700/60 text-slate-300 px-2 py-0.5 rounded font-mono">Semana 1</span>
+                                    </div>
+                                </div>
+
+                                <div id="phase-card-2" class="phase-step active p-3 rounded-xl border border-slate-700 bg-slate-800/40 flex items-start gap-3">
+                                    <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">2</div>
+                                    <div>
+                                        <h4 class="text-xs font-bold text-slate-200">Subestructura de Aluminio</h4>
+                                        <p class="text-[11px] text-slate-400 mt-0.5">Montaje de bastidor tubular de aluminio extruido 6063-T6.</p>
+                                        <span class="inline-block mt-2 text-[10px] bg-slate-700/60 text-slate-300 px-2 py-0.5 rounded font-mono">Semana 2</span>
+                                    </div>
+                                </div>
+
+                                <div id="phase-card-3" class="phase-step active p-3 rounded-xl border border-slate-700 bg-slate-800/40 flex items-start gap-3">
+                                    <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">3</div>
+                                    <div>
+                                        <h4 class="text-xs font-bold text-slate-200">Acristalamiento y Sellado</h4>
+                                        <p class="text-[11px] text-slate-400 mt-0.5">Colocación de vidrios DGU y sellado perimetral EPDM.</p>
+                                        <span class="inline-block mt-2 text-[10px] bg-slate-700/60 text-slate-300 px-2 py-0.5 rounded font-mono">Semana 3 - 4</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: 5D MÉTRICAS & COSTOS -->
+                    <div id="tab-metrics" class="tab-content-5d hidden space-y-5">
+                        <div>
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-3 flex items-center gap-2">
+                                <i class="fa-solid fa-calculator"></i> Presupuesto y Análisis Físico 5D
+                            </h3>
+                            
+                            <div class="grid grid-cols-1 gap-3">
+                                <div class="metric-card p-4 rounded-xl">
+                                    <div class="flex justify-between items-center text-slate-400 text-xs">
+                                        <span>Costo Total Estimado (5D)</span>
+                                        <i class="fa-solid fa-dollar-sign text-emerald-400"></i>
+                                    </div>
+                                    <div id="metric-cost" class="text-2xl font-extrabold text-emerald-400 mt-1 font-mono">$0.00</div>
+                                    <div class="text-[10px] text-slate-500 mt-1 flex justify-between">
+                                        <span>Materiales + Montaje Especializado</span>
+                                        <span id="metric-cost-m2">$0/m²</span>
+                                    </div>
+                                </div>
+
+                                <div class="metric-card p-4 rounded-xl">
+                                    <div class="flex justify-between items-center text-slate-400 text-xs">
+                                        <span>Masa Total de la Estructura</span>
+                                        <i class="fa-solid fa-scale-balanced text-amber-400"></i>
+                                    </div>
+                                    <div id="metric-weight" class="text-xl font-bold text-slate-100 mt-1 font-mono">0 kg</div>
+                                    <div class="text-[10px] text-slate-400 mt-1 flex justify-between">
+                                        <span>Vidrio: <b id="sub-weight-glass" class="text-slate-200">0 kg</b></span>
+                                        <span>Aluminio: <b id="sub-weight-alu" class="text-slate-200">0 kg</b></span>
+                                    </div>
+                                </div>
+
+                                <div class="metric-card p-4 rounded-xl">
+                                    <div class="flex justify-between items-center text-slate-400 text-xs">
+                                        <span>Longitud Perfiles Aluminio</span>
+                                        <i class="fa-solid fa-ruler text-cyan-400"></i>
+                                    </div>
+                                    <div id="metric-alu-len" class="text-xl font-bold text-slate-100 mt-1 font-mono">0.0 m linear</div>
+                                    <div class="text-[10px] text-slate-400 mt-1">
+                                        Vol. Aluminio (Alloy 6063): <span id="metric-alu-vol" class="text-slate-200 font-mono">0.00 m³</span>
+                                    </div>
+                                </div>
+
+                                <div class="metric-card p-4 rounded-xl">
+                                    <div class="flex justify-between items-center text-slate-400 text-xs">
+                                        <span>Superficie Vidriada Eficiente</span>
+                                        <i class="fa-solid fa-vector-square text-cyan-400"></i>
+                                    </div>
+                                    <div id="metric-glass-area" class="text-xl font-bold text-slate-100 mt-1 font-mono">0.00 m²</div>
+                                    <div class="text-[10px] text-slate-400 mt-1">
+                                        Vol. Vidrio Total: <span id="metric-glass-vol" class="text-slate-200 font-mono">0.00 m³</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-700/50">
+                            <h4 class="text-xs font-bold text-slate-300 mb-2">Tarifas Base de Mercado</h4>
+                            <div class="text-[11px] text-slate-400 space-y-1 font-mono">
+                                <div class="flex justify-between"><span>Aluminio Extruido:</span><span>$7.80 / kg</span></div>
+                                <div class="flex justify-between"><span>Vidrio Laminado DGU:</span><span>$110.00 / m²</span></div>
+                                <div class="flex justify-between"><span>Anclajes de Acero:</span><span>$120.00 / unidad</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Sidebar Footer Action Buttons -->
+                <div class="p-4 bg-slate-900/80 border-t border-slate-700/50 flex gap-2 shrink-0">
+                    <button onclick="exportIRJSON()" class="flex-1 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/50">
+                        <i class="fa-solid fa-download"></i> Exportar IR (JSON)
+                    </button>
+                    <button onclick="triggerImportJSON()" class="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition border border-slate-700">
+                        <i class="fa-solid fa-upload"></i>
+                    </button>
+                    <input type="file" id="input-import-json" class="hidden" accept=".json" onchange="importIRJSON(event)">
+                </div>
+            </aside>
+
+            <!-- Notification Toast 5D -->
+            <div id="toast-5d" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 glass-panel px-4 py-3 rounded-xl border border-cyan-500/40 text-xs text-slate-200 flex items-center gap-3">
+                <i id="toast-icon-5d" class="fa-solid fa-circle-check text-cyan-400 text-base"></i>
+                <span id="toast-msg-5d">Notificación del sistema</span>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Vista de Impresión -->
+    <div id="printable-receipt" class="hidden p-6 text-black bg-white space-y-4 text-xs font-mono">
+        <div class="text-center border-b pb-2">
+            <h2 class="text-base font-bold uppercase">Cerrajería Pro Admin</h2>
+            <p>NIT / RUT: 10403020-1 • Jericó, Antioquia</p>
+            <p>Comprobante de Caja & Reporte Térmico</p>
+        </div>
+        <div id="printable-content" class="space-y-2"></div>
+        <div class="text-center border-t pt-2 text-[10px]">
+            <p>¡Gracias por su confianza!</p>
+            <p>Impreso desde Cerrajería Pro Admin</p>
+        </div>
+    </div>
+
+    <!-- Dashboard Principal -->
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- SIDEBAR -->
+        <aside id="sidebar" class="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 z-30 fixed lg:relative inset-y-0 left-0 -translate-x-full lg:translate-x-0 shadow-sm">
+            <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-brand-cobalt/10 border border-brand-cobalt/20 flex items-center justify-center text-brand-cobalt dark:text-brand-cyan shadow-inner p-1">
+                        <i class="fa-solid fa-key text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-sm text-slate-900 dark:text-slate-100 tracking-tight">Cerrajería Pro</h1>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Panel de Administración</p>
+                    </div>
+                </div>
+                <button onclick="toggleMobileSidebar()" class="lg:hidden text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
+                <p class="px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Módulos Principales</p>
+                
+                <button onclick="switchTab('finanzas')" id="btn-finanzas" class="nav-btn role-admin w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all bg-brand-royal/10 dark:bg-brand-royal/20 text-brand-cobalt dark:text-brand-cyan border border-brand-royal/20 dark:border-brand-royal/30">
+                    <i class="fa-solid fa-chart-pie w-5 text-center"></i> Finanzas / Ingresos
+                </button>
+
+                <button onclick="switchTab('caja')" id="btn-caja" class="nav-btn role-admin role-cerrajero w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-cash-register w-5 text-center"></i> Caja Diaria
+                </button>
+
+                <button onclick="switchTab('compras')" id="btn-compras" class="nav-btn role-admin w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-receipt w-5 text-center"></i> Compras y Gastos
+                </button>
+
+                <button onclick="switchTab('inventario')" id="btn-inventario" class="nav-btn role-admin w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-boxes-stacked w-5 text-center"></i> Inventario & Stock
+                </button>
+
+                <button onclick="switchTab('usuarios')" id="btn-usuarios" class="nav-btn role-admin w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-users-gear w-5 text-center"></i> Usuarios y Permisos
+                </button>
+
+                <button onclick="switchTab('comisiones')" id="btn-comisiones" class="nav-btn role-admin w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-percent w-5 text-center"></i> Comisiones
+                </button>
+
+                <button onclick="switchTab('garantias')" id="btn-garantias" class="nav-btn role-admin w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-shield-heart w-5 text-center"></i> Garantías y Solicitudes
+                </button>
+
+                <button onclick="switchTab('catalogo')" id="btn-catalogo" class="nav-btn role-admin role-cerrajero w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-tags w-5 text-center"></i> Catálogo General
+                </button>
+
+                <button onclick="switchTab('pedidos')" id="btn-pedidos" class="nav-btn role-admin role-cerrajero w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-truck-fast w-5 text-center"></i> Pedidos y Servicios
+                </button>
+
+                <button onclick="switchTab('auditoria')" id="btn-auditoria" class="nav-btn role-admin w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-clock-rotate-left w-5 text-center"></i> Auditoría e Historial
+                </button>
+            </nav>
+
+            <div class="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 space-y-3">
+                <button onclick="triggerBackup()" class="w-full bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-700 dark:text-slate-200 py-2 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-database text-brand-royal dark:text-brand-cyan"></i> Descargar Backup
+                </button>
+                <div class="flex items-center gap-3">
+                    <div id="userBadge" class="w-9 h-9 rounded-full bg-brand-cobalt text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                        AD
+                    </div>
+                    <div class="overflow-hidden flex-1">
+                        <p id="userNameDisplay" class="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">Admin Maestro</p>
+                        <p id="userRoleDisplay" class="text-[10px] text-brand-emerald font-semibold">Administrador</p>
+                    </div>
+                    <button onclick="openLoginModal()" class="text-slate-400 hover:text-red-500 transition-colors" title="Cambiar Usuario">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CONTENIDO PRINCIPAL -->
+        <main class="flex-1 flex flex-col overflow-hidden bg-slate-100 dark:bg-slate-950">
+            <header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/50 backdrop-blur-md px-6 flex items-center justify-between shrink-0 shadow-sm">
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleMobileSidebar()" class="lg:hidden text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                        <i class="fa-solid fa-bars text-lg"></i>
+                    </button>
+                    <div>
+                        <h2 id="current-title" class="text-base font-bold text-slate-900 dark:text-slate-100">Finanzas e Ingresos</h2>
+                        <p id="current-subtitle" class="text-xs text-slate-500 dark:text-slate-400">Resumen general de balance, ganancias y servicios técnicos</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleDarkMode()" class="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-brand-cobalt dark:hover:text-brand-cyan transition-colors shadow-sm" title="Cambiar Tema">
+                        <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
+                    </button>
+
+                    <div class="relative hidden sm:block">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 dark:text-slate-500 text-xs"></i>
+                        <input type="text" id="global-search" oninput="filterCurrentTable()" placeholder="Buscar en este módulo..." class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-200 pl-9 pr-4 py-2 rounded-xl focus:outline-none focus:border-brand-royal w-48 lg:w-64 transition-all">
+                    </div>
+                    
+                    <div class="relative">
+                        <button onclick="toggleStockAlerts()" class="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-brand-cobalt dark:hover:text-brand-cyan relative transition-colors shadow-sm" title="Alertas de Stock">
+                            <i class="fa-regular fa-bell text-sm"></i>
+                            <span id="stock-alert-badge" class="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+                        </button>
+                        <div id="stock-alerts-dropdown" class="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-4 hidden z-50 text-xs space-y-2">
+                            <div class="flex justify-between items-center font-bold border-b border-slate-100 dark:border-slate-800 pb-2">
+                                <span class="text-red-500 flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation"></i> Alertas de Stock Crítico</span>
+                                <span class="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-bold">1 Activa</span>
+                            </div>
+                            <div class="p-2 bg-red-50 dark:bg-red-950/30 rounded-xl border border-red-200 dark:border-red-900/50">
+                                <p class="font-bold text-red-600 dark:text-red-400">Llave Virgen Yale 5 pin (INS-042)</p>
+                                <p class="text-slate-500 dark:text-slate-400 text-[11px]">Stock actual en taller: 3 unidades</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                
+                <!-- FINANZAS -->
+                <section id="tab-finanzas" class="tab-content space-y-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm gap-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Filtro de Rendimiento Financiero</h3>
+                            <p class="text-xs text-slate-500">Seleccione el rango temporal o exporte los datos a Excel</p>
+                        </div>
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <button onclick="exportFinancesToExcel()" class="bg-brand-emerald hover:opacity-90 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors shadow-sm">
+                                <i class="fa-solid fa-file-excel"></i> Descargar Excel
+                            </button>
+                            <div class="flex bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold">
+                                <button onclick="switchFinancePeriod('dia')" id="period-dia" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 transition-colors">Día</button>
+                                <button onclick="switchFinancePeriod('semana')" id="period-semana" class="px-3 py-1.5 rounded-lg bg-brand-royal text-white shadow-sm transition-colors">Semana</button>
+                                <button onclick="switchFinancePeriod('mes')" id="period-mes" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 transition-colors">Mes</button>
+                                <button onclick="switchFinancePeriod('anio')" id="period-anio" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 transition-colors">Año</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+                            <span id="fin-label-1" class="text-xs font-medium text-slate-500">Ingresos Totales (Semana)</span>
+                            <h3 id="fin-val-1" class="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">$4,850.00</h3>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+                            <span class="text-xs font-medium text-slate-500">Ganancias Netas</span>
+                            <h3 id="fin-val-2" class="text-2xl font-bold text-brand-emerald mt-1">$3,120.00</h3>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+                            <span class="text-xs font-medium text-slate-500">Gastos & Programadores</span>
+                            <h3 id="fin-val-3" class="text-2xl font-bold text-red-500 mt-1">$480.00</h3>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+                            <span class="text-xs font-medium text-slate-500">Servicios a Domicilio</span>
+                            <h3 id="fin-val-4" class="text-2xl font-bold text-brand-royal dark:text-brand-cyan mt-1">34 Trabajos</h3>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+                            <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100 mb-4">Flujo Financiero Interactivo</h4>
+                            <div class="h-64 relative">
+                                <canvas id="financialChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+                            <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100 mb-4">Desglose de Ingresos</h4>
+                            <div class="h-48 relative flex items-center justify-center">
+                                <canvas id="doughnutChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- CAJA DIARIA -->
+                <section id="tab-caja" class="tab-content hidden space-y-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm gap-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Control de Caja Diaria</h3>
+                            <p class="text-xs text-slate-500">Gestión exacta de movimientos e impresión de cierres</p>
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="printCashReport()" class="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors shadow-sm">
+                                <i class="fa-solid fa-print"></i> Imprimir / PDF Cierre
+                            </button>
+                            <button onclick="openAdvancedCrud('caja', 'crear')" class="admin-only-action bg-brand-royal text-white px-4 py-2 rounded-xl text-xs font-bold">+ Nuevo Movimiento</button>
+                        </div>
+                    </div>
+                    <div id="caja-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm cursor-pointer hover:border-brand-royal transition-colors" onclick="triggerFloatingInfo('caja', this, event)" data-tipo="Ingreso" data-metodo="Efectivo" data-monto="250.00" data-concepto="Duplicado de llaves y servicio de apertura" data-comprobante="REC-001">
+                            <div>
+                                <span class="px-2 py-0.5 bg-brand-emerald/10 text-brand-emerald text-[10px] font-bold rounded">Ingreso (Efectivo)</span>
+                                <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">$250.00 COP</h4>
+                                <p class="text-[11px] text-slate-500">Duplicado de llaves y servicio • Recibo: REC-001</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="printSingleReceipt(this)" class="p-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg text-xs" title="Imprimir Recibo PDF"><i class="fa-solid fa-print"></i></button>
+                                <button onclick="openAdvancedCrud('caja', 'editar', this)" class="admin-only-action p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteItem(this, 'Movimiento de caja eliminado')" class="admin-only-action p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- COMPRAS Y GASTOS -->
+                <section id="tab-compras" class="tab-content hidden space-y-6">
+                    <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3">
+                        <div class="flex gap-6">
+                            <button onclick="switchComprasTab('compras')" id="subtab-compras-btn" class="text-sm font-bold border-b-2 border-brand-royal text-brand-royal pb-1">Compras de Inventario</button>
+                            <button onclick="switchComprasTab('gastos')" id="subtab-gastos-btn" class="text-sm font-semibold border-b-2 border-transparent text-slate-500 pb-1">Gastos Operativos</button>
+                        </div>
+                        <button onclick="openActiveCompraTabCrud()" class="bg-brand-royal text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm" id="btn-nuevo-compra-gasto">+ Registrar</button>
+                    </div>
+
+                    <div id="subtab-compras-view" class="space-y-3">
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm cursor-pointer hover:border-brand-royal transition-colors" onclick="triggerFloatingInfo('compra', this, event)" data-proveedor="Aceros Suroeste" data-factura="FAC-982" data-concepto="Perfiles de hierro (x10)" data-neto="350.00">
+                            <div class="flex-1">
+                                <span class="text-xs font-bold text-brand-royal">Aceros Suroeste (Proveedor) • Factura FAC-982</span>
+                                <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100">Perfiles de hierro (x10) - Total: $350.00</h4>
+                                <p class="text-[11px] text-slate-500">Clic para vista de lectura flotante</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="openAdvancedCrud('compra', 'editar', this)" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteItem(this, 'Compra eliminada')" class="p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="subtab-gastos-view" class="hidden space-y-3">
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm cursor-pointer hover:border-brand-royal transition-colors" onclick="triggerFloatingInfo('gasto', this, event)" data-conceptogasto="Pago de Servicios Públicos (Energía Taller)" data-comprobantegasto="GAS-089" data-netogasto="120.00">
+                            <div class="flex-1">
+                                <span class="text-xs font-bold text-red-500">Gasto Operativo • Comprobante GAS-089</span>
+                                <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100">Pago de Servicios Públicos (Energía Taller)</h4>
+                                <p class="text-[11px] text-slate-500">Valor neto: $120.00 COP</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="openAdvancedCrud('gasto', 'editar', this)" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteItem(this, 'Gasto operativo eliminado')" class="p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- INVENTARIO -->
+                <section id="tab-inventario" class="tab-content hidden space-y-6">
+                    <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3">
+                        <div class="flex gap-6">
+                            <button onclick="switchInventoryTab('productos')" id="subtab-productos-btn" class="text-sm font-bold border-b-2 border-brand-royal text-brand-royal pb-1">Productos Terminados</button>
+                            <button onclick="switchInventoryTab('stock')" id="subtab-stock-btn" class="text-sm font-semibold border-b-2 border-transparent text-slate-500 pb-1">Materia Prima e Insumos</button>
+                        </div>
+                        <button onclick="openAdvancedCrud('inventario', 'crear')" class="bg-brand-royal text-white px-4 py-2 rounded-xl text-xs font-bold">+ Nuevo Ítem</button>
+                    </div>
+
+                    <div id="subtab-productos-view" class="space-y-3">
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm cursor-pointer hover:border-brand-royal transition-colors" onclick="triggerFloatingInfo('inventario', this, event)" data-tipoitem="Producto Terminado" data-codigo="CER-001" data-nombre="Cerradura de Seguridad Alta" data-precio="45.00" data-stock="14">
+                            <div>
+                                <span class="text-xs font-mono text-slate-500">SKU: CER-001 • [Producto Terminado]</span>
+                                <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100">Cerradura de Seguridad Alta ($45.00)</h4>
+                                <p class="text-xs text-brand-emerald font-bold">Stock actual: 14 unidades</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="openAdvancedCrud('inventario', 'editar', this)" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteItem(this, 'Producto de inventario eliminado')" class="p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="subtab-stock-view" class="hidden space-y-3">
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm cursor-pointer hover:border-brand-royal transition-colors" onclick="triggerFloatingInfo('inventario', this, event)" data-tipoitem="Materia Prima" data-codigo="INS-042" data-nombre="Llave Virgen Yale 5 pin" data-precio="12.00" data-stock="3">
+                            <div>
+                                <span class="text-xs font-mono text-slate-500">Código: INS-042 • [Materia Prima]</span>
+                                <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100">Llave Virgen Yale 5 pin</h4>
+                                <p class="text-xs text-red-500 font-bold">Stock Taller: 3 unidades (Nivel Crítico)</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="openAdvancedCrud('inventario', 'editar', this)" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteItem(this, 'Insumo de taller eliminado')" class="p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- USUARIOS Y ROLES -->
+                <section id="tab-usuarios" class="tab-content hidden space-y-6">
+                    <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3 overflow-x-auto">
+                        <div class="flex gap-6">
+                            <button onclick="switchUserTab('clientes')" id="subtab-clientes-btn" class="text-sm font-bold border-b-2 border-brand-royal text-brand-royal pb-1 whitespace-nowrap">Clientes</button>
+                            <button onclick="switchUserTab('roles')" id="subtab-roles-btn" class="text-sm font-semibold border-b-2 border-transparent text-slate-500 pb-1 whitespace-nowrap">Roles y Empleados</button>
+                            <button onclick="switchUserTab('proveedores')" id="subtab-proveedores-btn" class="text-sm font-semibold border-b-2 border-transparent text-slate-500 pb-1 whitespace-nowrap">Proveedores y Logística</button>
+                        </div>
+                        <button onclick="openAdvancedCrud('usuario', 'crear')" class="bg-brand-royal text-white px-4 py-2 rounded-xl text-xs font-bold">+ Registrar Usuario</button>
+                    </div>
+
+                    <div id="subtab-clientes" class="space-y-3">
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm cursor-pointer hover:border-brand-royal transition-colors" onclick="triggerFloatingInfo('usuario', this, event)" data-tipousuario="Cliente" data-nombre="Carlos Mendoza" data-correo="carlos.mendoza@email.com" data-telefono="+57 312 456 7890">
+                            <div>
+                                <span class="px-2 py-0.5 bg-brand-emerald/10 text-brand-emerald text-[10px] font-bold rounded">Cliente Frecuente</span>
+                                <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">Carlos Mendoza</h4>
+                                <p class="text-xs text-slate-500">carlos.mendoza@email.com • +57 312 456 7890</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="openAdvancedCrud('usuario', 'editar', this)" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteItem(this, 'Cliente eliminado')" class="p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="subtab-roles" class="hidden space-y-3">
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm cursor-pointer hover:border-brand-royal transition-colors" onclick="triggerFloatingInfo('usuario', this, event)" data-tipousuario="Rol Empleado" data-nombre="Juan Morales" data-correo="juan.morales@cerrajeria.com" data-telefono="+57 311 111 2233">
+                            <div>
+                                <span class="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-[10px] font-bold rounded">Cerrajero Operativo</span>
+                                <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">Juan Morales</h4>
+                                <p class="text-xs text-slate-500">Permisos: Caja diaria, Pedidos y Servicios a domicilio</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="openAdvancedCrud('usuario', 'editar', this)" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteItem(this, 'Empleado eliminado')" class="p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="subtab-proveedores" class="hidden space-y-3">
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm cursor-pointer hover:border-brand-royal transition-colors" onclick="triggerFloatingInfo('usuario', this, event)" data-tipousuario="Proveedor / Logística" data-nombre="Aceros Suroeste" data-correo="contacto@acerossuroeste.com" data-telefono="+57 310 999 8877">
+                            <div>
+                                <span class="px-2 py-0.5 bg-amber-500/10 text-amber-500 text-[10px] font-bold rounded">Proveedor Activo</span>
+                                <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">Aceros Suroeste (Proveedor de Hierro)</h4>
+                                <p class="text-xs text-slate-500">Contacto: Luisa Gómez • +57 310 999 8877</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="openAdvancedCrud('usuario', 'editar', this)" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteItem(this, 'Proveedor eliminado')" class="p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- COMISIONES -->
+                <section id="tab-comisiones" class="tab-content hidden space-y-6">
+                    <div class="flex justify-between items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Comisiones de Programadores</h3>
+                            <p class="text-xs text-slate-500">Auditoría de desarrollo de software y pagos por tareas</p>
+                        </div>
+                        <button onclick="openAdvancedCrud('comision', 'crear')" class="bg-brand-royal text-white px-4 py-2 rounded-xl text-xs font-bold">+ Asignar Comisión</button>
+                    </div>
+                    <div id="comision-list" class="space-y-3">
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm cursor-pointer hover:border-brand-royal transition-colors" onclick="triggerFloatingInfo('comision', this, event)" data-programador="Isaac Ossa" data-modulo="Módulo de Finanzas & UI" data-monto="450.00">
+                            <div>
+                                <span class="px-2 py-0.5 bg-brand-royal/10 text-brand-royal text-[10px] font-bold rounded">Estado: Pendiente</span>
+                                <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">Isaac Ossa - Módulo de Finanzas & UI</h4>
+                                <p class="text-xs text-brand-emerald font-bold">Comisión asignada: $450.00 USD</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="openAdvancedCrud('comision', 'editar', this)" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteItem(this, 'Comisión eliminada')" class="p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- GARANTÍAS -->
+                <section id="tab-garantias" class="tab-content hidden space-y-6">
+                    <div class="flex justify-between items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Gestión de Garantías</h3>
+                            <p class="text-xs text-slate-500">Solicitudes de revisión sin costo enviadas por usuarios</p>
+                        </div>
+                        <button onclick="openAdvancedCrud('garantia', 'crear')" class="bg-brand-royal text-white px-4 py-2 rounded-xl text-xs font-bold">+ Pedir Garantía</button>
+                    </div>
+                    <div id="garantia-list" class="space-y-3">
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm cursor-pointer hover:border-brand-royal transition-colors" onclick="triggerFloatingInfo('garantia', this, event)" data-numgarantia="GAR-204" data-clientegarantia="Ana Sofía" data-productogarantia="Chapa de seguridad principal">
+                            <div>
+                                <span class="px-2 py-0.5 bg-amber-500/10 text-amber-500 text-[10px] font-bold rounded">Sin Costo Adicional</span>
+                                <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">Solicitud #GAR-204 - Ana Sofía</h4>
+                                <p class="text-xs text-slate-500">Producto: Chapa de seguridad principal</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="openAdvancedCrud('garantia', 'editar', this)" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteItem(this, 'Garantía eliminada')" class="p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- CATÁLOGO GENERAL -->
+                <section id="tab-catalogo" class="tab-content hidden space-y-6">
+                    <div class="flex justify-between items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Catálogo General Unificado</h3>
+                            <p class="text-xs text-slate-500">Todos los productos y sus respectivos descuentos en un solo lugar</p>
+                        </div>
+                        <button onclick="openAdvancedCrud('catalogo', 'crear')" class="bg-brand-royal text-white px-4 py-2 rounded-xl text-xs font-bold">+ Nuevo Ítem Catálogo</button>
+                    </div>
+
+                    <div id="catalogo-list" class="space-y-3">
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm cursor-pointer hover:border-brand-royal transition-colors border-l-4 border-l-red-500" onclick="triggerFloatingInfo('catalogo', this, event)" data-nombrecat="Cerradura Tubular Residencial" data-preciocat="35.00" data-descuento="15% OFF (Oferta Temporal) - Precio anterior: $41.00">
+                            <div>
+                                <span class="px-2 py-0.5 bg-red-100 text-red-600 text-[10px] font-bold rounded">15% OFF (Oferta Temporal)</span>
+                                <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">Cerradura Tubular Residencial</h4>
+                                <p class="text-xs text-slate-500">Oferta: $35.00 <span class="line-through">$41.00</span></p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="openAdvancedCrud('catalogo', 'editar', this)" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteItem(this, 'Oferta de catálogo eliminada')" class="p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm cursor-pointer hover:border-brand-royal transition-colors" onclick="triggerFloatingInfo('catalogo', this, event)" data-nombrecat="Cerradura Estándar de Embutir" data-preciocat="40.00" data-descuento="">
+                            <div>
+                                <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100">Cerradura Estándar de Embutir</h4>
+                                <p class="text-xs text-slate-500">Alta durabilidad para puertas de madera. • Precio: $40.00 COP</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="openAdvancedCrud('catalogo', 'editar', this)" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteItem(this, 'Ítem de catálogo eliminado')" class="p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- PEDIDOS Y SERVICIOS -->
+                <section id="tab-pedidos" class="tab-content hidden space-y-6">
+                    <div class="flex justify-between items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Pedidos, Cotizaciones y Servicios a Domicilio</h3>
+                            <p class="text-xs text-slate-500">Haga clic sobre el recuadro para lectura rápida o en el cubo 3D para abrir el AluStruct 5D Engine</p>
+                        </div>
+                        <button onclick="openAdvancedCrud('pedido', 'crear')" class="admin-only-action bg-brand-royal text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm">+ Nueva Cotización / Servicio</button>
+                    </div>
+
+                    <div id="pedido-list" class="space-y-3">
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center shadow-sm gap-4 cursor-pointer hover:border-brand-royal transition-colors" data-numpedido="COT-302" data-clientepedido="Carlos Mendoza" data-detallespedido="Estructura de Aluminio y Vidrio DGU" data-valorpedido="350.00" data-estado="En taller" data-tecnico="Juan Morales">
+                            
+                            <!-- MINIATURA QUE ABRE EL CONFIGURADOR 3D/5D DE SEBAS2 -->
+                            <div onclick="openModal3DFromService(event)" class="w-24 h-24 rounded-xl bg-slate-950 border border-slate-700 flex flex-col items-center justify-center shrink-0 relative group overflow-hidden shadow-inner cursor-pointer" title="Haga clic para abrir el Estudio AluStruct 5D Engine">
+                                <i class="fa-solid fa-cube text-2xl text-cyan-400 group-hover:scale-110 transition-transform"></i>
+                                <span class="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Ver 5D Engine</span>
+                                <div class="absolute inset-0 bg-cyan-500/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <span class="bg-cyan-500 text-slate-950 text-[9px] px-2 py-1 rounded-md font-bold shadow">Abrir</span>
+                                </div>
+                            </div>
+
+                            <div class="space-y-1 flex-1" onclick="triggerFloatingInfo('pedido', this, event)">
+                                <div class="flex items-center gap-2">
+                                    <h4 class="text-sm font-bold text-brand-royal dark:text-brand-cyan">Cotización #COT-302 - Carlos Mendoza</h4>
+                                    <select onchange="updateJobStatus(this, 'COT-302')" onclick="event.stopPropagation()" class="text-[10px] font-bold px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-amber-500 focus:outline-none">
+                                        <option value="Pendiente">Pendiente</option>
+                                        <option value="En taller" selected>En taller</option>
+                                        <option value="En camino">En camino</option>
+                                        <option value="Finalizado">Finalizado</option>
+                                    </select>
+                                </div>
+                                <p class="text-xs text-slate-600 dark:text-slate-300">Estructura de Aluminio y Vidrio DGU • Valor: $350.00 USD</p>
+                                <div class="flex items-center gap-3 text-[11px] text-slate-500 pt-1">
+                                    <span class="inline-flex items-center gap-1 font-semibold text-brand-cobalt dark:text-brand-cyan">
+                                        <i class="fa-solid fa-user-gear"></i> Téc. Asignado: Juan Morales
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex gap-2 self-end sm:self-center">
+                                <button onclick="openAdvancedCrud('pedido', 'editar', this)" class="admin-only-action p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteItem(this, 'Cotización eliminada')" class="admin-only-action p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- AUDITORÍA -->
+                <section id="tab-auditoria" class="tab-content hidden space-y-6">
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Historial de Cambios y Auditoría Interna</h3>
+                        <p class="text-xs text-slate-500">Registro en tiempo real de operaciones realizadas según rol</p>
+                    </div>
+                    <div id="audit-log-container" class="space-y-3">
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm text-xs cursor-pointer hover:border-brand-royal transition-colors" onclick="triggerFloatingInfo('auditoria', this, event)" data-usuario="Admin Maestro" data-accion="Inicio de sesión y carga inicial del sistema." data-fecha="2026-10-16 12:20" data-estado="Exitoso">
+                            <div>
+                                <span class="px-2 py-0.5 bg-brand-royal/10 text-brand-royal font-bold rounded">Admin Maestro</span>
+                                <p class="font-bold text-slate-900 dark:text-slate-100 mt-1">Inicio de sesión y carga inicial del sistema.</p>
+                                <p class="text-[11px] text-slate-400">Fecha: 2026-10-16 12:20</p>
+                            </div>
+                            <span class="text-brand-emerald font-bold">Exitoso</span>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- SCRIPT CONTROLADOR ADMINISTRATIVO Y MOTOR 3D/5D DE SEBAS2 -->
+    <script>
+        let currentCrudType = '';
+        let currentEditElement = null;
+        let financialChartInstance = null;
+        let doughnutChartInstance = null;
+        let currentUserRole = 'admin';
+        let activeComprasSubTab = 'compras';
+
+        // Constantes del Motor 5D (Sebas2)
+        const DENSITY_ALUMINIUM = 2700;
+        const DENSITY_GLASS = 2500;
+        const UNIT_COST_ALU_KG = 7.80;
+        const UNIT_COST_GLASS_SQM = 110.0;
+        const UNIT_COST_ANCHOR_UNIT = 120.0;
+        const LABOR_INSTALLATION_FACTOR = 1.30;
+
+        const state5D = {
+            width: 4.5,
+            height: 3.6,
+            depth: 3.0,
+            divisionsX: 3,
+            divisionsY: 2,
+            profileWidthMm: 80,
+            profileDepthMm: 120,
+            aluColor: 0xd1d5db,
+            aluMetalness: 0.85,
+            aluRoughness: 0.25,
+            aluFinishName: 'Anodizado Plata',
+            glassThicknessMm: 14,
+            transmission: 0.92,
+            roughness: 0.05,
+            ior: 1.52,
+            glassColor: 0xffffff,
+            glassTintName: 'Neutro Incoloro',
+            currentPhase: 3,
+            showWireframe: false,
+            showGrid: true,
+            planOpacity: 0.70
+        };
+
+        let scene5D, camera5D, renderer5D, controls5D, animationFrame5D;
+        let mainStructureGroup5D;
+        let glassMaterial5D, aluMaterial5D, anchorMaterial5D, wireframeMaterial5D;
+        let gridHelper5D, ambientLight5D, dirLight5D, pointLight5D;
+        let planMesh5D, planMaterial5D;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            initCharts();
+            applyRolePermissions('admin');
+        });
+
+        function triggerFloatingInfo(type, el, event) {
+            if (event) event.stopPropagation();
+            
+            const card = document.getElementById('floatingInfoCard');
+            const titleEl = document.getElementById('floatingCardTitle');
+            const bodyEl = document.getElementById('floatingCardBody');
+            const footerEl = document.getElementById('floatingCardFooter');
+            const tagEl = document.getElementById('floatingCardTag');
+            const d = el.dataset;
+
+            let html = '';
+            let title = 'Detalles del Registro';
+            let tag = 'Lectura Protegida';
+
+            if (type === 'pedido') {
+                title = `Cotización #${d.numpedido || 'N/A'}`;
+                tag = 'Servicio Técnico';
+                html = `
+                    <div class="space-y-1.5">
+                        <p><strong class="text-slate-700 dark:text-slate-200">Cliente:</strong> ${d.clientepedido || 'Sin especificar'}</p>
+                        <p><strong class="text-slate-700 dark:text-slate-200">Técnico:</strong> ${d.tecnico || 'No asignado'}</p>
+                        <p><strong class="text-slate-700 dark:text-slate-200">Descripción:</strong> ${d.detallespedido || 'Sin detalles'}</p>
+                        <p><strong class="text-slate-700 dark:text-slate-200">Estado:</strong> <span class="font-bold text-amber-500">${d.estado || 'Pendiente'}</span></p>
+                        <p class="text-sm font-bold text-brand-royal dark:text-brand-cyan pt-1">Valor: $${d.valorpedido || '0.00'} USD</p>
+                    </div>`;
+            } else if (type === 'caja') {
+                title = `Movimiento ${d.comprobante || ''}`;
+                tag = d.tipo || 'Caja';
+                html = `
+                    <div class="space-y-1.5">
+                        <p><strong class="text-slate-700 dark:text-slate-200">Concepto:</strong> ${d.concepto || 'Operación de caja'}</p>
+                        <p><strong class="text-slate-700 dark:text-slate-200">Método de Pago:</strong> ${d.metodo || 'Efectivo'}</p>
+                        <p class="text-sm font-bold text-brand-emerald pt-1">Monto: $${d.monto || '0.00'} COP</p>
+                    </div>`;
+            } else if (type === 'inventario') {
+                title = d.nombre || 'Ítem de Inventario';
+                tag = d.tipoitem || 'Stock';
+                html = `
+                    <div class="space-y-1.5">
+                        <p><strong class="text-slate-700 dark:text-slate-200">Código / SKU:</strong> ${d.codigo || 'N/A'}</p>
+                        <p><strong class="text-slate-700 dark:text-slate-200">Precio Unitario:</strong> $${d.precio || '0.00'}</p>
+                        <p><strong class="text-slate-700 dark:text-slate-200">Stock Disponible:</strong> <span class="font-bold text-brand-emerald">${d.stock || '0'} unidades</span></p>
+                    </div>`;
+            } else if (type === 'usuario') {
+                title = d.nombre || 'Registro de Usuario';
+                tag = d.tipousuario || 'Usuario';
+                html = `
+                    <div class="space-y-1.5">
+                        <p><strong class="text-slate-700 dark:text-slate-200">Correo:</strong> ${d.correo || 'N/A'}</p>
+                        <p><strong class="text-slate-700 dark:text-slate-200">Teléfono:</strong> ${d.telefono || 'N/A'}</p>
+                    </div>`;
+            } else if (type === 'compra') {
+                title = `Factura ${d.factura || ''}`;
+                tag = 'Compra Inventario';
+                html = `
+                    <div class="space-y-1.5">
+                        <p><strong class="text-slate-700 dark:text-slate-200">Proveedor:</strong> ${d.proveedor || 'N/A'}</p>
+                        <p><strong class="text-slate-700 dark:text-slate-200">Detalle:</strong> ${d.concepto || 'Sin detalle'}</p>
+                        <p class="text-sm font-bold text-brand-royal pt-1">Total: $${d.neto || '0.00'}</p>
+                    </div>`;
+            } else if (type === 'gasto') {
+                title = `Comprobante ${d.comprobantegasto || ''}`;
+                tag = 'Gasto Operativo';
+                html = `
+                    <div class="space-y-1.5">
+                        <p><strong class="text-slate-700 dark:text-slate-200">Concepto:</strong> ${d.conceptogasto || 'Sin concepto'}</p>
+                        <p class="text-sm font-bold text-red-500 pt-1">Monto Neto: $${d.netogasto || '0.00'}</p>
+                    </div>`;
+            } else if (type === 'comision') {
+                title = `Programador: ${d.programador || ''}`;
+                tag = 'Comisión Desarrollo';
+                html = `
+                    <div class="space-y-1.5">
+                        <p><strong class="text-slate-700 dark:text-slate-200">Módulo:</strong> ${d.modulo || 'General'}</p>
+                        <p class="text-sm font-bold text-brand-emerald pt-1">Monto Asignado: $${d.monto || '0.00'} USD</p>
+                    </div>`;
+            } else if (type === 'garantia') {
+                title = `Solicitud ${d.numgarantia || ''}`;
+                tag = 'Garantía';
+                html = `
+                    <div class="space-y-1.5">
+                        <p><strong class="text-slate-700 dark:text-slate-200">Cliente:</strong> ${d.clientegarantia || 'N/A'}</p>
+                        <p><strong class="text-slate-700 dark:text-slate-200">Producto:</strong> ${d.productogarantia || 'N/A'}</p>
+                    </div>`;
+            } else if (type === 'catalogo') {
+                title = d.nombrecat || 'Producto Catálogo';
+                tag = 'Catálogo';
+                html = `
+                    <div class="space-y-1.5">
+                        <p><strong class="text-slate-700 dark:text-slate-200">Precio Comercial:</strong> $${d.preciocat || '0.00'}</p>
+                        ${d.descuento ? `<p><strong class="text-slate-700 dark:text-slate-200">Promoción:</strong> <span class="text-red-500 font-bold">${d.descuento}</span></p>` : ''}
+                    </div>`;
+            } else {
+                title = 'Auditoría';
+                tag = 'Historial';
+                html = `
+                    <div class="space-y-1.5">
+                        <p><strong class="text-slate-700 dark:text-slate-200">Usuario:</strong> ${d.usuario || 'N/A'}</p>
+                        <p><strong class="text-slate-700 dark:text-slate-200">Acción:</strong> ${d.accion || 'N/A'}</p>
+                        <p><strong class="text-slate-700 dark:text-slate-200">Fecha:</strong> ${d.fecha || 'N/A'}</p>
+                    </div>`;
+            }
+
+            titleEl.innerText = title;
+            tagEl.innerText = tag;
+            bodyEl.innerHTML = html;
+
+            footerEl.innerHTML = `
+                <button onclick="closeFloatingInfo()" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-200">Cerrar</button>
+                <button onclick="closeFloatingInfo(); openAdvancedCrud('${type}', 'editar', document.querySelector('[data-numpedido=\\'${d.numpedido}\\'], [data-comprobante=\\'${d.comprobante}\\']') || null)" class="admin-only-action px-3 py-1.5 bg-brand-royal text-white rounded-lg text-xs font-bold hover:bg-blue-700 flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-pen text-[10px]"></i> Editar Registro
+                </button>`;
+
+            const rect = el.getBoundingClientRect();
+            let top = rect.top + window.scrollY;
+            let left = rect.left + rect.width + 10;
+
+            if (left + 320 > window.innerWidth) {
+                left = rect.left - 330;
+            }
+            if (left < 10) left = 20;
+
+            card.style.top = `${Math.min(top, window.innerHeight - 300)}px`;
+            card.style.left = `${left}px`;
+            
+            card.classList.remove('hidden');
+        }
+
+        function closeFloatingInfo() {
+            document.getElementById('floatingInfoCard').classList.add('hidden');
+        }
+
+        function closeFloatingInfoOnClickOutside(e) {
+            const card = document.getElementById('floatingInfoCard');
+            if (!card.classList.contains('hidden') && !card.contains(e.target) && !e.target.closest('.searchable-item')) {
+                closeFloatingInfo();
+            }
+        }
+
+        function loginUser() {
+            const role = document.getElementById('userRoleSelect').value;
+            currentUserRole = role;
+            applyRolePermissions(role);
+            closeLoginModal();
+            logAudit('Inicio de sesión cambiado a rol: ' + (role === 'admin' ? 'Administrador' : 'Cerrajero Operativo'));
+            showToast('Sesión iniciada como ' + (role === 'admin' ? 'Administrador Maestro' : 'Cerrajero Operativo'));
+        }
+
+        function applyRolePermissions(role) {
+            const adminElements = document.querySelectorAll('.role-admin');
+            const adminActions = document.querySelectorAll('.admin-only-action');
+
+            if (role === 'cerrajero') {
+                document.getElementById('userNameDisplay').innerText = 'Juan Morales';
+                document.getElementById('userRoleDisplay').innerText = 'Cerrajero Operativo';
+                document.getElementById('userBadge').innerText = 'JM';
+
+                adminElements.forEach(el => {
+                    if (!el.classList.contains('role-cerrajero')) {
+                        el.classList.add('hidden');
+                    }
+                });
+
+                adminActions.forEach(el => el.classList.add('hidden'));
+                switchTab('caja');
+            } else {
+                document.getElementById('userNameDisplay').innerText = 'Admin Maestro';
+                document.getElementById('userRoleDisplay').innerText = 'Administrador';
+                document.getElementById('userBadge').innerText = 'AD';
+
+                adminElements.forEach(el => el.classList.remove('hidden'));
+                adminActions.forEach(el => el.classList.remove('hidden'));
+                switchTab('finanzas');
+            }
+        }
+
+        function openLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
+        function closeLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
+
+        function initCharts() {
+            const ctxLine = document.getElementById('financialChart').getContext('2d');
+            financialChartInstance = new Chart(ctxLine, {
+                type: 'line',
+                data: {
+                    labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+                    datasets: [
+                        { label: 'Ingresos', data: [600, 750, 500, 850, 950, 1000, 400], borderColor: '#2563EB', backgroundColor: 'rgba(37, 99, 235, 0.1)', fill: true, tension: 0.3 },
+                        { label: 'Gastos', data: [200, 300, 150, 400, 250, 500, 100], borderColor: '#EF4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', fill: true, tension: 0.3 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            const ctxDoughnut = document.getElementById('doughnutChart').getContext('2d');
+            doughnutChartInstance = new Chart(ctxDoughnut, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Productos', 'Servicios', 'Otros'],
+                    datasets: [{ data: [62, 28, 10], backgroundColor: ['#2563EB', '#10B981', '#F59E0B'] }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        /* =========================================================
+           MOTOR ALUSTRUST 5D ENGINE (SEBAS2) DENTRO DEL MODAL
+           ========================================================= */
+        function openModal3DFromService(event) {
+            if (event) event.stopPropagation();
+            document.getElementById('modal3D5D').classList.remove('hidden');
+            setTimeout(() => {
+                initEngine5D();
+            }, 100);
+            logAudit('Apertura del Configurador AluStruct 5D Engine desde cotización.');
+        }
+
+        function closeModal3D() {
+            document.getElementById('modal3D5D').classList.add('hidden');
+            if (animationFrame5D) cancelAnimationFrame(animationFrame5D);
+            if (renderer5D) {
+                renderer5D.dispose();
+                renderer5D = null;
+            }
+        }
+
+        function initEngine5D() {
+            const container = document.getElementById('webgl-container-5d');
+            if (!container) return;
+            
+            if (renderer5D) {
+                cancelAnimationFrame(animationFrame5D);
+                renderer5D.dispose();
+                container.innerHTML = '';
+            }
+
+            scene5D = new THREE.Scene();
+            scene5D.background = new THREE.Color(0x070a12);
+            scene5D.fog = new THREE.FogExp2(0x070a12, 0.022);
+
+            camera5D = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 100);
+            camera5D.position.set(8, 5.5, 9);
+
+            renderer5D = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+            renderer5D.setSize(container.clientWidth, container.clientHeight);
+            renderer5D.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer5D.shadowMap.enabled = true;
+            renderer5D.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer5D.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer5D.toneMappingExposure = 1.15;
+            container.appendChild(renderer5D.domElement);
+
+            controls5D = new THREE.OrbitControls(camera5D, renderer5D.domElement);
+            controls5D.enableDamping = true;
+            controls5D.dampingFactor = 0.05;
+            controls5D.maxPolarAngle = Math.PI / 2 - 0.01;
+            controls5D.minDistance = 2;
+            controls5D.maxDistance = 35;
+            controls5D.target.set(0, 1.8, 0);
+
+            setupLighting5D();
+            setupEnvironment5D();
+            initMaterials5D();
+
+            mainStructureGroup5D = new THREE.Group();
+            scene5D.add(mainStructureGroup5D);
+
+            buildStructure5D();
+            setupUIEventListeners5D();
+
+            function animate() {
+                animationFrame5D = requestAnimationFrame(animate);
+                controls5D.update();
+
+                const time = Date.now() * 0.0008;
+                if (pointLight5D) {
+                    pointLight5D.position.x = Math.sin(time) * 9;
+                    pointLight5D.position.z = Math.cos(time) * 9;
+                }
+
+                renderer5D.render(scene5D, camera5D);
+            }
+            animate();
+        }
+
+        function setupLighting5D() {
+            ambientLight5D = new THREE.AmbientLight(0xffffff, 0.7);
+            scene5D.add(ambientLight5D);
+
+            dirLight5D = new THREE.DirectionalLight(0xffffff, 1.5);
+            dirLight5D.position.set(14, 20, 12);
+            dirLight5D.castShadow = true;
+            dirLight5D.shadow.mapSize.width = 2048;
+            dirLight5D.shadow.mapSize.height = 2048;
+            dirLight5D.shadow.camera.near = 0.5;
+            dirLight5D.shadow.camera.far = 45;
+            const d = 10;
+            dirLight5D.shadow.camera.left = -d;
+            dirLight5D.shadow.camera.right = d;
+            dirLight5D.shadow.camera.top = d;
+            dirLight5D.shadow.camera.bottom = -d;
+            dirLight5D.shadow.bias = -0.0004;
+            scene5D.add(dirLight5D);
+
+            pointLight5D = new THREE.PointLight(0x38bdf8, 1.0, 18);
+            pointLight5D.position.set(-8, 6, -6);
+            scene5D.add(pointLight5D);
+        }
+
+        function setupEnvironment5D() {
+            const floorGeo = new THREE.PlaneGeometry(60, 60);
+            const floorMat = new THREE.MeshStandardMaterial({
+                color: 0x090f1f,
+                roughness: 0.9,
+                metalness: 0.1
+            });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = -0.02;
+            floor.receiveShadow = true;
+            scene5D.add(floor);
+
+            const planGeo = new THREE.PlaneGeometry(12, 12);
+            planMaterial5D = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: state5D.planOpacity
+            });
+            planMesh5D = new THREE.Mesh(planGeo, planMaterial5D);
+            planMesh5D.rotation.x = -Math.PI / 2;
+            planMesh5D.position.y = -0.01;
+            planMesh5D.visible = false;
+            scene5D.add(planMesh5D);
+
+            gridHelper5D = new THREE.GridHelper(30, 30, 0x38bdf8, 0x1e293b);
+            gridHelper5D.position.y = 0.001;
+            scene5D.add(gridHelper5D);
+        }
+
+        function handlePlanUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const loader = new THREE.TextureLoader();
+                loader.load(e.target.result, (texture) => {
+                    planMaterial5D.map = texture;
+                    planMaterial5D.needsUpdate = true;
+
+                    const aspect = texture.image.width / texture.image.height;
+                    planMesh5D.scale.set(aspect, 1, 1);
+                    planMesh5D.visible = true;
+
+                    showToast5D("Plano 2D proyectado correctamente en el entorno 3D");
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function initMaterials5D() {
+            glassMaterial5D = new THREE.MeshPhysicalMaterial({
+                color: state5D.glassColor,
+                metalness: 0.0,
+                roughness: state5D.roughness,
+                transmission: state5D.transmission,
+                thickness: state5D.glassThicknessMm / 1000.0,
+                ior: state5D.ior,
+                transparent: true,
+                opacity: 1.0,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+                reflectivity: 0.95
+            });
+
+            aluMaterial5D = new THREE.MeshStandardMaterial({
+                color: state5D.aluColor,
+                metalness: state5D.aluMetalness,
+                roughness: state5D.aluRoughness
+            });
+
+            anchorMaterial5D = new THREE.MeshStandardMaterial({
+                color: 0x475569,
+                metalness: 0.9,
+                roughness: 0.3
+            });
+
+            wireframeMaterial5D = new THREE.MeshBasicMaterial({
+                color: 0x38bdf8,
+                wireframe: true
+            });
+        }
+
+        function buildStructure5D() {
+            clearGroup5D(mainStructureGroup5D);
+
+            const W = state5D.width;
+            const H = state5D.height;
+            const D = state5D.depth;
+            const profW = state5D.profileWidthMm / 1000.0;
+            const profD = state5D.profileDepthMm / 1000.0;
+            const glassThickM = state5D.glassThicknessMm / 1000.0;
+            const divsX = state5D.divisionsX;
+            const divsY = state5D.divisionsY;
+
+            const halfW = W / 2;
+            const halfD = D / 2;
+
+            if (state5D.currentPhase >= 1) {
+                const plateSize = profD * 2.0;
+                const plateHeight = 0.03;
+                const plateGeo = new THREE.BoxGeometry(plateSize, plateHeight, plateSize);
+
+                const anchorLocations = [];
+                const stepX = W / divsX;
+
+                for (let i = 0; i <= divsX; i++) {
+                    const posX = -halfW + i * stepX;
+                    anchorLocations.push([posX, plateHeight / 2, halfD]);
+                    anchorLocations.push([posX, plateHeight / 2, -halfD]);
+                }
+
+                anchorLocations.forEach(pos => {
+                    const anchor = new THREE.Mesh(plateGeo, anchorMaterial5D);
+                    anchor.position.set(...pos);
+                    anchor.castShadow = true;
+                    anchor.receiveShadow = true;
+                    mainStructureGroup5D.add(anchor);
+                });
+            }
+
+            if (state5D.currentPhase >= 2) {
+                const aluMatToUse = state5D.showWireframe ? wireframeMaterial5D : aluMaterial5D;
+                const stepX = W / divsX;
+                const stepY = H / divsY;
+
+                const mullionGeo = new THREE.BoxGeometry(profW, H, profD);
+                for (let i = 0; i <= divsX; i++) {
+                    const posX = -halfW + i * stepX;
+                    const mFront = new THREE.Mesh(mullionGeo, aluMatToUse);
+                    mFront.position.set(posX, H / 2, halfD);
+                    mFront.castShadow = true;
+                    mainStructureGroup5D.add(mFront);
+
+                    const mBack = new THREE.Mesh(mullionGeo, aluMatToUse);
+                    mBack.position.set(posX, H / 2, -halfD);
+                    mBack.castShadow = true;
+                    mainStructureGroup5D.add(mBack);
+                }
+
+                const transomW = stepX - profW;
+                const transomXGeo = new THREE.BoxGeometry(transomW, profW, profD);
+                for (let i = 0; i < divsX; i++) {
+                    const posX = -halfW + (i + 0.5) * stepX;
+                    for (let j = 0; j <= divsY; j++) {
+                        const posY = j * stepY + (j === 0 ? profW / 2 : (j === divsY ? -profW / 2 : 0));
+                        const tFront = new THREE.Mesh(transomXGeo, aluMatToUse);
+                        tFront.position.set(posX, posY, halfD);
+                        tFront.castShadow = true;
+                        mainStructureGroup5D.add(tFront);
+
+                        const tBack = new THREE.Mesh(transomXGeo, aluMatToUse);
+                        tBack.position.set(posX, posY, -halfD);
+                        tBack.castShadow = true;
+                        mainStructureGroup5D.add(tBack);
+                    }
+                }
+
+                const beamZGeo = new THREE.BoxGeometry(profW, profW, D - profD);
+                for (let i = 0; i <= divsX; i++) {
+                    const posX = -halfW + i * stepX;
+                    const bZTop = new THREE.Mesh(beamZGeo, aluMatToUse);
+                    bZTop.position.set(posX, H, 0);
+                    bZTop.castShadow = true;
+                    mainStructureGroup5D.add(bZTop);
+
+                    const bZBot = new THREE.Mesh(beamZGeo, aluMatToUse);
+                    bZBot.position.set(posX, profW / 2, 0);
+                    bZBot.castShadow = true;
+                    mainStructureGroup5D.add(bZBot);
+                }
+            }
+
+            if (state5D.currentPhase >= 3) {
+                const glassMatToUse = state5D.showWireframe ? wireframeMaterial5D : glassMaterial5D;
+                const stepX = W / divsX;
+                const stepY = H / divsY;
+
+                const glassPanelW = stepX - profW;
+                const glassPanelH = stepY - profW;
+
+                const glassPanelGeo = new THREE.BoxGeometry(glassPanelW, glassPanelH, glassThickM);
+
+                for (let i = 0; i < divsX; i++) {
+                    const posX = -halfW + (i + 0.5) * stepX;
+                    for (let j = 0; j < divsY; j++) {
+                        const posY = (j + 0.5) * stepY;
+                        const gFront = new THREE.Mesh(glassPanelGeo, glassMatToUse);
+                        gFront.position.set(posX, posY, halfD);
+                        gFront.castShadow = true;
+                        mainStructureGroup5D.add(gFront);
+
+                        const gBack = new THREE.Mesh(glassPanelGeo, glassMatToUse);
+                        gBack.position.set(posX, posY, -halfD);
+                        gBack.castShadow = true;
+                        mainStructureGroup5D.add(gBack);
+                    }
+                }
+
+                const sidePanelW = D - profD;
+                const glassSideGeo = new THREE.BoxGeometry(glassThickM, H - profW, sidePanelW);
+
+                const gLeft = new THREE.Mesh(glassSideGeo, glassMatToUse);
+                gLeft.position.set(-halfW, H / 2, 0);
+                gLeft.castShadow = true;
+                mainStructureGroup5D.add(gLeft);
+
+                const gRight = new THREE.Mesh(glassSideGeo, glassMatToUse);
+                gRight.position.set(halfW, H / 2, 0);
+                gRight.castShadow = true;
+                mainStructureGroup5D.add(gRight);
+
+                const roofGlassGeo = new THREE.BoxGeometry(glassPanelW, glassThickM, D - profD);
+                for (let i = 0; i < divsX; i++) {
+                    const posX = -halfW + (i + 0.5) * stepX;
+                    const gRoof = new THREE.Mesh(roofGlassGeo, glassMatToUse);
+                    gRoof.position.set(posX, H + profW / 2, 0);
+                    gRoof.castShadow = true;
+                    mainStructureGroup5D.add(gRoof);
+                }
+            }
+
+            controls5D.target.set(0, H / 2, 0);
+            calculateMetrics5D();
+        }
+
+        function calculateMetrics5D() {
+            let totalGlassArea = 0;
+            let totalGlassVolume = 0;
+            let totalAluLength = 0;
+            let totalAluVolume = 0;
+            let anchorCount = 0;
+
+            const W = state5D.width;
+            const H = state5D.height;
+            const D = state5D.depth;
+            const profW = state5D.profileWidthMm / 1000.0;
+            const profD = state5D.profileDepthMm / 1000.0;
+            const glassThickM = state5D.glassThicknessMm / 1000.0;
+            const divsX = state5D.divisionsX;
+            const divsY = state5D.divisionsY;
+
+            if (state5D.currentPhase >= 1) {
+                anchorCount = (divsX + 1) * 2;
+            }
+
+            if (state5D.currentPhase >= 2) {
+                const mullionCount = (divsX + 1) * 2;
+                const mullionsLen = mullionCount * H;
+
+                const stepX = W / divsX;
+                const singleTransomW = stepX - profW;
+                const transomsCount = divsX * (divsY + 1) * 2;
+                const transomsLen = transomsCount * singleTransomW;
+
+                const tieBeamsCount = (divsX + 1) * 2;
+                const tieBeamsLen = tieBeamsCount * D;
+
+                totalAluLength = mullionsLen + transomsLen + tieBeamsLen;
+                
+                const wallThickM = 0.003;
+                const crossSectionArea = (profW * profD) - ((profW - 2 * wallThickM) * (profD - 2 * wallThickM));
+                totalAluVolume = totalAluLength * crossSectionArea;
+            }
+
+            if (state5D.currentPhase >= 3) {
+                const stepX = W / divsX;
+                const stepY = H / divsY;
+                const glassW = stepX - profW;
+                const glassH = stepY - profW;
+                const sideW = D - profD;
+
+                const frontBackArea = (glassW * glassH) * (divsX * divsY * 2);
+                const sidesArea = (sideW * H) * 2;
+                const roofArea = (glassW * sideW) * divsX;
+
+                totalGlassArea = frontBackArea + sidesArea + roofArea;
+                totalGlassVolume = totalGlassArea * glassThickM;
+            }
+
+            const weightAlu = totalAluVolume * DENSITY_ALUMINIUM;
+            const weightGlass = totalGlassVolume * DENSITY_GLASS;
+            const totalWeight = weightAlu + weightGlass;
+
+            const costAnchors = anchorCount * UNIT_COST_ANCHOR_UNIT;
+            const costAlu = weightAlu * UNIT_COST_ALU_KG;
+            const costGlass = totalGlassArea * UNIT_COST_GLASS_SQM * (state5D.glassThicknessMm / 14.0);
+            
+            const subtotalMaterial = costAnchors + costAlu + costGlass;
+            const totalCost5D = subtotalMaterial * LABOR_INSTALLATION_FACTOR;
+
+            document.getElementById('metric-cost').innerText = `$${totalCost5D.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            document.getElementById('metric-cost-m2').innerText = totalGlassArea > 0 ? `$${(totalCost5D / totalGlassArea).toFixed(2)}/m²` : '$0/m²';
+            document.getElementById('metric-weight').innerText = `${Math.round(totalWeight).toLocaleString()} kg`;
+            document.getElementById('sub-weight-glass').innerText = `${Math.round(weightGlass)} kg`;
+            document.getElementById('sub-weight-alu').innerText = `${Math.round(weightAlu)} kg`;
+            document.getElementById('metric-alu-len').innerText = `${totalAluLength.toFixed(1)} m linear`;
+            document.getElementById('metric-alu-vol').innerText = `${totalAluVolume.toFixed(3)} m³`;
+            document.getElementById('metric-glass-area').innerText = `${totalGlassArea.toFixed(2)} m²`;
+            document.getElementById('metric-glass-vol').innerText = `${totalGlassVolume.toFixed(3)} m³`;
+        }
+
+        function updateGlassMaterial5D() {
+            glassMaterial5D.thickness = state5D.glassThicknessMm / 1000.0;
+            glassMaterial5D.transmission = state5D.transmission;
+            glassMaterial5D.roughness = state5D.roughness;
+            glassMaterial5D.ior = state5D.ior;
+            glassMaterial5D.color.setHex(state5D.glassColor);
+            glassMaterial5D.needsUpdate = true;
+        }
+
+        function setGlassTint(colorHex, name) {
+            state5D.glassColor = colorHex;
+            state5D.glassTintName = name;
+            document.getElementById('val-glass-tint-name').innerText = name;
+            updateGlassMaterial5D();
+            showToast5D(`Tinte de vidrio: ${name}`);
+        }
+
+        function setAluFinish(colorHex, metalness, roughness, name) {
+            state5D.aluColor = colorHex;
+            state5D.aluMetalness = metalness;
+            state5D.aluRoughness = roughness;
+            state5D.aluFinishName = name;
+            document.getElementById('val-alu-finish-name').innerText = name;
+            
+            aluMaterial5D.color.setHex(colorHex);
+            aluMaterial5D.metalness = metalness;
+            aluMaterial5D.roughness = roughness;
+            aluMaterial5D.needsUpdate = true;
+            
+            showToast5D(`Acabado de Aluminio: ${name}`);
+        }
+
+        function generateIRJSON() {
+            return {
+                project: "Estructura Arquitectónica Aluminio & Vidrio 5D",
+                timestamp: new Date().toISOString(),
+                version: "1.0.0",
+                dimensions_3d: {
+                    width_m: state5D.width,
+                    height_m: state5D.height,
+                    depth_m: state5D.depth,
+                    divisions_x: state5D.divisionsX,
+                    divisions_y: state5D.divisionsY,
+                    profile_width_mm: state5D.profileWidthMm,
+                    profile_depth_mm: state5D.profileDepthMm
+                },
+                aluminium_properties: {
+                    finish_name: state5D.aluFinishName,
+                    color_hex: `#${state5D.aluColor.toString(16).padStart(6, '0')}`,
+                    metalness: state5D.aluMetalness,
+                    roughness: state5D.aluRoughness
+                },
+                glass_properties: {
+                    thickness_mm: state5D.glassThicknessMm,
+                    transmission: state5D.transmission,
+                    roughness: state5D.roughness,
+                    ior: state5D.ior,
+                    color_hex: `#${state5D.glassColor.toString(16).padStart(6, '0')}`
+                },
+                phase_4d: {
+                    current_phase: state5D.currentPhase,
+                    phase_description: getPhaseName5D(state5D.currentPhase)
+                },
+                metrics_5d: {
+                    total_cost_usd: parseFloat(document.getElementById('metric-cost').innerText.replace(/[^0-9.-]+/g, "")),
+                    total_weight_kg: parseFloat(document.getElementById('metric-weight').innerText.replace(/[^0-9.-]+/g, "")),
+                    aluminium_length_m: parseFloat(document.getElementById('metric-alu-len').innerText.replace(/[^0-9.-]+/g, "")),
+                    glass_area_sqm: parseFloat(document.getElementById('metric-glass-area').innerText.replace(/[^0-9.-]+/g, ""))
+                }
+            };
+        }
+
+        function exportIRJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(generateIRJSON(), null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `AluStruct_5D_${Date.now()}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast5D("Estado IR 5D exportado correctamente (JSON)");
+        }
+
+        function triggerImportJSON() {
+            document.getElementById('input-import-json').click();
+        }
+
+        function importIRJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const json = JSON.parse(e.target.result);
+                    
+                    if (json.dimensions_3d) {
+                        state5D.width = json.dimensions_3d.width_m || state5D.width;
+                        state5D.height = json.dimensions_3d.height_m || state5D.height;
+                        state5D.depth = json.dimensions_3d.depth_m || state5D.depth;
+                        state5D.divisionsX = json.dimensions_3d.divisions_x || state5D.divisionsX;
+                        state5D.divisionsY = json.dimensions_3d.divisions_y || state5D.divisionsY;
+                        state5D.profileWidthMm = json.dimensions_3d.profile_width_mm || state5D.profileWidthMm;
+                        state5D.profileDepthMm = json.dimensions_3d.profile_depth_mm || state5D.profileDepthMm;
+
+                        document.getElementById('input-width').value = state5D.width;
+                        document.getElementById('val-width').innerText = `${state5D.width.toFixed(1)} m`;
+                        document.getElementById('input-height').value = state5D.height;
+                        document.getElementById('val-height').innerText = `${state5D.height.toFixed(1)} m`;
+                        document.getElementById('input-depth').value = state5D.depth;
+                        document.getElementById('val-depth').innerText = `${state5D.depth.toFixed(1)} m`;
+                        document.getElementById('input-divisions-x').value = state5D.divisionsX;
+                        document.getElementById('val-divisions-x').innerText = state5D.divisionsX;
+                        document.getElementById('input-divisions-y').value = state5D.divisionsY;
+                        document.getElementById('val-divisions-y').innerText = state5D.divisionsY;
+                        document.getElementById('input-profile-width').value = state5D.profileWidthMm;
+                        document.getElementById('val-profile-width').innerText = `${state5D.profileWidthMm} mm`;
+                        document.getElementById('input-profile-depth').value = state5D.profileDepthMm;
+                        document.getElementById('val-profile-depth').innerText = `${state5D.profileDepthMm} mm`;
+                    }
+
+                    if (json.glass_properties) {
+                        state5D.glassThicknessMm = json.glass_properties.thickness_mm || state5D.glassThicknessMm;
+                        state5D.transmission = json.glass_properties.transmission ?? state5D.transmission;
+                        state5D.roughness = json.glass_properties.roughness ?? state5D.roughness;
+                        state5D.ior = json.glass_properties.ior ?? state5D.ior;
+                        
+                        document.getElementById('input-glass-thick').value = state5D.glassThicknessMm;
+                        document.getElementById('val-glass-thick').innerText = `${state5D.glassThicknessMm} mm`;
+                        document.getElementById('input-transmission').value = state5D.transmission;
+                        document.getElementById('val-transmission').innerText = state5D.transmission;
+
+                        updateGlassMaterial5D();
+                    }
+
+                    if (json.phase_4d) {
+                        setPhase5D(json.phase_4d.current_phase || 3);
+                    }
+
+                    buildStructure5D();
+                    showToast5D("Archivo IR importado correctamente");
+                } catch (err) {
+                    showToast5D("Error al procesar el archivo JSON", true);
+                    console.error(err);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function setupUIEventListeners5D() {
+            bindRangeInput5D('input-width', 'val-width', 'm', (val) => { state5D.width = val; buildStructure5D(); });
+            bindRangeInput5D('input-height', 'val-height', 'm', (val) => { state5D.height = val; buildStructure5D(); });
+            bindRangeInput5D('input-depth', 'val-depth', 'm', (val) => { state5D.depth = val; buildStructure5D(); });
+            bindRangeInput5D('input-divisions-x', 'val-divisions-x', '', (val) => { state5D.divisionsX = val; buildStructure5D(); });
+            bindRangeInput5D('input-divisions-y', 'val-divisions-y', '', (val) => { state5D.divisionsY = val; buildStructure5D(); });
+            bindRangeInput5D('input-profile-width', 'val-profile-width', 'mm', (val) => { state5D.profileWidthMm = val; buildStructure5D(); });
+            bindRangeInput5D('input-profile-depth', 'val-profile-depth', 'mm', (val) => { state5D.profileDepthMm = val; buildStructure5D(); });
+
+            bindRangeInput5D('input-glass-thick', 'val-glass-thick', 'mm', (val) => { state5D.glassThicknessMm = val; updateGlassMaterial5D(); calculateMetrics5D(); buildStructure5D(); });
+            bindRangeInput5D('input-transmission', 'val-transmission', '', (val) => { state5D.transmission = val; updateGlassMaterial5D(); });
+            bindRangeInput5D('input-plan-opacity', 'val-plan-opacity', '', (val) => { state5D.planOpacity = val; planMaterial5D.opacity = val; });
+
+            const phaseInput = document.getElementById('input-phase');
+            if (phaseInput) {
+                phaseInput.addEventListener('input', (e) => {
+                    setPhase5D(parseInt(e.target.value));
+                });
+            }
+
+            const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
+            const sidebarPanel = document.getElementById('sidebar-panel-5d');
+            if (btnToggleSidebar && sidebarPanel) {
+                btnToggleSidebar.addEventListener('click', () => {
+                    sidebarPanel.classList.toggle('collapsed');
+                    const isCollapsed = sidebarPanel.classList.contains('collapsed');
+                    btnToggleSidebar.classList.toggle('text-cyan-400', isCollapsed);
+                });
+            }
+
+            const btnWireframe = document.getElementById('btn-wireframe');
+            if (btnWireframe) {
+                btnWireframe.addEventListener('click', () => {
+                    state5D.showWireframe = !state5D.showWireframe;
+                    btnWireframe.classList.toggle('text-cyan-400', state5D.showWireframe);
+                    buildStructure5D();
+                    showToast5D(`Modo Wireframe: ${state5D.showWireframe ? 'Activado' : 'Desactivado'}`);
+                });
+            }
+
+            const btnGrid = document.getElementById('btn-grid');
+            if (btnGrid) {
+                btnGrid.addEventListener('click', () => {
+                    state5D.showGrid = !state5D.showGrid;
+                    gridHelper5D.visible = state5D.showGrid;
+                    btnGrid.classList.toggle('text-cyan-400', state5D.showGrid);
+                });
+            }
+
+            const btnResetCam = document.getElementById('btn-reset-cam');
+            if (btnResetCam) {
+                btnResetCam.addEventListener('click', () => {
+                    camera5D.position.set(8, 5.5, 9);
+                    controls5D.target.set(0, state5D.height / 2, 0);
+                    controls5D.update();
+                });
+            }
+        }
+
+        function bindRangeInput5D(inputId, valId, unit, callback) {
+            const input = document.getElementById(inputId);
+            const valLabel = document.getElementById(valId);
+            if (!input || !valLabel) return;
+            input.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                valLabel.innerText = unit ? `${val} ${unit}` : val;
+                callback(val);
+            });
+        }
+
+        function setPhase5D(phaseNum) {
+            state5D.currentPhase = phaseNum;
+            document.getElementById('input-phase').value = phaseNum;
+            document.getElementById('val-phase-num').innerText = getPhaseName5D(phaseNum);
+
+            for (let i = 1; i <= 3; i++) {
+                const card = document.getElementById(`phase-card-${i}`);
+                if (card) {
+                    if (i <= phaseNum) {
+                        card.classList.add('active');
+                    } else {
+                        card.classList.remove('active');
+                    }
+                }
+            }
+
+            buildStructure5D();
+        }
+
+        function getPhaseName5D(phase) {
+            switch(phase) {
+                case 1: return "Fase 1 - Anclajes de Base";
+                case 2: return "Fase 2 - Subestructura de Aluminio";
+                case 3: return "Fase 3 - Acristalamiento y Sellado";
+                default: return "";
+            }
+        }
+
+        function switchTab5D(tabKey) {
+            document.querySelectorAll('#sidebar-panel-5d .tab-btn').forEach(btn => {
+                btn.classList.remove('text-cyan-400', 'bg-slate-800/80');
+                btn.classList.add('text-slate-400');
+            });
+            document.querySelectorAll('#sidebar-panel-5d .tab-content-5d').forEach(content => {
+                content.classList.add('hidden');
+            });
+
+            const activeBtn = document.getElementById(`tab-btn-${tabKey}`);
+            const activeContent = document.getElementById(`tab-${tabKey}`);
+
+            if (activeBtn) {
+                activeBtn.classList.add('text-cyan-400', 'bg-slate-800/80');
+                activeBtn.classList.remove('text-slate-400');
+            }
+            if (activeContent) activeContent.classList.remove('hidden');
+        }
+
+        function clearGroup5D(group) {
+            while (group.children.length > 0) {
+                const obj = group.children[0];
+                if (obj.geometry) obj.geometry.dispose();
+                group.remove(obj);
+            }
+        }
+
+        function showToast5D(msg, isError = false) {
+            const toast = document.getElementById('toast-5d');
+            const toastMsg = document.getElementById('toast-msg-5d');
+            const toastIcon = document.getElementById('toast-icon-5d');
+            if (!toast || !toastMsg || !toastIcon) return;
+
+            toastMsg.innerText = msg;
+            toastIcon.className = isError 
+                ? "fa-solid fa-circle-exclamation text-rose-400 text-base" 
+                : "fa-solid fa-circle-check text-cyan-400 text-base";
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        /* =========================================================
+           FUNCIONES AUXILIARES Y DASHBOARD PRINCIPAL
+           ========================================================= */
+        function printCashReport() {
+            const content = document.getElementById('printable-content');
+            const now = new Date().toLocaleString();
+            content.innerHTML = `
+                <p><strong>REPORTE GENERAL DE CIERRE DE CAJA</strong></p>
+                <p>Fecha y Hora: ${now}</p>
+                <p>Atendido por: ${document.getElementById('userNameDisplay').innerText}</p>
+                <hr class="my-2">
+                <p>Total Ingresos en Efectivo: $250.00 COP</p>
+                <p>Total Movimientos Registrados: 1</p>
+                <p>Estado de Caja: Cuadrada y Validada</p>
+            `;
+            logAudit('Generación de informe e impresión de Cierre de Caja');
+            window.print();
+        }
+
+        function printSingleReceipt(btn) {
+            if (event) event.stopPropagation();
+            const item = btn.closest('.searchable-item');
+            const content = document.getElementById('printable-content');
+            const now = new Date().toLocaleString();
+            content.innerHTML = `
+                <p><strong>COMPROBANTE DE PAGO / RECIBO</strong></p>
+                <p>Recibo No: ${item.dataset.comprobante}</p>
+                <p>Fecha: ${now}</p>
+                <p>Concepto: ${item.dataset.concepto}</p>
+                <p>Método: ${item.dataset.metodo}</p>
+                <hr class="my-2">
+                <p class="text-sm font-bold">TOTAL PAGADO: $${item.dataset.monto} COP</p>
+            `;
+            logAudit('Impresión de recibo térmico: ' + item.dataset.comprobante);
+            window.print();
+        }
+
+        function updateJobStatus(select, cotId) {
+            if (event) event.stopPropagation();
+            const newStatus = select.value;
+            logAudit(`Actualización de estado en pedido #${cotId} a: ${newStatus}`);
+            showToast(`Estado de ${cotId} actualizado a "${newStatus}" correctamente.`);
+        }
+
+        function switchTab(tabId) {
+            closeFloatingInfo();
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-brand-royal/10', 'dark:bg-brand-royal/20', 'text-brand-cobalt', 'dark:text-brand-cyan', 'border', 'border-brand-royal/20', 'dark:border-brand-royal/30');
+                btn.classList.add('text-slate-600', 'dark:text-slate-400', 'hover:bg-slate-100', 'dark:hover:bg-slate-800/60');
+            });
+
+            document.getElementById('tab-' + tabId).classList.remove('hidden');
+            const activeBtn = document.getElementById('btn-' + tabId);
+            if(activeBtn) {
+                activeBtn.classList.add('bg-brand-royal/10', 'dark:bg-brand-royal/20', 'text-brand-cobalt', 'dark:text-brand-cyan', 'border', 'border-brand-royal/20', 'dark:border-brand-royal/30');
+            }
+
+            const titles = {
+                'finanzas': ['Finanzas e Ingresos', 'Resumen general de balance, ganancias y servicios técnicos'],
+                'caja': ['Control de Caja Diaria', 'Apertura de caja, efectivo base y cuadre por métodos de pago'],
+                'compras': ['Compras y Gastos', 'Registro separado de compras de inventario y gastos operativos'],
+                'inventario': ['Inventario de Productos y Stock', 'Control separado de productos terminados y materia prima'],
+                'usuarios': ['Usuarios y Permisos', 'Control de clientes, roles y asignación de empleados'],
+                'comisiones': ['Comisiones', 'Auditoría de desarrollo y pagos por tareas'],
+                'garantias': ['Garantías y Solicitudes', 'Seguimiento de revisiones y solicitudes de usuarios'],
+                'catalogo': ['Catálogo General Unificado', 'Listado completo de productos comerciales y ofertas especiales'],
+                'pedidos': ['Pedidos, Servicios y Estados', 'Gestión de trabajos con asignación técnica y estados en vivo (Haga clic en la tarjeta para lectura o en el cubo 3D para AluStruct 5D Engine)'],
+                'auditoria': ['Auditoría e Historial', 'Registro detallado de cambios y operaciones del sistema']
+            };
+
+            document.getElementById('current-title').innerText = titles[tabId][0];
+            document.getElementById('current-subtitle').innerText = titles[tabId][1];
+
+            if(tabId === 'finanzas' && financialChartInstance) {
+                setTimeout(() => { financialChartInstance.update(); doughnutChartInstance.update(); }, 150);
+            }
+        }
+
+        function switchComprasTab(subTab) {
+            activeComprasSubTab = subTab;
+            if (subTab === 'compras') {
+                document.getElementById('subtab-compras-view').classList.remove('hidden');
+                document.getElementById('subtab-gastos-view').classList.add('hidden');
+                document.getElementById('subtab-compras-btn').className = "text-sm font-bold border-b-2 border-brand-royal text-brand-royal pb-1";
+                document.getElementById('subtab-gastos-btn').className = "text-sm font-semibold border-b-2 border-transparent text-slate-500 pb-1";
+                document.getElementById('btn-nuevo-compra-gasto').innerText = "+ Registrar Compra";
+            } else {
+                document.getElementById('subtab-compras-view').classList.add('hidden');
+                document.getElementById('subtab-gastos-view').classList.remove('hidden');
+                document.getElementById('subtab-gastos-btn').className = "text-sm font-bold border-b-2 border-brand-royal text-brand-royal pb-1";
+                document.getElementById('subtab-compras-btn').className = "text-sm font-semibold border-b-2 border-transparent text-slate-500 pb-1";
+                document.getElementById('btn-nuevo-compra-gasto').innerText = "+ Registrar Gasto";
+            }
+        }
+
+        function openActiveCompraTabCrud() {
+            if (activeComprasSubTab === 'compras') {
+                openAdvancedCrud('compra', 'crear');
+            } else {
+                openAdvancedCrud('gasto', 'crear');
+            }
+        }
+
+        function switchFinancePeriod(period) {
+            ['dia', 'semana', 'mes', 'anio'].forEach(p => {
+                const btn = document.getElementById('period-' + p);
+                btn.className = (p === period) ? "px-3 py-1.5 rounded-lg bg-brand-royal text-white shadow-sm transition-colors" : "px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 transition-colors";
+            });
+
+            const data = {
+                'dia': ['Ingresos Totales (Día)', '$720.00', '$490.00', '$85.00', '6 Trabajos'],
+                'semana': ['Ingresos Totales (Semana)', '$4,850.00', '$3,120.00', '$480.00', '34 Trabajos'],
+                'mes': ['Ingresos Totales (Mes)', '$19,400.00', '$12,500.00', '$1,920.00', '142 Trabajos'],
+                'anio': ['Ingresos Totales (Año)', '$232,800.00', '$150,000.00', '$23,000.00', '1,680 Trabajos']
+            };
+
+            document.getElementById('fin-label-1').innerText = data[period][0];
+            document.getElementById('fin-val-1').innerText = data[period][1];
+            document.getElementById('fin-val-2').innerText = data[period][2];
+            document.getElementById('fin-val-3').innerText = data[period][3];
+            document.getElementById('fin-val-4').innerText = data[period][4];
+            
+            logAudit('Filtro financiero ajustado a: ' + period.toUpperCase());
+        }
+
+        function switchInventoryTab(subTab) {
+            if (subTab === 'productos') {
+                document.getElementById('subtab-productos-view').classList.remove('hidden');
+                document.getElementById('subtab-stock-view').classList.add('hidden');
+                document.getElementById('subtab-productos-btn').className = "text-sm font-bold border-b-2 border-brand-royal text-brand-royal pb-1";
+                document.getElementById('subtab-stock-btn').className = "text-sm font-semibold border-b-2 border-transparent text-slate-500 pb-1";
+            } else {
+                document.getElementById('subtab-productos-view').classList.add('hidden');
+                document.getElementById('subtab-stock-view').classList.remove('hidden');
+                document.getElementById('subtab-stock-btn').className = "text-sm font-bold border-b-2 border-brand-royal text-brand-royal pb-1";
+                document.getElementById('subtab-productos-btn').className = "text-sm font-semibold border-b-2 border-transparent text-slate-500 pb-1";
+            }
+        }
+
+        function switchUserTab(subTab) {
+            document.getElementById('subtab-clientes').classList.add('hidden');
+            document.getElementById('subtab-roles').classList.add('hidden');
+            document.getElementById('subtab-proveedores').classList.add('hidden');
+
+            document.getElementById('subtab-clientes-btn').className = "text-sm font-semibold border-b-2 border-transparent text-slate-500 pb-1 whitespace-nowrap";
+            document.getElementById('subtab-roles-btn').className = "text-sm font-semibold border-b-2 border-transparent text-slate-500 pb-1 whitespace-nowrap";
+            document.getElementById('subtab-proveedores-btn').className = "text-sm font-semibold border-b-2 border-transparent text-slate-500 pb-1 whitespace-nowrap";
+
+            if (subTab === 'clientes') {
+                document.getElementById('subtab-clientes').classList.remove('hidden');
+                document.getElementById('subtab-clientes-btn').className = "text-sm font-bold border-b-2 border-brand-royal text-brand-royal pb-1 whitespace-nowrap";
+            } else if (subTab === 'roles') {
+                document.getElementById('subtab-roles').classList.remove('hidden');
+                document.getElementById('subtab-roles-btn').className = "text-sm font-bold border-b-2 border-brand-royal text-brand-royal pb-1 whitespace-nowrap";
+            } else if (subTab === 'proveedores') {
+                document.getElementById('subtab-proveedores').classList.remove('hidden');
+                document.getElementById('subtab-proveedores-btn').className = "text-sm font-bold border-b-2 border-brand-royal text-brand-royal pb-1 whitespace-nowrap";
+            }
+        }
+
+        function toggleMobileSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); }
+        function toggleStockAlerts() { document.getElementById('stock-alerts-dropdown').classList.toggle('hidden'); }
+
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const themeIcon = document.getElementById('theme-icon');
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                html.classList.add('light');
+                themeIcon.className = 'fa-solid fa-moon text-sm';
+            } else {
+                html.classList.remove('light');
+                html.classList.add('dark');
+                themeIcon.className = 'fa-solid fa-sun text-sm';
+            }
+        }
+
+        function showToast(message) {
+            document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-circle-info text-brand-royal"></i> Notificación`;
+            document.getElementById('modalBody').innerHTML = `<p class="text-xs text-slate-600 dark:text-slate-300">${message}</p>`;
+            document.getElementById('modalFooter').innerHTML = `<button onclick="closeModal()" class="px-4 py-2 bg-brand-royal text-white rounded-xl text-xs font-bold">Entendido</button>`;
+            document.getElementById('appModal').classList.remove('hidden');
+        }
+
+        function exportFinancesToExcel() {
+            const periodoLabel = document.getElementById('fin-label-1').innerText;
+            const ingresos = document.getElementById('fin-val-1').innerText;
+            const ganancias = document.getElementById('fin-val-2').innerText;
+            const gastos = document.getElementById('fin-val-3').innerText;
+            const servicios = document.getElementById('fin-val-4').innerText;
+
+            let csvContent = "\uFEFF";
+            csvContent += "Reporte Financiero - Cerrajería Pro\n";
+            csvContent += "Métrica,Valor\n";
+            csvContent += `"${periodoLabel}","${ingresos}"\n`;
+            csvContent += `"Ganancias Netas","${ganancias}"\n`;
+            csvContent += `"Gastos y Programadores","${gastos}"\n`;
+            csvContent += `"Servicios Realizados","${servicios}"\n`;
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'reporte_financiero_cerrajeria.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            logAudit('Exportación de reporte financiero a Excel');
+            showToast('Reporte financiero exportado a Excel con éxito.');
+        }
+
+        function filterCurrentTable() {
+            const query = document.getElementById('global-search').value.toLowerCase();
+            const activeTab = document.querySelector('.tab-content:not(.hidden)');
+            if(!activeTab) return;
+            
+            const items = activeTab.querySelectorAll('.searchable-item');
+            items.forEach(item => {
+                const text = item.innerText.toLowerCase();
+                item.classList.toggle('hidden', !text.includes(query));
+            });
+        }
+
+        function logAudit(actionText) {
+            const container = document.getElementById('audit-log-container');
+            if(!container) return;
+            const now = new Date();
+            const timeString = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+            const currentUser = document.getElementById('userNameDisplay').innerText;
+
+            const logHtml = `
+                <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm text-xs cursor-pointer hover:border-brand-royal transition-colors" onclick="triggerFloatingInfo('auditoria', this, event)" data-usuario="${currentUser}" data-accion="${actionText}" data-fecha="${timeString}" data-estado="Registrado">
+                    <div>
+                        <span class="px-2 py-0.5 bg-brand-royal/10 text-brand-royal font-bold rounded">${currentUser}</span>
+                        <p class="font-bold text-slate-900 dark:text-slate-100 mt-1">${actionText}</p>
+                        <p class="text-[11px] text-slate-400">Fecha: ${timeString}</p>
+                    </div>
+                    <span class="text-brand-emerald font-bold">Registrado</span>
+                </div>`;
+            const temp = document.createElement('div');
+            temp.innerHTML = logHtml;
+            container.insertBefore(temp.firstElementChild, container.firstChild);
+        }
+
+        function openAdvancedCrud(type, action, btn = null) {
+            if (event) event.stopPropagation();
+            currentCrudType = type;
+            currentEditElement = btn ? btn.closest('.searchable-item') : null;
+            
+            document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-pen-to-square text-brand-royal"></i> ${action === 'crear' ? 'Registrar' : 'Editar'} Pedido / Servicio`;
+            
+            let htmlForm = `
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <label class="block font-bold mb-1">Cotización / Pedido</label>
+                        <input type="text" id="p-num" placeholder="Ej. COT-303" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">Cliente</label>
+                        <input type="text" id="p-cliente" placeholder="Ej. Carlos Mendoza" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">Técnico Asignado</label>
+                        <input type="text" id="p-tecnico" value="Juan Morales" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">Descripción del Servicio</label>
+                        <input type="text" id="p-detalles" placeholder="Ej. Estructura de aluminio y vidrio DGU" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">Valor ($ USD)</label>
+                        <input type="text" id="p-valor" placeholder="Ej. 350.00" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl">
+                    </div>
+                </div>`;
+
+            document.getElementById('modalBody').innerHTML = htmlForm;
+            document.getElementById('modalFooter').innerHTML = `
+                <button onclick="closeModal()" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-colors">Cancelar</button>
+                <button onclick="saveAdvancedCrud()" id="modalSaveBtn" class="px-4 py-2 bg-brand-royal hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm">Guardar Registro</button>`;
+            document.getElementById('appModal').classList.remove('hidden');
+        }
+
+        function saveAdvancedCrud() {
+            const num = document.getElementById('p-num').value || 'COT-303';
+            const cli = document.getElementById('p-cliente').value || 'Cliente Nuevo';
+            const tec = document.getElementById('p-tecnico').value || 'Juan Morales';
+            const det = document.getElementById('p-detalles').value || 'Estructura de aluminio y cerrajería general';
+            const val = document.getElementById('p-valor').value || '300.00';
+
+            const targetContainer = document.getElementById('pedido-list');
+            const newHtml = `
+                <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center shadow-sm gap-4 cursor-pointer hover:border-brand-royal transition-colors" data-numpedido="${num}" data-clientepedido="${cli}" data-detallespedido="${det}" data-valorpedido="${val}" data-estado="Pendiente" data-tecnico="${tec}">
+                    
+                    <div onclick="openModal3DFromService(event)" class="w-24 h-24 rounded-xl bg-slate-950 border border-slate-700 flex flex-col items-center justify-center shrink-0 relative group overflow-hidden shadow-inner cursor-pointer" title="Haga clic para abrir el Estudio AluStruct 5D Engine">
+                        <i class="fa-solid fa-cube text-2xl text-cyan-400 group-hover:scale-110 transition-transform"></i>
+                        <span class="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Ver 5D Engine</span>
+                        <div class="absolute inset-0 bg-cyan-500/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <span class="bg-cyan-500 text-slate-950 text-[9px] px-2 py-1 rounded-md font-bold shadow">Abrir</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-1 flex-1" onclick="triggerFloatingInfo('pedido', this, event)">
+                        <div class="flex items-center gap-2">
+                            <h4 class="text-sm font-bold text-brand-royal dark:text-brand-cyan">Cotización #${num} - ${cli}</h4>
+                            <select onchange="updateJobStatus(this, '${num}')" onclick="event.stopPropagation()" class="text-[10px] font-bold px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-amber-500 focus:outline-none">
+                                <option value="Pendiente" selected>Pendiente</option>
+                                <option value="En taller">En taller</option>
+                                <option value="En camino">En camino</option>
+                                <option value="Finalizado">Finalizado</option>
+                            </select>
+                        </div>
+                        <p class="text-xs text-slate-600 dark:text-slate-300">${det} • Valor: $${val} USD</p>
+                        <div class="flex items-center gap-3 text-[11px] text-slate-500 pt-1">
+                            <span class="inline-flex items-center gap-1 font-semibold text-brand-cobalt dark:text-brand-cyan">
+                                <i class="fa-solid fa-user-gear"></i> Téc. Asignado: ${tec}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 self-end sm:self-center">
+                        <button onclick="openAdvancedCrud('pedido', 'editar', this)" class="admin-only-action p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteItem(this, 'Cotización eliminada')" class="admin-only-action p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>`;
+
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = newHtml;
+            targetContainer.appendChild(tempDiv.firstElementChild);
+
+            logAudit('Creación de nuevo pedido con acceso a AluStruct 5D Engine');
+            closeModal();
+            showToast('Pedido y servicio registrado con éxito.');
+        }
+
+        function closeModal() {
+            document.getElementById('appModal').classList.add('hidden');
+            currentEditElement = null;
+        }
+
+        function deleteItem(btn, auditMsg) {
+            if (event) event.stopPropagation();
+            if (confirm('¿Desea eliminar este registro de forma permanente?')) {
+                btn.closest('.searchable-item').remove();
+                logAudit(auditMsg);
+                showToast('Registro eliminado con éxito.');
+            }
+        }
+
+        function triggerBackup() {
+            logAudit('Generación y descarga de copia de seguridad (Backup)');
+            showToast('Copia de seguridad generada y descargada con éxito.');
+        }
+    </script>
+</body>
+</html>
