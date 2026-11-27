@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AluStruct 5D Engine - Configurador Estructural</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Three.js y OrbitControls desde CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #070a12;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(71, 85, 105, 1); }
+
+        .glass-panel {
+            background: rgba(11, 17, 32, 0.88);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]:focus { outline: none; }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #1e293b;
+            border-radius: 3px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -5px;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+            transition: all 0.2s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: #0ea5e9;
+        }
+
+        .metric-card {
+            background: rgba(26, 36, 56, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+        .metric-card:hover {
+            border-color: rgba(56, 189, 248, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .phase-step {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .phase-step.active {
+            background: rgba(14, 165, 233, 0.15);
+            border-color: #38bdf8;
+            color: #38bdf8;
+        }
+
+        #sidebar-panel-5d {
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+        }
+        #sidebar-panel-5d.collapsed {
+            transform: translateX(calc(-100% - 24px));
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="text-slate-100 w-screen h-screen relative select-none">
+
+    <!-- Lienzo WebGL 3D -->
+    <div id="webgl-container-5d" class="absolute inset-0 z-10 w-full h-full"></div>
+
+    <!-- Encabezado Superior Izquierdo -->
+    <header class="absolute top-4 left-4 z-20 pointer-events-auto flex items-center space-x-3">
+        <button id="btn-toggle-sidebar" title="Ocultar / Mostrar Panel" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-slate-300 hover:text-cyan-400 hover:border-cyan-500/40 transition">
+            <i class="fa-solid fa-bars-staggered"></i>
+        </button>
+
+        <div class="glass-panel px-4 py-2.5 rounded-xl flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+                <i class="fa-solid fa-layer-group text-lg"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="text-sm font-bold tracking-wide text-slate-100 uppercase">AluStruct 5D Engine</h1>
+                    <span id="badge-origen" class="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">Admin</span>
+                </div>
+                <p id="subtitulo-cotizacion" class="text-xs text-slate-400">Configurador Estructural de Aluminio & Vidrio</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Controles Superiores Derechos y Botón de Retorno Dinámico -->
+    <div class="absolute top-4 right-4 z-20 pointer-events-auto flex items-center space-x-2">
+        <button id="btn-wireframe" title="Modo Wireframe" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-slate-300 hover:text-cyan-400 hover:border-cyan-500/40 transition">
+            <i class="fa-solid fa-vector-square"></i>
+        </button>
+        <button id="btn-grid" title="Alternar Rejilla de Suelo" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-slate-300 hover:text-cyan-400 hover:border-cyan-500/40 transition">
+            <i class="fa-solid fa-border-all"></i>
+        </button>
+        <button id="btn-reset-cam" title="Restablecer Cámara" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-slate-300 hover:text-cyan-400 hover:border-cyan-500/40 transition">
+            <i class="fa-solid fa-camera-rotate"></i>
+        </button>
+        <button onclick="salirDel3D()" id="btn-volver-origen" title="Volver al módulo de origen" class="glass-panel px-4 h-10 rounded-xl flex items-center justify-center gap-2 text-xs font-bold text-rose-400 hover:bg-rose-500/20 border-rose-500/30 transition">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span id="texto-btn-volver">Volver</span>
+        </button>
+    </div>
+
+    <!-- Panel Lateral Paramétrico -->
+    <aside id="sidebar-panel-5d" class="absolute left-4 top-20 bottom-4 w-96 max-w-[calc(100vw-2rem)] z-20 pointer-events-auto glass-panel rounded-2xl flex flex-col overflow-hidden">
+        <div class="flex border-b border-slate-700/50 bg-slate-900/50 p-1.5 gap-1 shrink-0">
+            <button id="tab-btn-plan" class="tab-btn flex-1 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5" onclick="switchTab5D('plan')">
+                <i class="fa-solid fa-file-import"></i> Plano
+            </button>
+            <button id="tab-btn-geom" class="tab-btn flex-1 py-2 rounded-lg text-xs font-semibold text-cyan-400 bg-slate-800/80 transition flex items-center justify-center gap-1.5" onclick="switchTab5D('geom')">
+                <i class="fa-solid fa-cube"></i> 3D Geom
+            </button>
+            <button id="tab-btn-phase" class="tab-btn flex-1 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5" onclick="switchTab5D('phase')">
+                <i class="fa-solid fa-timeline"></i> 4D Tiempo
+            </button>
+            <button id="tab-btn-metrics" class="tab-btn flex-1 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5" onclick="switchTab5D('metrics')">
+                <i class="fa-solid fa-chart-pie"></i> 5D Costes
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar">
+            <!-- Pestaña Plano 2D -->
+            <div id="tab-plan" class="tab-content-5d hidden space-y-5">
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Cargar Plano 2D de Referencia
+                    </h3>
+                    <p class="text-xs text-slate-400 mb-4">Sube un archivo de imagen (PNG/JPG) del plano para proyectarlo en el suelo como guía 3D.</p>
+                    <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-700 hover:border-cyan-500/50 rounded-xl cursor-pointer bg-slate-900/50 transition">
+                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                            <i class="fa-solid fa-image text-2xl text-cyan-400 mb-2"></i>
+                            <p class="text-xs text-slate-300 font-semibold">Seleccionar imagen de plano</p>
+                            <p class="text-[10px] text-slate-500 mt-1">PNG, JPG, WEBP</p>
+                        </div>
+                        <input type="file" id="input-plan-file" class="hidden" accept="image/*" onchange="handlePlanUpload(event)">
+                    </label>
+                </div>
+                <div class="pt-4 border-t border-slate-700/50 space-y-4">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders"></i> Ajustes del Plano 2D
+                    </h3>
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Opacidad del Plano Guía</span>
+                            <span id="val-plan-opacity" class="font-mono text-cyan-400">0.70</span>
+                        </div>
+                        <input type="range" id="input-plan-opacity" min="0.0" max="1.0" step="0.05" value="0.70" class="w-full">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pestaña Geometría 3D -->
+            <div id="tab-geom" class="tab-content-5d space-y-5">
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-arrows-up-down-left-right"></i> Geometría de la Fachada/Módulo
+                    </h3>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                <span>Ancho Total (X)</span>
+                                <span id="val-width" class="font-mono text-cyan-400">4.5 m</span>
+                            </div>
+                            <input type="range" id="input-width" min="2.0" max="12.0" step="0.5" value="4.5" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                <span>Altura Total (Y)</span>
+                                <span id="val-height" class="font-mono text-cyan-400">3.6 m</span>
+                            </div>
+                            <input type="range" id="input-height" min="2.0" max="9.0" step="0.3" value="3.6" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                <span>Profundidad (Z)</span>
+                                <span id="val-depth" class="font-mono text-cyan-400">3.0 m</span>
+                            </div>
+                            <input type="range" id="input-depth" min="1.5" max="8.0" step="0.5" value="3.0" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                <span>Nº Modulaciones Horizontales (Mullions)</span>
+                                <span id="val-divisions-x" class="font-mono text-cyan-400">3</span>
+                            </div>
+                            <input type="range" id="input-divisions-x" min="1" max="8" step="1" value="3" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                <span>Nº Travesaños Verticales (Transoms)</span>
+                                <span id="val-divisions-y" class="font-mono text-cyan-400">2</span>
+                            </div>
+                            <input type="range" id="input-divisions-y" min="1" max="5" step="1" value="2" class="w-full">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-slate-700/50">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-shapes"></i> Perfilería de Aluminio (Alloy 6063-T6)
+                    </h3>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                <span>Ancho de Perfil de Aluminio</span>
+                                <span id="val-profile-width" class="font-mono text-cyan-400">80 mm</span>
+                            </div>
+                            <input type="range" id="input-profile-width" min="40" max="160" step="10" value="80" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                <span>Profundidad de Perfil (Inercia)</span>
+                                <span id="val-profile-depth" class="font-mono text-cyan-400">120 mm</span>
+                            </div>
+                            <input type="range" id="input-profile-depth" min="60" max="220" step="10" value="120" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                <span>Acabado del Aluminio</span>
+                                <span id="val-alu-finish-name" class="font-mono text-cyan-400">Anodizado Plata</span>
+                            </div>
+                            <div class="flex gap-2 pt-1">
+                                <button onclick="setAluFinish(0xd1d5db, 0.85, 0.25, 'Anodizado Plata')" class="w-7 h-7 rounded-full bg-slate-300 border-2 border-cyan-400 focus:outline-none"></button>
+                                <button onclick="setAluFinish(0x1e293b, 0.7, 0.4, 'Negro Mate Electroestático')" class="w-7 h-7 rounded-full bg-slate-800 border-2 border-transparent hover:border-slate-400 focus:outline-none"></button>
+                                <button onclick="setAluFinish(0xb45309, 0.8, 0.35, 'Bronce Arquitectónico')" class="w-7 h-7 rounded-full bg-amber-700 border-2 border-transparent hover:border-slate-400 focus:outline-none"></button>
+                                <button onclick="setAluFinish(0xf8fafc, 0.4, 0.5, 'Blanco Lacado RAL 9016')" class="w-7 h-7 rounded-full bg-white border-2 border-transparent hover:border-slate-400 focus:outline-none"></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-slate-700/50">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-glasses"></i> Panel de Vidrio DGU / Acristalamiento
+                    </h3>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                <span>Espesor del Vidrio</span>
+                                <span id="val-glass-thick" class="font-mono text-cyan-400">14 mm</span>
+                            </div>
+                            <input type="range" id="input-glass-thick" min="6" max="32" step="2" value="14" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                <span>Transmisión Lumínica (VLT)</span>
+                                <span id="val-transmission" class="font-mono text-cyan-400">0.92</span>
+                            </div>
+                            <input type="range" id="input-transmission" min="0.0" max="1.0" step="0.05" value="0.92" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                <span>Tono / Tinte del Vidrio</span>
+                                <span id="val-glass-tint-name" class="font-mono text-cyan-400">Neutro Incoloro</span>
+                            </div>
+                            <div class="flex gap-2 pt-1">
+                                <button onclick="setGlassTint(0xffffff, 'Neutro Incoloro')" class="w-7 h-7 rounded-full bg-slate-100 border-2 border-cyan-400 focus:outline-none"></button>
+                                <button onclick="setGlassTint(0x93c5fd, 'Azul Control Solar')" class="w-7 h-7 rounded-full bg-blue-300 border-2 border-transparent hover:border-slate-400 focus:outline-none"></button>
+                                <button onclick="setGlassTint(0xa7f3d0, 'Verde Esmeralda')" class="w-7 h-7 rounded-full bg-emerald-200 border-2 border-transparent hover:border-slate-400 focus:outline-none"></button>
+                                <button onclick="setGlassTint(0xfde047, 'Bronce Solar')" class="w-7 h-7 rounded-full bg-amber-200 border-2 border-transparent hover:border-slate-400 focus:outline-none"></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pestaña 4D Tiempo -->
+            <div id="tab-phase" class="tab-content-5d hidden space-y-5">
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-clock"></i> Secuencia Constructiva (4D)
+                    </h3>
+                    <div class="space-y-3 mb-6">
+                        <div class="flex justify-between text-xs text-slate-300">
+                            <span>Fase Solicitada:</span>
+                            <span id="val-phase-num" class="font-bold text-cyan-400">Fase 3 - Acristalamiento y Sellado</span>
+                        </div>
+                        <input type="range" id="input-phase" min="1" max="3" step="1" value="3" class="w-full">
+                    </div>
+                    <div class="space-y-3">
+                        <div id="phase-card-1" class="phase-step active p-3 rounded-xl border border-slate-700 bg-slate-800/40 flex items-start gap-3">
+                            <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">1</div>
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-200">Platinas de Anclaje de Acero</h4>
+                                <p class="text-[11px] text-slate-400 mt-0.5">Fijación de consolas metálicas regulables a forjados.</p>
+                            </div>
+                        </div>
+                        <div id="phase-card-2" class="phase-step active p-3 rounded-xl border border-slate-700 bg-slate-800/40 flex items-start gap-3">
+                            <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">2</div>
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-200">Subestructura de Aluminio</h4>
+                                <p class="text-[11px] text-slate-400 mt-0.5">Montaje de bastidor tubular de aluminio extruido 6063-T6.</p>
+                            </div>
+                        </div>
+                        <div id="phase-card-3" class="phase-step active p-3 rounded-xl border border-slate-700 bg-slate-800/40 flex items-start gap-3">
+                            <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">3</div>
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-200">Acristalamiento y Sellado</h4>
+                                <p class="text-[11px] text-slate-400 mt-0.5">Colocación de vidrios DGU y sellado perimetral EPDM.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pestaña 5D Costes -->
+            <div id="tab-metrics" class="tab-content-5d hidden space-y-5">
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-calculator"></i> Presupuesto y Análisis Físico 5D
+                    </h3>
+                    <div class="grid grid-cols-1 gap-3">
+                        <div class="metric-card p-4 rounded-xl">
+                            <div class="flex justify-between items-center text-slate-400 text-xs">
+                                <span>Costo Total Estimado (5D)</span>
+                                <i class="fa-solid fa-dollar-sign text-emerald-400"></i>
+                            </div>
+                            <div id="metric-cost" class="text-2xl font-extrabold text-emerald-400 mt-1 font-mono">$0.00</div>
+                            <div class="text-[10px] text-slate-500 mt-1 flex justify-between">
+                                <span>Materiales + Montaje Especializado</span>
+                                <span id="metric-cost-m2">$0/m²</span>
+                            </div>
+                        </div>
+                        <div class="metric-card p-4 rounded-xl">
+                            <div class="flex justify-between items-center text-slate-400 text-xs">
+                                <span>Masa Total de la Estructura</span>
+                                <i class="fa-solid fa-scale-balanced text-amber-400"></i>
+                            </div>
+                            <div id="metric-weight" class="text-xl font-bold text-slate-100 mt-1 font-mono">0 kg</div>
+                            <div class="text-[10px] text-slate-400 mt-1 flex justify-between">
+                                <span>Vidrio: <b id="sub-weight-glass" class="text-slate-200">0 kg</b></span>
+                                <span>Aluminio: <b id="sub-weight-alu" class="text-slate-200">0 kg</b></span>
+                            </div>
+                        </div>
+                        <div class="metric-card p-4 rounded-xl">
+                            <div class="flex justify-between items-center text-slate-400 text-xs">
+                                <span>Longitud Perfiles Aluminio</span>
+                                <i class="fa-solid fa-ruler text-cyan-400"></i>
+                            </div>
+                            <div id="metric-alu-len" class="text-xl font-bold text-slate-100 mt-1 font-mono">0.0 m linear</div>
+                            <div class="text-[10px] text-slate-400 mt-1">
+                                Vol. Aluminio (Alloy 6063): <span id="metric-alu-vol" class="text-slate-200 font-mono">0.00 m³</span>
+                            </div>
+                        </div>
+                        <div class="metric-card p-4 rounded-xl">
+                            <div class="flex justify-between items-center text-slate-400 text-xs">
+                                <span>Superficie Vidriada Eficiente</span>
+                                <i class="fa-solid fa-vector-square text-cyan-400"></i>
+                            </div>
+                            <div id="metric-glass-area" class="text-xl font-bold text-slate-100 mt-1 font-mono">0.00 m²</div>
+                            <div class="text-[10px] text-slate-400 mt-1">
+                                Vol. Vidrio Total: <span id="metric-glass-vol" class="text-slate-200 font-mono">0.00 m³</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 bg-slate-900/80 border-t border-slate-700/50 flex gap-2 shrink-0">
+            <button onclick="exportIRJSON()" class="flex-1 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/50">
+                <i class="fa-solid fa-download"></i> Exportar IR (JSON)
+            </button>
+            <button onclick="triggerImportJSON()" class="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition border border-slate-700" title="Importar IR JSON">
+                <i class="fa-solid fa-upload"></i>
+            </button>
+            <input type="file" id="input-import-json" class="hidden" accept=".json" onchange="importIRJSON(event)">
+        </div>
+    </aside>
+
+    <!-- Notificación Toast -->
+    <div id="toast-5d" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 glass-panel px-4 py-3 rounded-xl border border-cyan-500/40 text-xs text-slate-200 flex items-center gap-3">
+        <i id="toast-icon-5d" class="fa-solid fa-circle-check text-cyan-400 text-base"></i>
+        <span id="toast-msg-5d">Notificación del sistema</span>
+    </div>
+
+    <script>
+        /* =========================================================
+           CONTROL DE NAVEGACIÓN Y RETORNO POR ROL (ADMIN / CAJA / OPERARIO)
+           ========================================================= */
+        const RUTAS_ORIGEN = {
+            admin: { archivo: 'Admin.html?tab=pedidos', etiqueta: 'Admin', textoBoton: 'Volver a Admin' },
+            caja: { archivo: 'Caja.html', etiqueta: 'Caja', textoBoton: 'Volver a Caja' },
+            operario: { archivo: 'Operario.html', etiqueta: 'Operario', textoBoton: 'Volver a Operario' }
+        };
+
+        function obtenerOrigenValido() {
+            const params = new URLSearchParams(window.location.search);
+            const origenParam = (params.get('origen') || '').toLowerCase().trim();
+
+            if (RUTAS_ORIGEN[origenParam]) {
+                sessionStorage.setItem('alustruct_origen', origenParam);
+                return origenParam;
+            }
+
+            const origenGuardado = (sessionStorage.getItem('alustruct_origen') || '').toLowerCase().trim();
+            if (RUTAS_ORIGEN[origenGuardado]) {
+                return origenGuardado;
+            }
+
+            return 'admin';
+        }
+
+        function configurarContextoOrigen() {
+            const params = new URLSearchParams(window.location.search);
+            const origen = obtenerOrigenValido();
+            const infoOrigen = RUTAS_ORIGEN[origen];
+            const cotizacionId = params.get('cot');
+
+            const badge = document.getElementById('badge-origen');
+            const textoBtn = document.getElementById('texto-btn-volver');
+            const subtitulo = document.getElementById('subtitulo-cotizacion');
+
+            if (badge) badge.innerText = infoOrigen.etiqueta;
+            if (textoBtn) textoBtn.innerText = infoOrigen.textoBoton;
+            if (subtitulo && cotizacionId) {
+                subtitulo.innerText = `Cotización #${cotizacionId} • Configurador de Aluminio & Vidrio`;
+            }
+        }
+
+        function salirDel3D() {
+            const origen = obtenerOrigenValido();
+            const destino = RUTAS_ORIGEN[origen] ? RUTAS_ORIGEN[origen].archivo : 'Admin.html?tab=pedidos';
+            window.location.href = destino;
+        }
+
+        /* =========================================================
+           MOTOR PARAMÉTRICO ALUSTRUST 5D ENGINE (THREE.JS)
+           ========================================================= */
+        const DENSITY_ALUMINIUM = 2700;
+        const DENSITY_GLASS = 2500;
+        const UNIT_COST_ALU_KG = 7.80;
+        const UNIT_COST_GLASS_SQM = 110.0;
+        const UNIT_COST_ANCHOR_UNIT = 120.0;
+        const LABOR_INSTALLATION_FACTOR = 1.30;
+
+        const state5D = {
+            width: 4.5, height: 3.6, depth: 3.0,
+            divisionsX: 3, divisionsY: 2,
+            profileWidthMm: 80, profileDepthMm: 120,
+            aluColor: 0xd1d5db, aluMetalness: 0.85, aluRoughness: 0.25, aluFinishName: 'Anodizado Plata',
+            glassThicknessMm: 14, transmission: 0.92, roughness: 0.05, ior: 1.52,
+            glassColor: 0xffffff, glassTintName: 'Neutro Incoloro',
+            currentPhase: 3, showWireframe: false, showGrid: true, planOpacity: 0.70
+        };
+
+        let scene5D, camera5D, renderer5D, controls5D, animationFrame5D;
+        let mainStructureGroup5D, glassMaterial5D, aluMaterial5D, anchorMaterial5D, wireframeMaterial5D;
+        let gridHelper5D, ambientLight5D, dirLight5D, pointLight5D, planMesh5D, planMaterial5D;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            configurarContextoOrigen();
+            initEngine5D();
+            window.addEventListener('resize', onWindowResize5D);
+        });
+
+        function onWindowResize5D() {
+            const container = document.getElementById('webgl-container-5d');
+            if (!container || !camera5D || !renderer5D) return;
+            camera5D.aspect = container.clientWidth / container.clientHeight;
+            camera5D.updateProjectionMatrix();
+            renderer5D.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function initEngine5D() {
+            const container = document.getElementById('webgl-container-5d');
+            if (!container) return;
+
+            scene5D = new THREE.Scene();
+            scene5D.background = new THREE.Color(0x070a12);
+            scene5D.fog = new THREE.FogExp2(0x070a12, 0.022);
+
+            camera5D = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 100);
+            camera5D.position.set(8, 5.5, 9);
+
+            renderer5D = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+            renderer5D.setSize(container.clientWidth, container.clientHeight);
+            renderer5D.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer5D.shadowMap.enabled = true;
+            renderer5D.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer5D.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer5D.toneMappingExposure = 1.15;
+            container.appendChild(renderer5D.domElement);
+
+            controls5D = new THREE.OrbitControls(camera5D, renderer5D.domElement);
+            controls5D.enableDamping = true;
+            controls5D.dampingFactor = 0.05;
+            controls5D.maxPolarAngle = Math.PI / 2 - 0.01;
+            controls5D.minDistance = 2;
+            controls5D.maxDistance = 35;
+            controls5D.target.set(0, 1.8, 0);
+
+            setupLighting5D();
+            setupEnvironment5D();
+            initMaterials5D();
+
+            mainStructureGroup5D = new THREE.Group();
+            scene5D.add(mainStructureGroup5D);
+
+            buildStructure5D();
+            setupUIEventListeners5D();
+
+            function animate() {
+                animationFrame5D = requestAnimationFrame(animate);
+                controls5D.update();
+                const time = Date.now() * 0.0008;
+                if (pointLight5D) {
+                    pointLight5D.position.x = Math.sin(time) * 9;
+                    pointLight5D.position.z = Math.cos(time) * 9;
+                }
+                renderer5D.render(scene5D, camera5D);
+            }
+            animate();
+        }
+
+        function setupLighting5D() {
+            ambientLight5D = new THREE.AmbientLight(0xffffff, 0.7);
+            scene5D.add(ambientLight5D);
+
+            dirLight5D = new THREE.DirectionalLight(0xffffff, 1.5);
+            dirLight5D.position.set(14, 20, 12);
+            dirLight5D.castShadow = true;
+            dirLight5D.shadow.mapSize.width = 2048;
+            dirLight5D.shadow.mapSize.height = 2048;
+            const d = 10;
+            dirLight5D.shadow.camera.left = -d;
+            dirLight5D.shadow.camera.right = d;
+            dirLight5D.shadow.camera.top = d;
+            dirLight5D.shadow.camera.bottom = -d;
+            scene5D.add(dirLight5D);
+
+            pointLight5D = new THREE.PointLight(0x38bdf8, 1.0, 18);
+            pointLight5D.position.set(-8, 6, -6);
+            scene5D.add(pointLight5D);
+        }
+
+        function setupEnvironment5D() {
+            const floor = new THREE.Mesh(
+                new THREE.PlaneGeometry(60, 60),
+                new THREE.MeshStandardMaterial({ color: 0x090f1f, roughness: 0.9, metalness: 0.1 })
+            );
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = -0.02;
+            floor.receiveShadow = true;
+            scene5D.add(floor);
+
+            planMaterial5D = new THREE.MeshBasicMaterial({
+                color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: state5D.planOpacity
+            });
+            planMesh5D = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), planMaterial5D);
+            planMesh5D.rotation.x = -Math.PI / 2;
+            planMesh5D.position.y = -0.01;
+            planMesh5D.visible = false;
+            scene5D.add(planMesh5D);
+
+            gridHelper5D = new THREE.GridHelper(30, 30, 0x38bdf8, 0x1e293b);
+            gridHelper5D.position.y = 0.001;
+            scene5D.add(gridHelper5D);
+        }
+
+        function handlePlanUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                new THREE.TextureLoader().load(e.target.result, (texture) => {
+                    planMaterial5D.map = texture;
+                    planMaterial5D.needsUpdate = true;
+                    planMesh5D.scale.set(texture.image.width / texture.image.height, 1, 1);
+                    planMesh5D.visible = true;
+                    showToast5D("Plano 2D proyectado correctamente en el entorno 3D");
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function initMaterials5D() {
+            glassMaterial5D = new THREE.MeshPhysicalMaterial({
+                color: state5D.glassColor, metalness: 0.0, roughness: state5D.roughness,
+                transmission: state5D.transmission, thickness: state5D.glassThicknessMm / 1000.0,
+                ior: state5D.ior, transparent: true, opacity: 1.0, side: THREE.DoubleSide, depthWrite: false
+            });
+            aluMaterial5D = new THREE.MeshStandardMaterial({
+                color: state5D.aluColor, metalness: state5D.aluMetalness, roughness: state5D.aluRoughness
+            });
+            anchorMaterial5D = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.9, roughness: 0.3 });
+            wireframeMaterial5D = new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true });
+        }
+
+        function buildStructure5D() {
+            clearGroup5D(mainStructureGroup5D);
+            const W = state5D.width, H = state5D.height, D = state5D.depth;
+            const profW = state5D.profileWidthMm / 1000.0, profD = state5D.profileDepthMm / 1000.0;
+            const glassThickM = state5D.glassThicknessMm / 1000.0;
+            const divsX = state5D.divisionsX, divsY = state5D.divisionsY;
+            const halfW = W / 2, halfD = D / 2;
+
+            if (state5D.currentPhase >= 1) {
+                const plateSize = profD * 2.0;
+                const plateGeo = new THREE.BoxGeometry(plateSize, 0.03, plateSize);
+                const stepX = W / divsX;
+                for (let i = 0; i <= divsX; i++) {
+                    const posX = -halfW + i * stepX;
+                    [halfD, -halfD].forEach(z => {
+                        const anchor = new THREE.Mesh(plateGeo, anchorMaterial5D);
+                        anchor.position.set(posX, 0.015, z);
+                        mainStructureGroup5D.add(anchor);
+                    });
+                }
+            }
+
+            if (state5D.currentPhase >= 2) {
+                const aluMatToUse = state5D.showWireframe ? wireframeMaterial5D : aluMaterial5D;
+                const stepX = W / divsX, stepY = H / divsY;
+                const mullionGeo = new THREE.BoxGeometry(profW, H, profD);
+                for (let i = 0; i <= divsX; i++) {
+                    const posX = -halfW + i * stepX;
+                    [halfD, -halfD].forEach(z => {
+                        const m = new THREE.Mesh(mullionGeo, aluMatToUse);
+                        m.position.set(posX, H / 2, z);
+                        mainStructureGroup5D.add(m);
+                    });
+                }
+                const transomGeo = new THREE.BoxGeometry(stepX - profW, profW, profD);
+                for (let i = 0; i < divsX; i++) {
+                    const posX = -halfW + (i + 0.5) * stepX;
+                    for (let j = 0; j <= divsY; j++) {
+                        const posY = j * stepY + (j === 0 ? profW / 2 : (j === divsY ? -profW / 2 : 0));
+                        [halfD, -halfD].forEach(z => {
+                            const t = new THREE.Mesh(transomGeo, aluMatToUse);
+                            t.position.set(posX, posY, z);
+                            mainStructureGroup5D.add(t);
+                        });
+                    }
+                }
+                const beamZGeo = new THREE.BoxGeometry(profW, profW, D - profD);
+                for (let i = 0; i <= divsX; i++) {
+                    const posX = -halfW + i * stepX;
+                    [H, profW / 2].forEach(y => {
+                        const b = new THREE.Mesh(beamZGeo, aluMatToUse);
+                        b.position.set(posX, y, 0);
+                        mainStructureGroup5D.add(b);
+                    });
+                }
+            }
+
+            if (state5D.currentPhase >= 3) {
+                const glassMatToUse = state5D.showWireframe ? wireframeMaterial5D : glassMaterial5D;
+                const stepX = W / divsX, stepY = H / divsY;
+                const glassPanelW = stepX - profW, glassPanelH = stepY - profW;
+                const glassPanelGeo = new THREE.BoxGeometry(glassPanelW, glassPanelH, glassThickM);
+                for (let i = 0; i < divsX; i++) {
+                    const posX = -halfW + (i + 0.5) * stepX;
+                    for (let j = 0; j < divsY; j++) {
+                        const posY = (j + 0.5) * stepY;
+                        [halfD, -halfD].forEach(z => {
+                            const g = new THREE.Mesh(glassPanelGeo, glassMatToUse);
+                            g.position.set(posX, posY, z);
+                            mainStructureGroup5D.add(g);
+                        });
+                    }
+                }
+                const glassSideGeo = new THREE.BoxGeometry(glassThickM, H - profW, D - profD);
+                [-halfW, halfW].forEach(x => {
+                    const gs = new THREE.Mesh(glassSideGeo, glassMatToUse);
+                    gs.position.set(x, H / 2, 0);
+                    mainStructureGroup5D.add(gs);
+                });
+                const roofGlassGeo = new THREE.BoxGeometry(glassPanelW, glassThickM, D - profD);
+                for (let i = 0; i < divsX; i++) {
+                    const gr = new THREE.Mesh(roofGlassGeo, glassMatToUse);
+                    gr.position.set(-halfW + (i + 0.5) * stepX, H + profW / 2, 0);
+                    mainStructureGroup5D.add(gr);
+                }
+            }
+
+            controls5D.target.set(0, H / 2, 0);
+            calculateMetrics5D();
+        }
+
+        function calculateMetrics5D() {
+            let totalGlassArea = 0, totalGlassVolume = 0, totalAluLength = 0, totalAluVolume = 0, anchorCount = 0;
+            const W = state5D.width, H = state5D.height, D = state5D.depth;
+            const profW = state5D.profileWidthMm / 1000.0, profD = state5D.profileDepthMm / 1000.0;
+            const glassThickM = state5D.glassThicknessMm / 1000.0;
+            const divsX = state5D.divisionsX, divsY = state5D.divisionsY;
+
+            if (state5D.currentPhase >= 1) anchorCount = (divsX + 1) * 2;
+            if (state5D.currentPhase >= 2) {
+                const stepX = W / divsX;
+                totalAluLength = ((divsX + 1) * 2 * H) + (divsX * (divsY + 1) * 2 * (stepX - profW)) + ((divsX + 1) * 2 * D);
+                const wallThickM = 0.003;
+                const crossSectionArea = (profW * profD) - ((profW - 2 * wallThickM) * (profD - 2 * wallThickM));
+                totalAluVolume = totalAluLength * crossSectionArea;
+            }
+            if (state5D.currentPhase >= 3) {
+                const stepX = W / divsX, stepY = H / divsY;
+                const glassW = stepX - profW, glassH = stepY - profW, sideW = D - profD;
+                totalGlassArea = ((glassW * glassH) * (divsX * divsY * 2)) + ((sideW * H) * 2) + ((glassW * sideW) * divsX);
+                totalGlassVolume = totalGlassArea * glassThickM;
+            }
+
+            const weightAlu = totalAluVolume * DENSITY_ALUMINIUM;
+            const weightGlass = totalGlassVolume * DENSITY_GLASS;
+            const totalWeight = weightAlu + weightGlass;
+            const totalCost5D = ((anchorCount * UNIT_COST_ANCHOR_UNIT) + (weightAlu * UNIT_COST_ALU_KG) + (totalGlassArea * UNIT_COST_GLASS_SQM * (state5D.glassThicknessMm / 14.0))) * LABOR_INSTALLATION_FACTOR;
+
+            document.getElementById('metric-cost').innerText = `$${totalCost5D.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            document.getElementById('metric-cost-m2').innerText = totalGlassArea > 0 ? `$${(totalCost5D / totalGlassArea).toFixed(2)}/m²` : '$0/m²';
+            document.getElementById('metric-weight').innerText = `${Math.round(totalWeight).toLocaleString()} kg`;
+            document.getElementById('sub-weight-glass').innerText = `${Math.round(weightGlass)} kg`;
+            document.getElementById('sub-weight-alu').innerText = `${Math.round(weightAlu)} kg`;
+            document.getElementById('metric-alu-len').innerText = `${totalAluLength.toFixed(1)} m linear`;
+            document.getElementById('metric-alu-vol').innerText = `${totalAluVolume.toFixed(3)} m³`;
+            document.getElementById('metric-glass-area').innerText = `${totalGlassArea.toFixed(2)} m²`;
+            document.getElementById('metric-glass-vol').innerText = `${totalGlassVolume.toFixed(3)} m³`;
+        }
+
+        function updateGlassMaterial5D() {
+            glassMaterial5D.thickness = state5D.glassThicknessMm / 1000.0;
+            glassMaterial5D.transmission = state5D.transmission;
+            glassMaterial5D.roughness = state5D.roughness;
+            glassMaterial5D.ior = state5D.ior;
+            glassMaterial5D.color.setHex(state5D.glassColor);
+            glassMaterial5D.needsUpdate = true;
+        }
+
+        function setGlassTint(colorHex, name) {
+            state5D.glassColor = colorHex;
+            document.getElementById('val-glass-tint-name').innerText = name;
+            updateGlassMaterial5D();
+            showToast5D(`Tinte de vidrio: ${name}`);
+        }
+
+        function setAluFinish(colorHex, metalness, roughness, name) {
+            state5D.aluColor = colorHex;
+            state5D.aluMetalness = metalness;
+            state5D.aluRoughness = roughness;
+            document.getElementById('val-alu-finish-name').innerText = name;
+            aluMaterial5D.color.setHex(colorHex);
+            aluMaterial5D.metalness = metalness;
+            aluMaterial5D.roughness = roughness;
+            aluMaterial5D.needsUpdate = true;
+            showToast5D(`Acabado de Aluminio: ${name}`);
+        }
+
+        function exportIRJSON() {
+            const data = {
+                project: "Estructura Arquitectónica Aluminio & Vidrio 5D",
+                timestamp: new Date().toISOString(),
+                dimensions_3d: {
+                    width_m: state5D.width,
+                    height_m: state5D.height,
+                    depth_m: state5D.depth,
+                    divisions_x: state5D.divisionsX,
+                    divisions_y: state5D.divisionsY
+                }
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+            const a = document.createElement('a');
+            a.setAttribute("href", dataStr);
+            a.setAttribute("download", `AluStruct_5D_${Date.now()}.json`);
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            showToast5D("Estado IR 5D exportado correctamente (JSON)");
+        }
+
+        function triggerImportJSON() {
+            document.getElementById('input-import-json').click();
+        }
+
+        function importIRJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const json = JSON.parse(e.target.result);
+                    if (json.dimensions_3d) {
+                        state5D.width = json.dimensions_3d.width_m || state5D.width;
+                        state5D.height = json.dimensions_3d.height_m || state5D.height;
+                        state5D.depth = json.dimensions_3d.depth_m || state5D.depth;
+                        state5D.divisionsX = json.dimensions_3d.divisions_x || state5D.divisionsX;
+                        state5D.divisionsY = json.dimensions_3d.divisions_y || state5D.divisionsY;
+                    }
+                    buildStructure5D();
+                    showToast5D("Archivo IR importado correctamente");
+                } catch (err) {
+                    showToast5D("Error al procesar el archivo JSON", true);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function setupUIEventListeners5D() {
+            bindRangeInput5D('input-width', 'val-width', 'm', val => { state5D.width = val; buildStructure5D(); });
+            bindRangeInput5D('input-height', 'val-height', 'm', val => { state5D.height = val; buildStructure5D(); });
+            bindRangeInput5D('input-depth', 'val-depth', 'm', val => { state5D.depth = val; buildStructure5D(); });
+            bindRangeInput5D('input-divisions-x', 'val-divisions-x', '', val => { state5D.divisionsX = val; buildStructure5D(); });
+            bindRangeInput5D('input-divisions-y', 'val-divisions-y', '', val => { state5D.divisionsY = val; buildStructure5D(); });
+            bindRangeInput5D('input-profile-width', 'val-profile-width', 'mm', val => { state5D.profileWidthMm = val; buildStructure5D(); });
+            bindRangeInput5D('input-profile-depth', 'val-profile-depth', 'mm', val => { state5D.profileDepthMm = val; buildStructure5D(); });
+            bindRangeInput5D('input-glass-thick', 'val-glass-thick', 'mm', val => { state5D.glassThicknessMm = val; updateGlassMaterial5D(); calculateMetrics5D(); buildStructure5D(); });
+            bindRangeInput5D('input-transmission', 'val-transmission', '', val => { state5D.transmission = val; updateGlassMaterial5D(); });
+            bindRangeInput5D('input-plan-opacity', 'val-plan-opacity', '', val => { state5D.planOpacity = val; planMaterial5D.opacity = val; });
+
+            const phaseInput = document.getElementById('input-phase');
+            if (phaseInput) phaseInput.addEventListener('input', e => setPhase5D(parseInt(e.target.value)));
+
+            document.getElementById('btn-toggle-sidebar').onclick = () => document.getElementById('sidebar-panel-5d').classList.toggle('collapsed');
+            document.getElementById('btn-wireframe').onclick = () => { state5D.showWireframe = !state5D.showWireframe; buildStructure5D(); };
+            document.getElementById('btn-grid').onclick = () => { state5D.showGrid = !state5D.showGrid; gridHelper5D.visible = state5D.showGrid; };
+            document.getElementById('btn-reset-cam').onclick = () => {
+                camera5D.position.set(8, 5.5, 9);
+                controls5D.target.set(0, state5D.height / 2, 0);
+                controls5D.update();
+            };
+        }
+
+        function bindRangeInput5D(inputId, valId, unit, callback) {
+            const input = document.getElementById(inputId), valLabel = document.getElementById(valId);
+            if (!input || !valLabel) return;
+            input.addEventListener('input', e => {
+                const val = parseFloat(e.target.value);
+                valLabel.innerText = unit ? `${val} ${unit}` : val;
+                callback(val);
+            });
+        }
+
+        function setPhase5D(phaseNum) {
+            state5D.currentPhase = phaseNum;
+            document.getElementById('input-phase').value = phaseNum;
+            const names = {
+                1: "Fase 1 - Anclajes de Base",
+                2: "Fase 2 - Subestructura de Aluminio",
+                3: "Fase 3 - Acristalamiento y Sellado"
+            };
+            document.getElementById('val-phase-num').innerText = names[phaseNum] || "";
+            for (let i = 1; i <= 3; i++) {
+                document.getElementById(`phase-card-${i}`)?.classList.toggle('active', i <= phaseNum);
+            }
+            buildStructure5D();
+        }
+
+        function switchTab5D(tabKey) {
+            document.querySelectorAll('#sidebar-panel-5d .tab-btn').forEach(btn => {
+                btn.classList.remove('text-cyan-400', 'bg-slate-800/80');
+                btn.classList.add('text-slate-400');
+            });
+            document.querySelectorAll('#sidebar-panel-5d .tab-content-5d').forEach(content => content.classList.add('hidden'));
+            document.getElementById(`tab-btn-${tabKey}`)?.classList.add('text-cyan-400', 'bg-slate-800/80');
+            document.getElementById(`tab-${tabKey}`)?.classList.remove('hidden');
+        }
+
+        function clearGroup5D(group) {
+            while (group.children.length > 0) {
+                const obj = group.children[0];
+                if (obj.geometry) obj.geometry.dispose();
+                group.remove(obj);
+            }
+        }
+
+        function showToast5D(msg, isError = false) {
+            const toast = document.getElementById('toast-5d');
+            document.getElementById('toast-msg-5d').innerText = msg;
+            document.getElementById('toast-icon-5d').className = isError
+                ? "fa-solid fa-circle-exclamation text-rose-400 text-base"
+                : "fa-solid fa-circle-check text-cyan-400 text-base";
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3000);
+        }
+    </script>
+</body>
+</html>
