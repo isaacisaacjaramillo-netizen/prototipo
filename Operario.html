@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="es" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Operario - Cerrajería Maestra Pro (AluStruct 5D Engine)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            cobalt: '#0822A0',
+                            royal: '#2563EB',
+                            dark: '#0A192F',
+                            ice: '#F8FAFC',
+                            cyan: '#00F2FE', 
+                            emerald: '#10B981'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Three.js y OrbitControls desde CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(71, 85, 105, 1); }
+
+        /* Estilo Glassmorphism para el panel 5D */
+        .glass-panel {
+            background: rgba(11, 17, 32, 0.88);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Input Range Custom Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #1e293b;
+            border-radius: 3px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -5px;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+            transition: all 0.2s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: #0ea5e9;
+        }
+
+        .phase-step {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .phase-step.active {
+            background: rgba(14, 165, 233, 0.15);
+            border-color: #38bdf8;
+            color: #38bdf8;
+        }
+
+        #sidebar-panel-5d {
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+        }
+        #sidebar-panel-5d.collapsed {
+            transform: translateX(calc(-100% - 24px));
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* RNF17: MODO TABLET DE TALLER (ALTO CONTRASTE Y TIPOGRAFÍA MÍNIMO 18PX) */
+        body.tablet-mode {
+            font-size: 18px !important;
+        }
+        body.tablet-mode .text-xs,
+        body.tablet-mode .text-\[11px\],
+        body.tablet-mode .text-\[10px\] {
+            font-size: 16px !important;
+            line-height: 1.45 !important;
+        }
+        body.tablet-mode .text-sm {
+            font-size: 18px !important;
+        }
+        body.tablet-mode .text-base {
+            font-size: 20px !important;
+        }
+        body.tablet-mode input,
+        body.tablet-mode select,
+        body.tablet-mode button {
+            min-height: 48px;
+            font-size: 17px !important;
+            border-width: 2px !important;
+        }
+        body.tablet-mode .searchable-item {
+            border-width: 2px !important;
+            border-color: #2563EB !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-royal selection:text-white transition-colors duration-300" onclick="closeFloatingInfoOnClickOutside(event)">
+
+    <!-- Modal Salir / Cambio de Apartado -->
+    <div id="loginModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-md hidden">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md p-8 shadow-2xl text-center space-y-6">
+            <div class="w-16 h-16 rounded-2xl bg-brand-royal/10 border border-brand-royal/20 mx-auto flex items-center justify-center text-brand-royal dark:text-brand-cyan text-2xl">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <div>
+                <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">Cambiar de Apartado</h2>
+                <p class="text-xs text-slate-500 mt-1">Seleccione el módulo o perfil al que desea ingresar</p>
+            </div>
+            <div class="space-y-3 text-left">
+                <div>
+                    <label class="block text-xs font-bold mb-1">Apartado / Perfil</label>
+                    <select id="userRoleSelect" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 rounded-xl text-xs font-semibold">
+                        <option value="operario" selected>Operario (Taller y Construcción)</option>
+                        <option value="admin">Administrador Maestro</option>
+                        <option value="caja">Cerrajero Operativo (Caja)</option>
+                        <option value="instalador">Instalador (Evidencias en Obra)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold mb-1">Contraseña</label>
+                    <input type="password" value="123456" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 rounded-xl text-xs" placeholder="••••••••">
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="closeLoginModal()" class="w-1/3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold py-3 rounded-xl text-xs transition-colors">Cancelar</button>
+                <button onclick="redirectRole()" class="w-2/3 bg-brand-royal hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs transition-colors shadow-lg">Ir al Apartado</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TARJETA FLOTANTE DE FICHA TÉCNICA DE CONSTRUCCIÓN -->
+    <div id="floatingInfoCard" class="fixed z-50 hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-2xl w-80 max-w-sm text-xs space-y-3 backdrop-blur-md">
+        <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
+            <span id="floatingCardTag" class="px-2 py-0.5 bg-brand-royal/10 text-brand-royal dark:text-brand-cyan font-bold rounded text-[10px]">Orden de Taller</span>
+            <button onclick="closeFloatingInfo()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+        <h4 id="floatingCardTitle" class="font-bold text-sm text-slate-900 dark:text-slate-100">Especificación Técnica</h4>
+        <div id="floatingCardBody" class="space-y-2 text-slate-600 dark:text-slate-300"></div>
+        <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2" id="floatingCardFooter"></div>
+    </div>
+
+    <!-- Modal Notificaciones / Confirmaciones -->
+    <div id="appModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-black/70 backdrop-blur-sm hidden">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl transform transition-all">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modalTitle" class="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-brand-royal dark:text-brand-cyan"></i> Notificación
+                </h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div id="modalBody" class="text-xs text-slate-600 dark:text-slate-300 mb-6 space-y-3"></div>
+            <div class="flex justify-end gap-3" id="modalFooter">
+                <button onclick="closeModal()" class="px-4 py-2 bg-brand-royal hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm">Entendido</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL INTEGRADO: ALUSTRUST 5D ENGINE (VISOR DE PLANOS Y MEDIDAS PARA EL OPERARIO) -->
+    <div id="modal3D5D" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-[96vw] h-[94vh] shadow-2xl flex flex-col relative overflow-hidden text-slate-100">
+            
+            <!-- Lienzo WebGL Container 3D/5D -->
+            <div id="webgl-container-5d" class="absolute inset-0 z-10 w-full h-full"></div>
+
+            <!-- UI Overlay Header Superior -->
+            <header class="absolute top-4 left-4 z-20 pointer-events-auto flex items-center space-x-3">
+                <button id="btn-toggle-sidebar" title="Ocultar / Mostrar Panel" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-slate-300 hover:text-cyan-400 hover:border-cyan-500/40 transition">
+                    <i class="fa-solid fa-bars-staggered"></i>
+                </button>
+
+                <div class="glass-panel px-4 py-2.5 rounded-xl flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+                        <i class="fa-solid fa-layer-group text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 id="engine-order-title" class="text-sm font-bold tracking-wide text-slate-100 uppercase">AluStruct 5D - Plano Taller</h1>
+                        <p class="text-xs text-slate-400">Guía Estructural de Corte, Armado y Acristalamiento</p>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Top Floating Toolbar & Close Modal -->
+            <div class="absolute top-4 right-4 z-20 pointer-events-auto flex space-x-2">
+                <button id="btn-wireframe" title="Modo Wireframe (Ver estructura interna)" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-slate-300 hover:text-cyan-400 hover:border-cyan-500/40 transition">
+                    <i class="fa-solid fa-vector-square"></i>
+                </button>
+                <button id="btn-grid" title="Alternar Rejilla de Suelo" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-slate-300 hover:text-cyan-400 hover:border-cyan-500/40 transition">
+                    <i class="fa-solid fa-border-all"></i>
+                </button>
+                <button id="btn-reset-cam" title="Restablecer Cámara" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-slate-300 hover:text-cyan-400 hover:border-cyan-500/40 transition">
+                    <i class="fa-solid fa-camera-rotate"></i>
+                </button>
+                <button onclick="closeModal3D()" title="Cerrar Visor 3D" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-rose-400 hover:bg-rose-500/20 transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Sidebar Control Dashboard 5D -->
+            <aside id="sidebar-panel-5d" class="absolute left-4 top-20 bottom-4 w-96 z-20 pointer-events-auto glass-panel rounded-2xl flex flex-col overflow-hidden">
+                <div class="flex border-b border-slate-700/50 bg-slate-900/50 p-1.5 gap-1 shrink-0">
+                    <button id="tab-btn-geom" class="tab-btn flex-1 py-2 rounded-lg text-xs font-semibold text-cyan-400 bg-slate-800/80 transition flex items-center justify-center gap-1.5" onclick="switchTab5D('geom')">
+                        <i class="fa-solid fa-ruler-combined"></i> Medidas 3D
+                    </button>
+                    <button id="tab-btn-phase" class="tab-btn flex-1 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5" onclick="switchTab5D('phase')">
+                        <i class="fa-solid fa-list-ol"></i> Etapas 4D
+                    </button>
+                    <button id="tab-btn-plan" class="tab-btn flex-1 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5" onclick="switchTab5D('plan')">
+                        <i class="fa-solid fa-file-import"></i> Plano 2D
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar">
+                    <!-- TAB 1: 3D MEDIDAS & DESPIECE -->
+                    <div id="tab-geom" class="tab-content-5d space-y-5">
+                        <div>
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-3 flex items-center gap-2">
+                                <i class="fa-solid fa-arrows-up-down-left-right"></i> Cotas de Fabricación
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                        <span>Ancho Total (X)</span>
+                                        <span id="val-width" class="font-mono text-cyan-400">4.5 m</span>
+                                    </div>
+                                    <input type="range" id="input-width" min="2.0" max="12.0" step="0.5" value="4.5" class="w-full">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                        <span>Altura Total (Y)</span>
+                                        <span id="val-height" class="font-mono text-cyan-400">3.6 m</span>
+                                    </div>
+                                    <input type="range" id="input-height" min="2.0" max="9.0" step="0.3" value="3.6" class="w-full">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                        <span>Profundidad (Z)</span>
+                                        <span id="val-depth" class="font-mono text-cyan-400">3.0 m</span>
+                                    </div>
+                                    <input type="range" id="input-depth" min="1.5" max="8.0" step="0.5" value="3.0" class="w-full">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                        <span>Nº Modulaciones Horizontales</span>
+                                        <span id="val-divisions-x" class="font-mono text-cyan-400">3</span>
+                                    </div>
+                                    <input type="range" id="input-divisions-x" min="1" max="8" step="1" value="3" class="w-full">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                        <span>Nº Travesaños Verticales</span>
+                                        <span id="val-divisions-y" class="font-mono text-cyan-400">2</span>
+                                    </div>
+                                    <input type="range" id="input-divisions-y" min="1" max="5" step="1" value="2" class="w-full">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-700/50 space-y-2">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-2 flex items-center gap-2">
+                                <i class="fa-solid fa-scissors"></i> Resumen de Corte para Taller
+                            </h3>
+                            <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700/60 text-xs space-y-1.5 font-mono">
+                                <div class="flex justify-between"><span class="text-slate-400">Total Perfil Aluminio:</span><span id="metric-alu-len" class="text-cyan-400 font-bold">0.0 m</span></div>
+                                <div class="flex justify-between"><span class="text-slate-400">Área Vidrio Requerida:</span><span id="metric-glass-area" class="text-emerald-400 font-bold">0.00 m²</span></div>
+                                <div class="flex justify-between"><span class="text-slate-400">Peso Estimado Pieza:</span><span id="metric-weight" class="text-amber-400 font-bold">0 kg</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 2: 4D SECUENCIA DE ARMADO -->
+                    <div id="tab-phase" class="tab-content-5d hidden space-y-5">
+                        <div>
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-2 flex items-center gap-2">
+                                <i class="fa-solid fa-layer-group"></i> Despiece por Etapa de Construcción
+                            </h3>
+                            <p class="text-xs text-slate-400 mb-4">Mueve el deslizador para inspeccionar cómo se arma cada capa en taller.</p>
+
+                            <div class="space-y-3 mb-6">
+                                <div class="flex justify-between text-xs text-slate-300">
+                                    <span>Paso Visualizado:</span>
+                                    <span id="val-phase-num" class="font-bold text-cyan-400">Paso 3 - Acristalamiento Completo</span>
+                                </div>
+                                <input type="range" id="input-phase" min="1" max="3" step="1" value="3" class="w-full">
+                            </div>
+
+                            <div class="space-y-3">
+                                <div id="phase-card-1" class="phase-step active p-3 rounded-xl border border-slate-700 bg-slate-800/40 flex items-start gap-3">
+                                    <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">1</div>
+                                    <div>
+                                        <h4 class="text-xs font-bold text-slate-200">Corte de Platinas y Herrajes</h4>
+                                        <p class="text-[11px] text-slate-400 mt-0.5">Preparación de consolas de anclaje en acero.</p>
+                                    </div>
+                                </div>
+
+                                <div id="phase-card-2" class="phase-step active p-3 rounded-xl border border-slate-700 bg-slate-800/40 flex items-start gap-3">
+                                    <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">2</div>
+                                    <div>
+                                        <h4 class="text-xs font-bold text-slate-200">Armado de Bastidor de Aluminio</h4>
+                                        <p class="text-[11px] text-slate-400 mt-0.5">Ensamble de perfiles tubulares y travesaños.</p>
+                                    </div>
+                                </div>
+
+                                <div id="phase-card-3" class="phase-step active p-3 rounded-xl border border-slate-700 bg-slate-800/40 flex items-start gap-3">
+                                    <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">3</div>
+                                    <div>
+                                        <h4 class="text-xs font-bold text-slate-200">Montaje de Vidrio y Sellado</h4>
+                                        <p class="text-[11px] text-slate-400 mt-0.5">Colocación de paneles DGU y empaques EPDM.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: PLANO 2D -->
+                    <div id="tab-plan" class="tab-content-5d hidden space-y-5">
+                        <div>
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-2 flex items-center gap-2">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> Cargar Plano 2D de Referencia
+                            </h3>
+                            <p class="text-xs text-slate-400 mb-4">Sube el plano enviado por el cliente o administración para guiar el corte.</p>
+                            
+                            <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-700 hover:border-cyan-500/50 rounded-xl cursor-pointer bg-slate-900/50 transition">
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <i class="fa-solid fa-image text-2xl text-cyan-400 mb-2"></i>
+                                    <p class="text-xs text-slate-300 font-semibold">Seleccionar imagen de plano</p>
+                                    <p class="text-[10px] text-slate-500 mt-1">PNG, JPG, WEBP</p>
+                                </div>
+                                <input type="file" id="input-plan-file" class="hidden" accept="image/*" onchange="handlePlanUpload(event)">
+                            </label>
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-700/50 space-y-4">
+                            <div>
+                                <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                    <span>Opacidad del Plano Guía</span>
+                                    <span id="val-plan-opacity" class="font-mono text-cyan-400">0.70</span>
+                                </div>
+                                <input type="range" id="input-plan-opacity" min="0.0" max="1.0" step="0.05" value="0.70" class="w-full">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar Footer Action Buttons -->
+                <div class="p-4 bg-slate-900/80 border-t border-slate-700/50 flex gap-2 shrink-0">
+                    <button onclick="triggerImportJSON()" class="flex-1 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg">
+                        <i class="fa-solid fa-upload"></i> Cargar Archivo IR (JSON)
+                    </button>
+                    <input type="file" id="input-import-json" class="hidden" accept=".json" onchange="importIRJSON(event)">
+                </div>
+            </aside>
+
+            <!-- Notification Toast 5D -->
+            <div id="toast-5d" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 glass-panel px-4 py-3 rounded-xl border border-cyan-500/40 text-xs text-slate-200 flex items-center gap-3">
+                <i id="toast-icon-5d" class="fa-solid fa-circle-check text-cyan-400 text-base"></i>
+                <span id="toast-msg-5d">Notificación del sistema</span>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Dashboard Principal del Operario -->
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- SIDEBAR -->
+        <aside id="sidebar" class="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 z-30 fixed lg:relative inset-y-0 left-0 -translate-x-full lg:translate-x-0 shadow-sm">
+            <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-brand-cobalt/10 border border-brand-cobalt/20 flex items-center justify-center text-brand-cobalt dark:text-brand-cyan shadow-inner p-1">
+                        <i class="fa-solid fa-hammer text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-sm text-slate-900 dark:text-slate-100 tracking-tight">Cerrajería Pro</h1>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Área de Producción</p>
+                    </div>
+                </div>
+                <button onclick="toggleMobileSidebar()" class="lg:hidden text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
+                <p class="px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Módulos de Taller</p>
+                
+                <button onclick="switchTab('ordenes')" id="btn-ordenes" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all bg-brand-royal/10 dark:bg-brand-royal/20 text-brand-cobalt dark:text-brand-cyan border border-brand-royal/20 dark:border-brand-royal/30">
+                    <i class="fa-solid fa-clipboard-list w-5 text-center"></i> Órdenes de Construcción
+                </button>
+
+                <button onclick="switchTab('consumo')" id="btn-consumo" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-scissors w-5 text-center"></i> Consumo y Merma (Stock)
+                </button>
+
+                <button onclick="switchTab('progreso')" id="btn-progreso" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-bars-progress w-5 text-center"></i> Etapas Metalmecánicas
+                </button>
+
+                <button onclick="switchTab('materiales')" id="btn-materiales" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-cubes w-5 text-center"></i> Materiales Requeridos
+                </button>
+
+                <button onclick="switchTab('bitacora')" id="btn-bitacora" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-clock-rotate-left w-5 text-center"></i> Bitácora de Taller
+                </button>
+
+                <div class="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 space-y-1">
+                    <p class="px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Conexiones Externas</p>
+                    <a href="Admin.html" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200">
+                        <i class="fa-solid fa-user-shield w-5 text-center text-brand-royal"></i> Panel Administrador
+                    </a>
+                    <a href="Instalador.html" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200">
+                        <i class="fa-solid fa-camera-retro w-5 text-center text-brand-emerald"></i> Apartado Instalador
+                    </a>
+                </div>
+            </nav>
+
+            <div class="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 space-y-3">
+                <button onclick="exportOperarioReport()" class="w-full bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-700 dark:text-slate-200 py-2 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-file-export text-brand-royal dark:text-brand-cyan"></i> Exportar Reporte Avance
+                </button>
+                <div class="flex items-center gap-3">
+                    <div id="userBadge" class="w-9 h-9 rounded-full bg-brand-cobalt text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                        OP
+                    </div>
+                    <div class="overflow-hidden flex-1">
+                        <p id="userNameDisplay" class="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">Operario Taller</p>
+                        <p id="userRoleDisplay" class="text-[10px] text-brand-emerald font-semibold">Fabricación Activa</p>
+                    </div>
+                    <button onclick="openLoginModal()" class="text-slate-400 hover:text-red-500 transition-colors" title="Salir / Cambiar Apartado">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CONTENIDO PRINCIPAL -->
+        <main class="flex-1 flex flex-col overflow-hidden bg-slate-100 dark:bg-slate-950">
+            <header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/50 backdrop-blur-md px-6 flex items-center justify-between shrink-0 shadow-sm">
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleMobileSidebar()" class="lg:hidden text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                        <i class="fa-solid fa-bars text-lg"></i>
+                    </button>
+                    <div>
+                        <h2 id="current-title" class="text-base font-bold text-slate-900 dark:text-slate-100">Órdenes de Construcción</h2>
+                        <p id="current-subtitle" class="text-xs text-slate-500 dark:text-slate-400">Especificaciones técnicas, flujo metalmecánico y control de avance</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2.5">
+                    <!-- RNF17: BOTÓN MODO TABLET TALLER (ALTO CONTRASTE Y LETRA 18PX) -->
+                    <button onclick="toggleTabletMode()" id="btn-tablet-mode" class="px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-bold transition-colors flex items-center gap-1.5 shadow-sm" title="Activar tipografía grande (18px) y alto contraste para tablet de taller">
+                        <i class="fa-solid fa-tablet-screen-button"></i>
+                        <span id="tablet-mode-label" class="hidden sm:inline">Modo Tablet 18px</span>
+                    </button>
+
+                    <button onclick="toggleDarkMode()" class="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-brand-cobalt dark:hover:text-brand-cyan transition-colors shadow-sm" title="Cambiar Tema">
+                        <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
+                    </button>
+
+                    <div class="relative hidden md:block">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 dark:text-slate-500 text-xs"></i>
+                        <input type="text" id="global-search" oninput="filterCurrentTable()" placeholder="Buscar orden, cliente o material..." class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-200 pl-9 pr-4 py-2 rounded-xl focus:outline-none focus:border-brand-royal w-48 lg:w-60 transition-all">
+                    </div>
+
+                    <button onclick="openNewOrderModal()" class="bg-brand-royal hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm transition-colors flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i> <span class="hidden lg:inline">Nueva Orden</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-6">
+
+                <!-- TARJETAS DE RESUMEN RÁPIDO DE TALLER -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-medium text-slate-500">Órdenes Recibidas</span>
+                            <h3 id="stat-total-orders" class="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">3</h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-brand-royal/10 text-brand-royal dark:text-brand-cyan flex items-center justify-center">
+                            <i class="fa-solid fa-clipboard-check"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-medium text-slate-500">En Proceso Taller</span>
+                            <h3 id="stat-in-progress" class="text-2xl font-bold text-amber-500 mt-1">2</h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                            <i class="fa-solid fa-gears"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-medium text-slate-500">Listas p/ Instalación</span>
+                            <h3 id="stat-ready" class="text-2xl font-bold text-brand-emerald mt-1">1</h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-brand-emerald/10 text-brand-emerald flex items-center justify-center">
+                            <i class="fa-solid fa-check-double"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-medium text-slate-500">Avance Promedio Taller</span>
+                            <h3 id="stat-avg-pct" class="text-2xl font-bold text-brand-royal dark:text-brand-cyan mt-1">58%</h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center">
+                            <i class="fa-solid fa-percent"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 1: ÓRDENES DE CONSTRUCCIÓN (FLUJO METALMECÁNICO RFCS24 Y PORCENTAJE) -->
+                <section id="tab-ordenes" class="tab-content space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm gap-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Información Recibida para Construcción</h3>
+                            <p class="text-xs text-slate-500">Flujo: En Diseño → Corte de Material → Soldadura y Ensamble → Pintura y Acabados → Control de Calidad</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <select id="filter-status-select" onchange="filterOrdersByStatus(this.value)" class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl text-xs font-semibold">
+                                <option value="all">Todas las órdenes</option>
+                                <option value="En Diseño">En Diseño</option>
+                                <option value="Corte de Material">Corte de Material</option>
+                                <option value="Soldadura y Ensamble">Soldadura y Ensamble</option>
+                                <option value="Pintura y Acabados">Pintura y Acabados</option>
+                                <option value="Control de Calidad">Control de Calidad</option>
+                                <option value="Listo para instalación">Listo para instalación (100%)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="orders-container" class="space-y-4">
+                        <!-- Renderizado dinámico desde manufacturingOrders -->
+                    </div>
+                </section>
+
+                <!-- TAB 2: REGISTRO DE CONSUMO Y MERMA DE MATERIAL (RFCS23 / RFRN18) -->
+                <section id="tab-consumo" class="tab-content hidden space-y-4">
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm space-y-4">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                                <i class="fa-solid fa-scissors text-brand-royal dark:text-brand-cyan"></i> Ficha de Consumo y Merma (Desperdicio) de Material
+                            </h3>
+                            <p class="text-xs text-slate-500">Registre el material utilizado y los retazos/merma generados por orden. El sistema valida automáticamente que el stock no quede negativo.</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs items-end bg-slate-50 dark:bg-slate-950/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                            <div>
+                                <label class="block font-bold mb-1">Orden de Trabajo (OT)</label>
+                                <select id="cons-order-select" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl font-semibold">
+                                    <!-- Llenado dinámico -->
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold mb-1">Material / Insumo en Taller</label>
+                                <select id="cons-material-select" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl font-semibold">
+                                    <!-- Llenado dinámico desde workshopInventory -->
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold mb-1">Cantidad Utilizada</label>
+                                <input type="number" id="cons-used-qty" step="0.1" min="0.1" placeholder="Ej. 4.5" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl font-mono">
+                            </div>
+                            <div>
+                                <label class="block font-bold mb-1">Merma / Desperdicio</label>
+                                <input type="number" id="cons-waste-qty" step="0.1" min="0" value="0" placeholder="Ej. 0.5" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl font-mono">
+                            </div>
+                            <div>
+                                <button type="button" onclick="registerMaterialConsumption()" class="w-full py-2.5 px-4 bg-brand-royal hover:bg-blue-700 text-white rounded-xl font-bold shadow-sm transition-colors flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-check"></i> Descontar Stock
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Stock Disponible en Tiempo Real -->
+                        <div class="pt-2">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Disponibilidad Actual en Bodega de Taller (Validación RFRN18)</h4>
+                            <div id="workshop-stock-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                                <!-- Renderizado dinámico -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Historial de Consumos y Mermas -->
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm space-y-3">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Historial de Consumos y Mermas Reportadas</h4>
+                        <div id="consumption-history-list" class="space-y-2 text-xs">
+                            <p class="text-[11px] text-slate-400 italic" id="no-consumption-msg">Aún no se han registrado consumos de material en este turno.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 3: CONTROL DETALLADO DE ETAPAS METALMECÁNICAS (RFCS24) -->
+                <section id="tab-progreso" class="tab-content hidden space-y-4">
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Desglose de Etapas de Fabricación Metalmecánica</h3>
+                        <p class="text-xs text-slate-500">Marque las fases completadas (Diseño, Corte, Soldadura/Ensamble, Pintura/Acabados, Control Calidad) para actualizar el avance</p>
+                    </div>
+                    <div id="stages-checklist-container" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <!-- Renderizado dinámico de etapas por orden -->
+                    </div>
+                </section>
+
+                <!-- TAB 4: MATERIALES REQUERIDOS PARA CONSTRUCCIÓN -->
+                <section id="tab-materiales" class="tab-content hidden space-y-4">
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Lista de Materiales e Insumos Asignados por Orden</h3>
+                        <p class="text-xs text-slate-500">Detalle de perfiles de aluminio, vidrio, hierro y herrajes requeridos</p>
+                    </div>
+                    <div id="materials-list-container" class="space-y-3">
+                        <!-- Renderizado dinámico -->
+                    </div>
+                </section>
+
+                <!-- TAB 5: BITÁCORA DE TALLER -->
+                <section id="tab-bitacora" class="tab-content hidden space-y-4">
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Historial de Reportes del Operario</h3>
+                        <p class="text-xs text-slate-500">Registro cronológico de actualizaciones de estado, consumo de material y mermas</p>
+                    </div>
+                    <div id="workshop-log-container" class="space-y-3">
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm text-xs">
+                            <div>
+                                <span class="px-2 py-0.5 bg-brand-royal/10 text-brand-royal dark:text-brand-cyan font-bold rounded">Operario Taller</span>
+                                <p class="font-bold text-slate-900 dark:text-slate-100 mt-1">Inicio de turno y sincronización de órdenes de construcción.</p>
+                                <p class="text-[11px] text-slate-400">Hoy • Taller Central</p>
+                            </div>
+                            <span class="text-brand-emerald font-bold">Activo</span>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- SCRIPT CONTROLADOR DE OPERARIO Y VISOR 3D/5D -->
+    <script>
+        // Inventario de Materia Prima en Taller (para validación de consumo y merma RFRN18)
+        let workshopInventory = [
+            { id: 'MAT-01', nombre: 'Perfil Tubular Aluminio 6063-T6 (m)', stock: 60.0, minimo: 15.0, unidad: 'm' },
+            { id: 'MAT-02', nombre: 'Vidrio Laminado DGU 14mm (m²)', stock: 55.0, minimo: 10.0, unidad: 'm²' },
+            { id: 'MAT-03', nombre: 'Perfil Rectangular Hierro 2x1 Cal. 16 (m)', stock: 42.0, minimo: 12.0, unidad: 'm' },
+            { id: 'MAT-04', nombre: 'Lámina Cold Rolled Calibre 18 (und)', stock: 8.0, minimo: 3.0, unidad: 'und' }
+        ];
+
+        let consumptionLogs = [];
+
+        // Base de datos de órdenes de construcción con los estados metalmecánicos exactos del DAS (RFCS24)
+        let manufacturingOrders = [
+            {
+                id: 'COT-302',
+                cliente: 'Carlos Mendoza',
+                producto: 'Estructura de Aluminio y Vidrio DGU (Fachada Modular)',
+                medidas: '4.50 m Ancho x 3.60 m Alto x 3.00 m Prof.',
+                acabado: 'Anodizado Plata • Vidrio DGU 14mm Neutro',
+                fechaEntrega: '2026-11-30',
+                estado: 'Soldadura y Ensamble',
+                porcentaje: 60,
+                notaOperario: 'Perfilería de aluminio cortada y bastidor principal ensamblado. Pendiente montaje de vidrios.',
+                materiales: [
+                    'Perfil Tubular Aluminio 6063-T6 80x120mm (38.4 m)',
+                    'Vidrio Laminado DGU 14mm Incoloro (42.8 m²)',
+                    'Platinas de Anclaje Acero 1/4" (8 unidades)',
+                    'Empaque perimetral EPDM y silicona estructural'
+                ],
+                etapas: {
+                    diseno: true,
+                    corte: true,
+                    soldadura: true,
+                    pintura: false,
+                    calidad: false
+                },
+                dims5D: { width: 4.5, height: 3.6, depth: 3.0, divisionsX: 3, divisionsY: 2 }
+            },
+            {
+                id: 'COT-305',
+                cliente: 'Constructora El Mirador',
+                producto: 'Puerta Principal Reforzada en Hierro Forjado + Cerradura Alta Seguridad',
+                medidas: '1.20 m Ancho x 2.40 m Alto',
+                acabado: 'Pintura Electroestática Negro Mate',
+                fechaEntrega: '2026-12-02',
+                estado: 'Listo para instalación',
+                porcentaje: 100,
+                notaOperario: 'Soldadura pulida, pintura secada al horno y control de calidad aprobado. Lista para despacho.',
+                materiales: [
+                    'Perfil Rectangular Hierro 2x1 Cal. 16 (18 m)',
+                    'Lámina Cold Rolled Calibre 18 (1 unidad)',
+                    'Cerradura de Seguridad Alta 5 Pines (SKU CER-001)'
+                ],
+                etapas: {
+                    diseno: true,
+                    corte: true,
+                    soldadura: true,
+                    pintura: true,
+                    calidad: true
+                },
+                dims5D: { width: 2.5, height: 2.7, depth: 1.5, divisionsX: 2, divisionsY: 2 }
+            },
+            {
+                id: 'COT-308',
+                cliente: 'Ana Sofía Restrepo',
+                producto: 'Ventanal Corredizo Serie 5020 con Vidrio Control Solar',
+                medidas: '3.00 m Ancho x 2.10 m Alto',
+                acabado: 'Blanco Lacado RAL 9016 • Vidrio Azul Solar 8mm',
+                fechaEntrega: '2026-12-04',
+                estado: 'Corte de Material',
+                porcentaje: 40,
+                notaOperario: 'Plano aprobado en diseño, realizando cortes a 45 grados en sierra ingletadora.',
+                materiales: [
+                    'Perfil Corredera Serie 5020 Blanco (12 m)',
+                    'Vidrio Templado 8mm Control Solar (6.3 m²)',
+                    'Rodamientos dobles y cierres embutidos'
+                ],
+                etapas: {
+                    diseno: true,
+                    corte: true,
+                    soldadura: false,
+                    pintura: false,
+                    calidad: false
+                },
+                dims5D: { width: 3.0, height: 2.1, depth: 1.5, divisionsX: 2, divisionsY: 1 }
+            }
+        ];
+
+        // Constantes del Motor 5D
+        const DENSITY_ALUMINIUM = 2700;
+        const DENSITY_GLASS = 2500;
+        const state5D = {
+            width: 4.5, height: 3.6, depth: 3.0,
+            divisionsX: 3, divisionsY: 2,
+            profileWidthMm: 80, profileDepthMm: 120,
+            aluColor: 0xd1d5db, aluMetalness: 0.85, aluRoughness: 0.25,
+            glassThicknessMm: 14, transmission: 0.92, roughness: 0.05, ior: 1.52,
+            glassColor: 0xffffff, currentPhase: 3,
+            showWireframe: false, showGrid: true, planOpacity: 0.70
+        };
+
+        let scene5D, camera5D, renderer5D, controls5D, animationFrame5D;
+        let mainStructureGroup5D, glassMaterial5D, aluMaterial5D, anchorMaterial5D, wireframeMaterial5D;
+        let gridHelper5D, ambientLight5D, dirLight5D, pointLight5D, planMesh5D, planMaterial5D;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const savedOrders = localStorage.getItem('cerrajeria_operario_orders_v2');
+            if (savedOrders) {
+                try { manufacturingOrders = JSON.parse(savedOrders); } catch (e) { console.error(e); }
+            }
+            const savedStock = localStorage.getItem('cerrajeria_workshop_stock');
+            if (savedStock) {
+                try { workshopInventory = JSON.parse(savedStock); } catch (e) { console.error(e); }
+            }
+            renderAllOperarioViews();
+        });
+
+        function persistData() {
+            localStorage.setItem('cerrajeria_operario_orders_v2', JSON.stringify(manufacturingOrders));
+            localStorage.setItem('cerrajeria_workshop_stock', JSON.stringify(workshopInventory));
+        }
+
+        function toggleTabletMode() {
+            const body = document.body;
+            const btn = document.getElementById('btn-tablet-mode');
+            const label = document.getElementById('tablet-mode-label');
+            body.classList.toggle('tablet-mode');
+            const active = body.classList.contains('tablet-mode');
+
+            if (active) {
+                btn.classList.remove('bg-amber-500/10', 'text-amber-600', 'dark:text-amber-400');
+                btn.classList.add('bg-amber-500', 'text-slate-950');
+                if (label) label.innerText = 'Tablet 18px ON';
+            } else {
+                btn.classList.add('bg-amber-500/10', 'text-amber-600', 'dark:text-amber-400');
+                btn.classList.remove('bg-amber-500', 'text-slate-950');
+                if (label) label.innerText = 'Modo Tablet 18px';
+            }
+        }
+
+        function renderAllOperarioViews(filterStatus = 'all') {
+            renderOrdersList(filterStatus);
+            renderStagesChecklist();
+            renderMaterialsSummary();
+            renderConsumptionModule();
+            updateDashboardMetrics();
+        }
+
+        function updateDashboardMetrics() {
+            const total = manufacturingOrders.length;
+            const inProgress = manufacturingOrders.filter(o => o.porcentaje > 0 && o.porcentaje < 100).length;
+            const ready = manufacturingOrders.filter(o => o.porcentaje >= 100 || o.estado === 'Listo para instalación').length;
+            const avg = total > 0 ? Math.round(manufacturingOrders.reduce((acc, o) => acc + Number(o.porcentaje), 0) / total) : 0;
+
+            document.getElementById('stat-total-orders').innerText = total;
+            document.getElementById('stat-in-progress').innerText = inProgress;
+            document.getElementById('stat-ready').innerText = ready;
+            document.getElementById('stat-avg-pct').innerText = avg + '%';
+        }
+
+        function renderOrdersList(filterStatus = 'all') {
+            const container = document.getElementById('orders-container');
+            if (!container) return;
+
+            const filtered = filterStatus === 'all' 
+                ? manufacturingOrders 
+                : manufacturingOrders.filter(o => o.estado === filterStatus);
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-2xl text-center text-xs text-slate-500">
+                        No hay órdenes de construcción en esta fase.
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(order => {
+                const isDone = order.porcentaje >= 100;
+                const badgeClass = isDone 
+                    ? 'bg-brand-emerald/10 text-brand-emerald border-brand-emerald/20' 
+                    : (order.porcentaje > 0 ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-transparent');
+                
+                const progressBarColor = isDone ? 'bg-brand-emerald' : 'bg-brand-royal';
+
+                return `
+                <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm space-y-4 transition-all hover:border-brand-royal/50">
+                    <!-- Cabecera de la Orden -->
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+                        <div class="flex items-start gap-4 cursor-pointer" onclick="triggerOrderFloatingInfo('${order.id}', event)">
+                            <!-- Botón Visor 3D/5D -->
+                            <div onclick="openModal3DForOrder('${order.id}', event)" class="w-20 h-20 rounded-xl bg-slate-950 border border-slate-700 flex flex-col items-center justify-center shrink-0 relative group overflow-hidden shadow-inner cursor-pointer" title="Abrir Plano 3D / Medidas de Taller">
+                                <i class="fa-solid fa-cube text-2xl text-cyan-400 group-hover:scale-110 transition-transform"></i>
+                                <span class="text-[8px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Ver Plano 3D</span>
+                            </div>
+
+                            <div class="space-y-1">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="px-2.5 py-0.5 bg-brand-royal/10 text-brand-royal dark:text-brand-cyan text-xs font-extrabold rounded-lg font-mono">#${order.id}</span>
+                                    <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100">${order.producto}</h4>
+                                </div>
+                                <p class="text-xs text-slate-600 dark:text-slate-300">
+                                    <strong>Cliente:</strong> ${order.cliente} • <strong>Medidas:</strong> <span class="font-mono text-brand-cobalt dark:text-brand-cyan">${order.medidas}</span>
+                                </p>
+                                <p class="text-[11px] text-slate-500">
+                                    <strong>Especificación:</strong> ${order.acabado} • <strong>Entrega estimada:</strong> ${order.fechaEntrega}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 self-end md:self-center">
+                            <span class="px-3 py-1 rounded-full border text-xs font-bold ${badgeClass}">
+                                ${order.estado} • ${order.porcentaje}%
+                            </span>
+                            <button onclick="triggerOrderFloatingInfo('${order.id}', event)" class="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-xl text-xs text-slate-600 dark:text-slate-300" title="Ver Ficha Técnica Completa">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Barra de Progreso Visual -->
+                    <div class="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                        <div id="visual-bar-${order.id}" class="${progressBarColor} h-full transition-all duration-300 rounded-full" style="width: ${order.porcentaje}%"></div>
+                    </div>
+
+                    <!-- Controles del Operario: Porcentaje, Flujo Metalmecánico y Observación -->
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end text-xs pt-1">
+                        <div class="lg:col-span-4 space-y-1.5">
+                            <div class="flex justify-between font-bold">
+                                <span class="text-slate-700 dark:text-slate-300">Porcentaje de Creación</span>
+                                <span id="label-pct-${order.id}" class="text-brand-royal dark:text-brand-cyan font-mono text-sm">${order.porcentaje}%</span>
+                            </div>
+                            <input type="range" id="range-pct-${order.id}" min="0" max="100" step="5" value="${order.porcentaje}" oninput="onSliderInput('${order.id}', this.value)" class="w-full">
+                            <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+                                <span>20% Diseño</span>
+                                <span>60% Soldadura</span>
+                                <span>100% Calidad</span>
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-3">
+                            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Fase Metalmecánica (RFCS24)</label>
+                            <select id="select-state-${order.id}" onchange="onPhaseSelectChange('${order.id}', this.value)" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl font-semibold text-slate-800 dark:text-slate-100">
+                                <option value="En Diseño" ${order.estado === 'En Diseño' ? 'selected' : ''}>1. En Diseño (20%)</option>
+                                <option value="Corte de Material" ${order.estado === 'Corte de Material' ? 'selected' : ''}>2. Corte de Material (40%)</option>
+                                <option value="Soldadura y Ensamble" ${order.estado === 'Soldadura y Ensamble' ? 'selected' : ''}>3. Soldadura y Ensamble (60%)</option>
+                                <option value="Pintura y Acabados" ${order.estado === 'Pintura y Acabados' ? 'selected' : ''}>4. Pintura y Acabados (80%)</option>
+                                <option value="Control de Calidad" ${order.estado === 'Control de Calidad' ? 'selected' : ''}>5. Control de Calidad (95%)</option>
+                                <option value="Listo para instalación" ${order.estado === 'Listo para instalación' ? 'selected' : ''}>6. Listo para instalación (100%)</option>
+                            </select>
+                        </div>
+
+                        <div class="lg:col-span-5">
+                            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Nota Técnica / Reporte del Operario</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="input-note-${order.id}" value="${order.notaOperario}" placeholder="Ej. Corte listo, pasando a soldadura..." class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl text-slate-800 dark:text-slate-100">
+                                <button type="button" onclick="saveOrderProgress('${order.id}')" class="px-4 py-2.5 bg-brand-royal hover:bg-blue-700 text-white rounded-xl font-bold shrink-0 shadow-sm transition-colors flex items-center gap-1.5">
+                                    <i class="fa-solid fa-floppy-disk"></i> Guardar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function onPhaseSelectChange(orderId, phaseName) {
+            const mapPct = {
+                'En Diseño': 20,
+                'Corte de Material': 40,
+                'Soldadura y Ensamble': 60,
+                'Pintura y Acabados': 80,
+                'Control de Calidad': 95,
+                'Listo para instalación': 100
+            };
+            const pct = mapPct[phaseName] ?? 20;
+            const range = document.getElementById(`range-pct-${orderId}`);
+            if (range) range.value = pct;
+            onSliderInput(orderId, pct, true);
+        }
+
+        function onSliderInput(orderId, value, skipSelectSync = false) {
+            const label = document.getElementById(`label-pct-${orderId}`);
+            const bar = document.getElementById(`visual-bar-${orderId}`);
+            const stateSelect = document.getElementById(`select-state-${orderId}`);
+            const pct = parseInt(value, 10);
+
+            if (label) label.innerText = pct + '%';
+            if (bar) {
+                bar.style.width = pct + '%';
+                bar.className = (pct >= 100 ? 'bg-brand-emerald' : 'bg-brand-royal') + ' h-full transition-all duration-300 rounded-full';
+            }
+            if (stateSelect && !skipSelectSync) {
+                if (pct <= 20) stateSelect.value = 'En Diseño';
+                else if (pct <= 40) stateSelect.value = 'Corte de Material';
+                else if (pct <= 60) stateSelect.value = 'Soldadura y Ensamble';
+                else if (pct <= 80) stateSelect.value = 'Pintura y Acabados';
+                else if (pct < 100) stateSelect.value = 'Control de Calidad';
+                else stateSelect.value = 'Listo para instalación';
+            }
+        }
+
+        function saveOrderProgress(orderId) {
+            const order = manufacturingOrders.find(o => o.id === orderId);
+            if (!order) return;
+
+            const pct = parseInt(document.getElementById(`range-pct-${orderId}`).value, 10);
+            let estado = document.getElementById(`select-state-${orderId}`).value;
+            const nota = document.getElementById(`input-note-${orderId}`).value.trim();
+
+            if (pct >= 100) estado = 'Listo para instalación';
+
+            order.porcentaje = pct;
+            order.estado = estado;
+            order.notaOperario = nota || 'Sin observaciones adicionales.';
+
+            order.etapas.diseno = pct >= 20;
+            order.etapas.corte = pct >= 40;
+            order.etapas.soldadura = pct >= 60;
+            order.etapas.pintura = pct >= 80;
+            order.etapas.calidad = pct >= 100;
+
+            persistData();
+            renderAllOperarioViews(document.getElementById('filter-status-select').value);
+            addWorkshopLog(`Orden #${order.id} (${order.cliente}) actualizada al ${pct}% • Fase: ${estado}. Nota: "${order.notaOperario}"`);
+            showToast(`Avance de la orden #${order.id} guardado correctamente (${pct}% - ${estado}).`);
+        }
+
+        /* =========================================================
+           MÓDULO DE CONSUMO Y MERMA DE MATERIAL (RFCS23 / RFRN18)
+           ========================================================= */
+        function renderConsumptionModule() {
+            const orderSelect = document.getElementById('cons-order-select');
+            const matSelect = document.getElementById('cons-material-select');
+            const stockGrid = document.getElementById('workshop-stock-grid');
+
+            if (orderSelect) {
+                orderSelect.innerHTML = manufacturingOrders.map(o =>
+                    `<option value="${o.id}">#${o.id} - ${o.cliente}</option>`
+                ).join('');
+            }
+
+            if (matSelect) {
+                matSelect.innerHTML = workshopInventory.map(m =>
+                    `<option value="${m.id}">${m.nombre} (Disp: ${m.stock.toFixed(1)} ${m.unidad})</option>`
+                ).join('');
+            }
+
+            if (stockGrid) {
+                stockGrid.innerHTML = workshopInventory.map(m => {
+                    const isLow = m.stock <= m.minimo;
+                    return `
+                    <div class="p-3 rounded-xl border ${isLow ? 'border-red-500/40 bg-red-500/5' : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60'}">
+                        <div class="flex justify-between items-center">
+                            <span class="font-mono text-[10px] font-bold text-slate-400">${m.id}</span>
+                            ${isLow ? `<span class="px-1.5 py-0.5 bg-red-500/10 text-red-500 rounded text-[10px] font-bold">Stock Mínimo</span>` : `<span class="px-1.5 py-0.5 bg-brand-emerald/10 text-brand-emerald rounded text-[10px] font-bold">OK</span>`}
+                        </div>
+                        <p class="font-bold text-slate-800 dark:text-slate-200 mt-1 truncate" title="${m.nombre}">${m.nombre}</p>
+                        <p class="text-sm font-extrabold font-mono mt-1 ${isLow ? 'text-red-500' : 'text-brand-royal dark:text-brand-cyan'}">${m.stock.toFixed(1)} ${m.unidad}</p>
+                    </div>`;
+                }).join('');
+            }
+        }
+
+        function registerMaterialConsumption() {
+            const orderId = document.getElementById('cons-order-select').value;
+            const matId = document.getElementById('cons-material-select').value;
+            const usedQty = parseFloat(document.getElementById('cons-used-qty').value) || 0;
+            const wasteQty = parseFloat(document.getElementById('cons-waste-qty').value) || 0;
+
+            if (usedQty <= 0) {
+                showToast('La cantidad utilizada debe ser mayor a cero.');
+                return;
+            }
+            if (wasteQty < 0) {
+                showToast('La merma no puede ser negativa.');
+                return;
+            }
+
+            const material = workshopInventory.find(m => m.id === matId);
+            if (!material) return;
+
+            const totalDescontar = usedQty + wasteQty;
+
+            // Regla RFRN18: Impedir stock negativo
+            if (totalDescontar > material.stock) {
+                showToast(`Stock insuficiente para ${material.nombre}. Disponible: ${material.stock.toFixed(1)} ${material.unidad} (Intentaste descontar ${totalDescontar.toFixed(1)} ${material.unidad} incluyendo merma).`);
+                return;
+            }
+
+            material.stock = Math.round((material.stock - totalDescontar) * 100) / 100;
+
+            const now = new Date();
+            const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+
+            const historyList = document.getElementById('consumption-history-list');
+            const emptyMsg = document.getElementById('no-consumption-msg');
+            if (emptyMsg) emptyMsg.remove();
+
+            const row = document.createElement('div');
+            row.className = "p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2";
+            row.innerHTML = `
+                <div>
+                    <span class="px-2 py-0.5 bg-brand-royal/10 text-brand-royal dark:text-brand-cyan font-mono font-bold rounded">#${orderId}</span>
+                    <strong class="ml-1 text-slate-800 dark:text-slate-200">${material.nombre}</strong>
+                    <p class="text-[11px] text-slate-500 mt-0.5">Usado: <b>${usedQty} ${material.unidad}</b> • Merma (Desperdicio): <b class="text-amber-500">${wasteQty} ${material.unidad}</b> • Hora: ${timeStr}</p>
+                </div>
+                <span class="font-mono font-bold text-slate-600 dark:text-slate-300">Restante: ${material.stock.toFixed(1)} ${material.unidad}</span>
+            `;
+            historyList.insertBefore(row, historyList.firstChild);
+
+            document.getElementById('cons-used-qty').value = '';
+            document.getElementById('cons-waste-qty').value = '0';
+
+            persistData();
+            renderConsumptionModule();
+
+            const alertMsg = material.stock <= material.minimo ? ' [ALERTA: Stock por debajo del mínimo]' : '';
+            addWorkshopLog(`Consumo registrado en #${orderId}: ${usedQty} ${material.unidad} + ${wasteQty} ${material.unidad} de merma en ${material.nombre}.${alertMsg}`);
+            showToast(`Consumo y merma descontados correctamente. Nuevo stock: ${material.stock.toFixed(1)} ${material.unidad}.${alertMsg}`);
+        }
+
+        function renderStagesChecklist() {
+            const container = document.getElementById('stages-checklist-container');
+            if (!container) return;
+
+            container.innerHTML = manufacturingOrders.map(order => `
+                <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+                        <div>
+                            <span class="text-xs font-extrabold text-brand-royal dark:text-brand-cyan font-mono">#${order.id}</span>
+                            <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100">${order.producto}</h4>
+                        </div>
+                        <span class="px-2.5 py-1 bg-brand-royal/10 text-brand-royal dark:text-brand-cyan font-mono font-bold rounded-lg text-xs">${order.porcentaje}%</span>
+                    </div>
+                    <div class="space-y-2 text-xs">
+                        <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 cursor-pointer">
+                            <span class="font-semibold flex items-center gap-2"><i class="fa-solid fa-compass-drafting text-indigo-500"></i> 1. En Diseño y Despiece (20%)</span>
+                            <input type="checkbox" ${order.etapas.diseno ? 'checked' : ''} onchange="toggleStageCheck('${order.id}', 'diseno', this.checked)" class="w-4 h-4 accent-brand-royal">
+                        </label>
+                        <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 cursor-pointer">
+                            <span class="font-semibold flex items-center gap-2"><i class="fa-solid fa-scissors text-cyan-500"></i> 2. Corte de Material (40%)</span>
+                            <input type="checkbox" ${order.etapas.corte ? 'checked' : ''} onchange="toggleStageCheck('${order.id}', 'corte', this.checked)" class="w-4 h-4 accent-brand-royal">
+                        </label>
+                        <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 cursor-pointer">
+                            <span class="font-semibold flex items-center gap-2"><i class="fa-solid fa-screwdriver-wrench text-amber-500"></i> 3. Soldadura y Ensamble (60%)</span>
+                            <input type="checkbox" ${order.etapas.soldadura ? 'checked' : ''} onchange="toggleStageCheck('${order.id}', 'soldadura', this.checked)" class="w-4 h-4 accent-brand-royal">
+                        </label>
+                        <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 cursor-pointer">
+                            <span class="font-semibold flex items-center gap-2"><i class="fa-solid fa-fill-drip text-blue-500"></i> 4. Pintura y Acabados / Vidrio (80%)</span>
+                            <input type="checkbox" ${order.etapas.pintura ? 'checked' : ''} onchange="toggleStageCheck('${order.id}', 'pintura', this.checked)" class="w-4 h-4 accent-brand-royal">
+                        </label>
+                        <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 cursor-pointer">
+                            <span class="font-semibold flex items-center gap-2"><i class="fa-solid fa-circle-check text-brand-emerald"></i> 5. Control de Calidad Aprobado (100%)</span>
+                            <input type="checkbox" ${order.etapas.calidad ? 'checked' : ''} onchange="toggleStageCheck('${order.id}', 'calidad', this.checked)" class="w-4 h-4 accent-brand-emerald">
+                        </label>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleStageCheck(orderId, stageKey, isChecked) {
+            const order = manufacturingOrders.find(o => o.id === orderId);
+            if (!order) return;
+
+            order.etapas[stageKey] = isChecked;
+            let count = 0;
+            if (order.etapas.diseno) count++;
+            if (order.etapas.corte) count++;
+            if (order.etapas.soldadura) count++;
+            if (order.etapas.pintura) count++;
+            if (order.etapas.calidad) count++;
+
+            order.porcentaje = count * 20;
+            if (order.porcentaje <= 20) order.estado = 'En Diseño';
+            else if (order.porcentaje <= 40) order.estado = 'Corte de Material';
+            else if (order.porcentaje <= 60) order.estado = 'Soldadura y Ensamble';
+            else if (order.porcentaje <= 80) order.estado = 'Pintura y Acabados';
+            else order.estado = 'Listo para instalación';
+
+            persistData();
+            renderAllOperarioViews(document.getElementById('filter-status-select').value);
+            addWorkshopLog(`Etapa "${stageKey.toUpperCase()}" ${isChecked ? 'completada' : 'desmarcada'} en orden #${order.id} (${order.porcentaje}%)`);
+        }
+
+        function renderMaterialsSummary() {
+            const container = document.getElementById('materials-list-container');
+            if (!container) return;
+
+            container.innerHTML = manufacturingOrders.map(order => `
+                <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm space-y-3">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <span class="px-2 py-0.5 bg-brand-royal/10 text-brand-royal dark:text-brand-cyan text-[11px] font-bold rounded font-mono">#${order.id}</span>
+                            <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">${order.producto}</h4>
+                        </div>
+                        <span class="text-xs font-semibold text-slate-500">${order.medidas}</span>
+                    </div>
+                    <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-100 dark:border-slate-800">
+                        ${order.materiales.map(mat => `
+                            <li class="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-950/60 text-slate-700 dark:text-slate-300">
+                                <i class="fa-solid fa-check text-brand-emerald text-[10px]"></i> ${mat}
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            `).join('');
+        }
+
+        function triggerOrderFloatingInfo(orderId, event) {
+            if (event) event.stopPropagation();
+            const order = manufacturingOrders.find(o => o.id === orderId);
+            if (!order) return;
+
+            const card = document.getElementById('floatingInfoCard');
+            document.getElementById('floatingCardTag').innerText = `Orden #${order.id}`;
+            document.getElementById('floatingCardTitle').innerText = order.producto;
+            document.getElementById('floatingCardBody').innerHTML = `
+                <div class="space-y-1.5">
+                    <p><strong>Cliente:</strong> ${order.cliente}</p>
+                    <p><strong>Dimensiones:</strong> ${order.medidas}</p>
+                    <p><strong>Acabados:</strong> ${order.acabado}</p>
+                    <p><strong>Avance Actual:</strong> <span class="font-bold text-brand-royal dark:text-brand-cyan">${order.porcentaje}% (${order.estado})</span></p>
+                    <p><strong>Nota Taller:</strong> ${order.notaOperario}</p>
+                </div>`;
+            document.getElementById('floatingCardFooter').innerHTML = `
+                <button onclick="closeFloatingInfo()" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-semibold">Cerrar</button>
+                <button onclick="closeFloatingInfo(); openModal3DForOrder('${order.id}')" class="px-3 py-1.5 bg-brand-royal text-white rounded-lg text-xs font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-cube text-[10px]"></i> Abrir Plano 3D
+                </button>`;
+
+            card.style.top = '120px';
+            card.style.left = '50%';
+            card.style.transform = 'translateX(-50%)';
+            card.classList.remove('hidden');
+        }
+
+        function closeFloatingInfo() {
+            document.getElementById('floatingInfoCard').classList.add('hidden');
+        }
+
+        function closeFloatingInfoOnClickOutside(e) {
+            const card = document.getElementById('floatingInfoCard');
+            if (!card.classList.contains('hidden') && !card.contains(e.target) && !e.target.closest('.searchable-item')) {
+                closeFloatingInfo();
+            }
+        }
+
+        function openNewOrderModal() {
+            document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-plus text-brand-royal"></i> Registrar Orden Manual en Taller`;
+            document.getElementById('modalBody').innerHTML = `
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <label class="block font-bold mb-1">Código de Orden / Cotización</label>
+                        <input type="text" id="new-ord-id" placeholder="Ej. COT-310" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">Cliente</label>
+                        <input type="text" id="new-ord-cli" placeholder="Nombre del cliente" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">Producto a Construir</label>
+                        <input type="text" id="new-ord-prod" placeholder="Ej. Ventana fija en aluminio negro y vidrio 6mm" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">Medidas y Acabados</label>
+                        <input type="text" id="new-ord-med" placeholder="Ej. 2.50 m x 1.80 m • Negro Mate" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl">
+                    </div>
+                </div>`;
+            document.getElementById('modalFooter').innerHTML = `
+                <button onclick="closeModal()" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold">Cancelar</button>
+                <button onclick="createManualOrder()" class="px-4 py-2 bg-brand-royal text-white rounded-xl text-xs font-bold">Agregar a Taller</button>`;
+            document.getElementById('appModal').classList.remove('hidden');
+        }
+
+        function createManualOrder() {
+            const id = (document.getElementById('new-ord-id').value.trim() || 'COT-' + Math.floor(310 + Math.random() * 90)).toUpperCase();
+            const cliente = document.getElementById('new-ord-cli').value.trim() || 'Cliente General';
+            const producto = document.getElementById('new-ord-prod').value.trim() || 'Estructura en Aluminio y Vidrio';
+            const medidas = document.getElementById('new-ord-med').value.trim() || '3.00 m x 2.40 m';
+
+            manufacturingOrders.unshift({
+                id,
+                cliente,
+                producto,
+                medidas,
+                acabado: 'Estándar según plano técnico',
+                fechaEntrega: new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0],
+                estado: 'En Diseño',
+                porcentaje: 20,
+                notaOperario: 'Recién ingresada a taller en fase de diseño y trazado.',
+                materiales: ['Perfilería según despiece 5D', 'Vidrio templado según medida', 'Herrajes y empaques'],
+                etapas: { diseno: true, corte: false, soldadura: false, pintura: false, calidad: false },
+                dims5D: { width: 3.0, height: 2.4, depth: 2.0, divisionsX: 2, divisionsY: 2 }
+            });
+
+            persistData();
+            renderAllOperarioViews();
+            addWorkshopLog(`Nueva orden #${id} ingresada a producción para ${cliente}.`);
+            closeModal();
+            showToast(`Orden #${id} agregada correctamente a la cola de construcción.`);
+        }
+
+        function filterOrdersByStatus(status) {
+            renderOrdersList(status);
+        }
+
+        function filterCurrentTable() {
+            const query = document.getElementById('global-search').value.toLowerCase();
+            const activeTab = document.querySelector('.tab-content:not(.hidden)');
+            if (!activeTab) return;
+            activeTab.querySelectorAll('.searchable-item').forEach(item => {
+                item.classList.toggle('hidden', !item.innerText.toLowerCase().includes(query));
+            });
+        }
+
+        function addWorkshopLog(text) {
+            const container = document.getElementById('workshop-log-container');
+            if (!container) return;
+            const now = new Date();
+            const timeStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+            const div = document.createElement('div');
+            div.className = "searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm text-xs";
+            div.innerHTML = `
+                <div>
+                    <span class="px-2 py-0.5 bg-brand-royal/10 text-brand-royal dark:text-brand-cyan font-bold rounded">Operario Taller</span>
+                    <p class="font-bold text-slate-900 dark:text-slate-100 mt-1">${text}</p>
+                    <p class="text-[11px] text-slate-400">Fecha: ${timeStr}</p>
+                </div>
+                <span class="text-brand-emerald font-bold">Reportado</span>
+            `;
+            container.insertBefore(div, container.firstChild);
+        }
+
+        function exportOperarioReport() {
+            let csv = "\uFEFFOrden,Cliente,Producto,FaseMetalmecanica,Porcentaje,Observacion\n";
+            manufacturingOrders.forEach(o => {
+                csv += `"${o.id}","${o.cliente}","${o.producto}","${o.estado}","${o.porcentaje}%","${o.notaOperario}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Reporte_Operario_Taller_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showToast('Reporte de avance de taller descargado en CSV/Excel.');
+        }
+
+        function switchTab(tabId) {
+            closeFloatingInfo();
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-brand-royal/10', 'dark:bg-brand-royal/20', 'text-brand-cobalt', 'dark:text-brand-cyan', 'border', 'border-brand-royal/20', 'dark:border-brand-royal/30');
+                btn.classList.add('text-slate-600', 'dark:text-slate-400', 'hover:bg-slate-100', 'dark:hover:bg-slate-800/60');
+            });
+
+            document.getElementById('tab-' + tabId).classList.remove('hidden');
+            const activeBtn = document.getElementById('btn-' + tabId);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-brand-royal/10', 'dark:bg-brand-royal/20', 'text-brand-cobalt', 'dark:text-brand-cyan', 'border', 'border-brand-royal/20', 'dark:border-brand-royal/30');
+            }
+
+            const titles = {
+                'ordenes': ['Órdenes de Construcción', 'Especificaciones técnicas, flujo metalmecánico y control de avance'],
+                'consumo': ['Consumo y Merma de Material', 'Reporte de material utilizado y desperdicio con validación automática de stock'],
+                'progreso': ['Etapas Metalmecánicas', 'Control paso a paso: Diseño, Corte, Soldadura, Pintura y Control de Calidad'],
+                'materiales': ['Materiales Requeridos', 'Insumos, perfiles y vidrios asignados a cada orden de taller'],
+                'bitacora': ['Bitácora de Taller', 'Historial de reportes, consumos y novedades enviadas por el operario']
+            };
+            document.getElementById('current-title').innerText = titles[tabId][0];
+            document.getElementById('current-subtitle').innerText = titles[tabId][1];
+        }
+
+        function openLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
+        function closeLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
+
+        function redirectRole() {
+            const val = document.getElementById('userRoleSelect').value;
+            if (val === 'admin' || val === 'caja') {
+                window.location.href = 'Admin.html';
+            } else if (val === 'instalador') {
+                window.location.href = 'Instalador.html';
+            } else {
+                closeLoginModal();
+            }
+        }
+
+        function toggleMobileSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); }
+
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const themeIcon = document.getElementById('theme-icon');
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                html.classList.add('light');
+                themeIcon.className = 'fa-solid fa-moon text-sm';
+            } else {
+                html.classList.remove('light');
+                html.classList.add('dark');
+                themeIcon.className = 'fa-solid fa-sun text-sm';
+            }
+        }
+
+        function showToast(message) {
+            document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-circle-info text-brand-royal"></i> Taller Cerrajería Pro`;
+            document.getElementById('modalBody').innerHTML = `<p class="text-xs text-slate-600 dark:text-slate-300">${message}</p>`;
+            document.getElementById('modalFooter').innerHTML = `<button onclick="closeModal()" class="px-4 py-2 bg-brand-royal text-white rounded-xl text-xs font-bold">Entendido</button>`;
+            document.getElementById('appModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('appModal').classList.add('hidden');
+        }
+
+        /* =========================================================
+           MOTOR ALUSTRUST 5D ENGINE (VISOR 3D DE TALLER)
+           ========================================================= */
+        function openModal3DForOrder(orderId, event) {
+            if (event) event.stopPropagation();
+            const order = manufacturingOrders.find(o => o.id === orderId);
+            if (order && order.dims5D) {
+                state5D.width = order.dims5D.width;
+                state5D.height = order.dims5D.height;
+                state5D.depth = order.dims5D.depth;
+                state5D.divisionsX = order.dims5D.divisionsX;
+                state5D.divisionsY = order.dims5D.divisionsY;
+
+                document.getElementById('input-width').value = state5D.width;
+                document.getElementById('val-width').innerText = `${state5D.width.toFixed(1)} m`;
+                document.getElementById('input-height').value = state5D.height;
+                document.getElementById('val-height').innerText = `${state5D.height.toFixed(1)} m`;
+                document.getElementById('input-depth').value = state5D.depth;
+                document.getElementById('val-depth').innerText = `${state5D.depth.toFixed(1)} m`;
+                document.getElementById('input-divisions-x').value = state5D.divisionsX;
+                document.getElementById('val-divisions-x').innerText = state5D.divisionsX;
+                document.getElementById('input-divisions-y').value = state5D.divisionsY;
+                document.getElementById('val-divisions-y').innerText = state5D.divisionsY;
+                document.getElementById('engine-order-title').innerText = `AluStruct 5D - Orden #${order.id}`;
+            }
+
+            document.getElementById('modal3D5D').classList.remove('hidden');
+            setTimeout(() => { initEngine5D(); }, 100);
+        }
+
+        function closeModal3D() {
+            document.getElementById('modal3D5D').classList.add('hidden');
+            if (animationFrame5D) cancelAnimationFrame(animationFrame5D);
+            if (renderer5D) {
+                renderer5D.dispose();
+                renderer5D = null;
+            }
+        }
+
+        function initEngine5D() {
+            const container = document.getElementById('webgl-container-5d');
+            if (!container) return;
+            if (renderer5D) {
+                cancelAnimationFrame(animationFrame5D);
+                renderer5D.dispose();
+                container.innerHTML = '';
+            }
+
+            scene5D = new THREE.Scene();
+            scene5D.background = new THREE.Color(0x070a12);
+            scene5D.fog = new THREE.FogExp2(0x070a12, 0.022);
+
+            camera5D = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 100);
+            camera5D.position.set(8, 5.5, 9);
+
+            renderer5D = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+            renderer5D.setSize(container.clientWidth, container.clientHeight);
+            renderer5D.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer5D.shadowMap.enabled = true;
+            renderer5D.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer5D.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer5D.toneMappingExposure = 1.15;
+            container.appendChild(renderer5D.domElement);
+
+            controls5D = new THREE.OrbitControls(camera5D, renderer5D.domElement);
+            controls5D.enableDamping = true;
+            controls5D.dampingFactor = 0.05;
+            controls5D.maxPolarAngle = Math.PI / 2 - 0.01;
+            controls5D.minDistance = 2;
+            controls5D.maxDistance = 35;
+            controls5D.target.set(0, 1.8, 0);
+
+            ambientLight5D = new THREE.AmbientLight(0xffffff, 0.7);
+            scene5D.add(ambientLight5D);
+
+            dirLight5D = new THREE.DirectionalLight(0xffffff, 1.5);
+            dirLight5D.position.set(14, 20, 12);
+            dirLight5D.castShadow = true;
+            scene5D.add(dirLight5D);
+
+            pointLight5D = new THREE.PointLight(0x38bdf8, 1.0, 18);
+            pointLight5D.position.set(-8, 6, -6);
+            scene5D.add(pointLight5D);
+
+            const floor = new THREE.Mesh(
+                new THREE.PlaneGeometry(60, 60),
+                new THREE.MeshStandardMaterial({ color: 0x090f1f, roughness: 0.9, metalness: 0.1 })
+            );
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = -0.02;
+            floor.receiveShadow = true;
+            scene5D.add(floor);
+
+            planMaterial5D = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: state5D.planOpacity });
+            planMesh5D = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), planMaterial5D);
+            planMesh5D.rotation.x = -Math.PI / 2;
+            planMesh5D.position.y = -0.01;
+            planMesh5D.visible = false;
+            scene5D.add(planMesh5D);
+
+            gridHelper5D = new THREE.GridHelper(30, 30, 0x38bdf8, 0x1e293b);
+            gridHelper5D.position.y = 0.001;
+            scene5D.add(gridHelper5D);
+
+            glassMaterial5D = new THREE.MeshPhysicalMaterial({
+                color: state5D.glassColor, metalness: 0.0, roughness: state5D.roughness,
+                transmission: state5D.transmission, thickness: state5D.glassThicknessMm / 1000.0,
+                ior: state5D.ior, transparent: true, opacity: 1.0, side: THREE.DoubleSide, depthWrite: false
+            });
+            aluMaterial5D = new THREE.MeshStandardMaterial({ color: state5D.aluColor, metalness: state5D.aluMetalness, roughness: state5D.aluRoughness });
+            anchorMaterial5D = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.9, roughness: 0.3 });
+            wireframeMaterial5D = new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true });
+
+            mainStructureGroup5D = new THREE.Group();
+            scene5D.add(mainStructureGroup5D);
+
+            buildStructure5D();
+            setupUIEventListeners5D();
+
+            function animate() {
+                animationFrame5D = requestAnimationFrame(animate);
+                controls5D.update();
+                renderer5D.render(scene5D, camera5D);
+            }
+            animate();
+        }
+
+        function buildStructure5D() {
+            while (mainStructureGroup5D.children.length > 0) {
+                const obj = mainStructureGroup5D.children[0];
+                if (obj.geometry) obj.geometry.dispose();
+                mainStructureGroup5D.remove(obj);
+            }
+
+            const W = state5D.width, H = state5D.height, D = state5D.depth;
+            const profW = state5D.profileWidthMm / 1000.0, profD = state5D.profileDepthMm / 1000.0;
+            const glassThickM = state5D.glassThicknessMm / 1000.0;
+            const divsX = state5D.divisionsX, divsY = state5D.divisionsY;
+            const halfW = W / 2, halfD = D / 2;
+
+            if (state5D.currentPhase >= 1) {
+                const plateSize = profD * 2.0;
+                const plateGeo = new THREE.BoxGeometry(plateSize, 0.03, plateSize);
+                const stepX = W / divsX;
+                for (let i = 0; i <= divsX; i++) {
+                    const posX = -halfW + i * stepX;
+                    [halfD, -halfD].forEach(z => {
+                        const anchor = new THREE.Mesh(plateGeo, anchorMaterial5D);
+                        anchor.position.set(posX, 0.015, z);
+                        mainStructureGroup5D.add(anchor);
+                    });
+                }
+            }
+
+            if (state5D.currentPhase >= 2) {
+                const aluMatToUse = state5D.showWireframe ? wireframeMaterial5D : aluMaterial5D;
+                const stepX = W / divsX, stepY = H / divsY;
+                const mullionGeo = new THREE.BoxGeometry(profW, H, profD);
+                for (let i = 0; i <= divsX; i++) {
+                    const posX = -halfW + i * stepX;
+                    [halfD, -halfD].forEach(z => {
+                        const m = new THREE.Mesh(mullionGeo, aluMatToUse);
+                        m.position.set(posX, H / 2, z);
+                        mainStructureGroup5D.add(m);
+                    });
+                }
+                const transomGeo = new THREE.BoxGeometry(stepX - profW, profW, profD);
+                for (let i = 0; i < divsX; i++) {
+                    const posX = -halfW + (i + 0.5) * stepX;
+                    for (let j = 0; j <= divsY; j++) {
+                        const posY = j * stepY + (j === 0 ? profW / 2 : (j === divsY ? -profW / 2 : 0));
+                        [halfD, -halfD].forEach(z => {
+                            const t = new THREE.Mesh(transomGeo, aluMatToUse);
+                            t.position.set(posX, posY, z);
+                            mainStructureGroup5D.add(t);
+                        });
+                    }
+                }
+                const beamZGeo = new THREE.BoxGeometry(profW, profW, D - profD);
+                for (let i = 0; i <= divsX; i++) {
+                    const posX = -halfW + i * stepX;
+                    [H, profW / 2].forEach(y => {
+                        const b = new THREE.Mesh(beamZGeo, aluMatToUse);
+                        b.position.set(posX, y, 0);
+                        mainStructureGroup5D.add(b);
+                    });
+                }
+            }
+
+            if (state5D.currentPhase >= 3) {
+                const glassMatToUse = state5D.showWireframe ? wireframeMaterial5D : glassMaterial5D;
+                const stepX = W / divsX, stepY = H / divsY;
+                const glassPanelW = stepX - profW, glassPanelH = stepY - profW;
+                const glassPanelGeo = new THREE.BoxGeometry(glassPanelW, glassPanelH, glassThickM);
+                for (let i = 0; i < divsX; i++) {
+                    const posX = -halfW + (i + 0.5) * stepX;
+                    for (let j = 0; j < divsY; j++) {
+                        const posY = (j + 0.5) * stepY;
+                        [halfD, -halfD].forEach(z => {
+                            const g = new THREE.Mesh(glassPanelGeo, glassMatToUse);
+                            g.position.set(posX, posY, z);
+                            mainStructureGroup5D.add(g);
+                        });
+                    }
+                }
+                const glassSideGeo = new THREE.BoxGeometry(glassThickM, H - profW, D - profD);
+                [-halfW, halfW].forEach(x => {
+                    const gs = new THREE.Mesh(glassSideGeo, glassMatToUse);
+                    gs.position.set(x, H / 2, 0);
+                    mainStructureGroup5D.add(gs);
+                });
+                const roofGlassGeo = new THREE.BoxGeometry(glassPanelW, glassThickM, D - profD);
+                for (let i = 0; i < divsX; i++) {
+                    const gr = new THREE.Mesh(roofGlassGeo, glassMatToUse);
+                    gr.position.set(-halfW + (i + 0.5) * stepX, H + profW / 2, 0);
+                    mainStructureGroup5D.add(gr);
+                }
+            }
+
+            controls5D.target.set(0, H / 2, 0);
+            calculateMetrics5D();
+        }
+
+        function calculateMetrics5D() {
+            const W = state5D.width, H = state5D.height, D = state5D.depth;
+            const profW = state5D.profileWidthMm / 1000.0, profD = state5D.profileDepthMm / 1000.0;
+            const glassThickM = state5D.glassThicknessMm / 1000.0;
+            const divsX = state5D.divisionsX, divsY = state5D.divisionsY;
+
+            const stepX = W / divsX, stepY = H / divsY;
+            const totalAluLength = ((divsX + 1) * 2 * H) + (divsX * (divsY + 1) * 2 * (stepX - profW)) + ((divsX + 1) * 2 * D);
+            const wallThickM = 0.003;
+            const crossSectionArea = (profW * profD) - ((profW - 2 * wallThickM) * (profD - 2 * wallThickM));
+            const totalAluVolume = totalAluLength * crossSectionArea;
+
+            const glassW = stepX - profW, glassH = stepY - profW, sideW = D - profD;
+            const totalGlassArea = ((glassW * glassH) * (divsX * divsY * 2)) + ((sideW * H) * 2) + ((glassW * sideW) * divsX);
+            const totalWeight = (totalAluVolume * DENSITY_ALUMINIUM) + (totalGlassArea * glassThickM * DENSITY_GLASS);
+
+            document.getElementById('metric-alu-len').innerText = `${totalAluLength.toFixed(1)} m`;
+            document.getElementById('metric-glass-area').innerText = `${totalGlassArea.toFixed(2)} m²`;
+            document.getElementById('metric-weight').innerText = `${Math.round(totalWeight).toLocaleString()} kg`;
+        }
+
+        function handlePlanUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                new THREE.TextureLoader().load(e.target.result, (texture) => {
+                    planMaterial5D.map = texture;
+                    planMaterial5D.needsUpdate = true;
+                    planMesh5D.scale.set(texture.image.width / texture.image.height, 1, 1);
+                    planMesh5D.visible = true;
+                    showToast5D("Plano 2D cargado en la mesa de trabajo 3D");
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function triggerImportJSON() { document.getElementById('input-import-json').click(); }
+
+        function importIRJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const json = JSON.parse(e.target.result);
+                    if (json.dimensions_3d) {
+                        state5D.width = json.dimensions_3d.width_m || state5D.width;
+                        state5D.height = json.dimensions_3d.height_m || state5D.height;
+                        state5D.depth = json.dimensions_3d.depth_m || state5D.depth;
+                        state5D.divisionsX = json.dimensions_3d.divisions_x || state5D.divisionsX;
+                        state5D.divisionsY = json.dimensions_3d.divisions_y || state5D.divisionsY;
+
+                        document.getElementById('input-width').value = state5D.width;
+                        document.getElementById('val-width').innerText = `${state5D.width.toFixed(1)} m`;
+                        document.getElementById('input-height').value = state5D.height;
+                        document.getElementById('val-height').innerText = `${state5D.height.toFixed(1)} m`;
+                        document.getElementById('input-depth').value = state5D.depth;
+                        document.getElementById('val-depth').innerText = `${state5D.depth.toFixed(1)} m`;
+                        document.getElementById('input-divisions-x').value = state5D.divisionsX;
+                        document.getElementById('val-divisions-x').innerText = state5D.divisionsX;
+                        document.getElementById('input-divisions-y').value = state5D.divisionsY;
+                        document.getElementById('val-divisions-y').innerText = state5D.divisionsY;
+                    }
+                    buildStructure5D();
+                    showToast5D("Archivo técnico IR importado correctamente");
+                } catch (err) {
+                    showToast5D("Error al leer el archivo JSON", true);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function setupUIEventListeners5D() {
+            const bind = (id, valId, unit, cb) => {
+                const el = document.getElementById(id), lbl = document.getElementById(valId);
+                if (!el || !lbl) return;
+                el.oninput = (e) => {
+                    const v = parseFloat(e.target.value);
+                    lbl.innerText = unit ? `${v} ${unit}` : v;
+                    cb(v);
+                };
+            };
+            bind('input-width', 'val-width', 'm', v => { state5D.width = v; buildStructure5D(); });
+            bind('input-height', 'val-height', 'm', v => { state5D.height = v; buildStructure5D(); });
+            bind('input-depth', 'val-depth', 'm', v => { state5D.depth = v; buildStructure5D(); });
+            bind('input-divisions-x', 'val-divisions-x', '', v => { state5D.divisionsX = v; buildStructure5D(); });
+            bind('input-divisions-y', 'val-divisions-y', '', v => { state5D.divisionsY = v; buildStructure5D(); });
+            bind('input-plan-opacity', 'val-plan-opacity', '', v => { state5D.planOpacity = v; planMaterial5D.opacity = v; });
+
+            const phaseInput = document.getElementById('input-phase');
+            if (phaseInput) {
+                phaseInput.oninput = (e) => {
+                    const p = parseInt(e.target.value);
+                    state5D.currentPhase = p;
+                    const names = { 1: "Paso 1 - Platinas y Anclajes", 2: "Paso 2 - Bastidor Aluminio", 3: "Paso 3 - Acristalamiento Completo" };
+                    document.getElementById('val-phase-num').innerText = names[p] || "";
+                    for (let i = 1; i <= 3; i++) {
+                        document.getElementById(`phase-card-${i}`)?.classList.toggle('active', i <= p);
+                    }
+                    buildStructure5D();
+                };
+            }
+
+            document.getElementById('btn-toggle-sidebar').onclick = () => {
+                document.getElementById('sidebar-panel-5d').classList.toggle('collapsed');
+            };
+            document.getElementById('btn-wireframe').onclick = () => {
+                state5D.showWireframe = !state5D.showWireframe;
+                buildStructure5D();
+            };
+            document.getElementById('btn-grid').onclick = () => {
+                state5D.showGrid = !state5D.showGrid;
+                gridHelper5D.visible = state5D.showGrid;
+            };
+            document.getElementById('btn-reset-cam').onclick = () => {
+                camera5D.position.set(8, 5.5, 9);
+                controls5D.target.set(0, state5D.height / 2, 0);
+                controls5D.update();
+            };
+        }
+
+        function switchTab5D(tabKey) {
+            document.querySelectorAll('#sidebar-panel-5d .tab-btn').forEach(btn => {
+                btn.classList.remove('text-cyan-400', 'bg-slate-800/80');
+                btn.classList.add('text-slate-400');
+            });
+            document.querySelectorAll('#sidebar-panel-5d .tab-content-5d').forEach(c => c.classList.add('hidden'));
+            document.getElementById(`tab-btn-${tabKey}`)?.classList.add('text-cyan-400', 'bg-slate-800/80');
+            document.getElementById(`tab-${tabKey}`)?.classList.remove('hidden');
+        }
+
+        function showToast5D(msg, isError = false) {
+            const toast = document.getElementById('toast-5d');
+            document.getElementById('toast-msg-5d').innerText = msg;
+            document.getElementById('toast-icon-5d').className = isError
+                ? "fa-solid fa-circle-exclamation text-rose-400 text-base"
+                : "fa-solid fa-circle-check text-cyan-400 text-base";
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3000);
+        }
+    </script>
+</body>
+</html>

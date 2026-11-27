@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="es" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Instalación y Domicilios - Cerrajería Maestra Pro (AluStruct 5D Engine)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            cobalt: '#0822A0',
+                            royal: '#2563EB',
+                            dark: '#0A192F',
+                            ice: '#F8FAFC',
+                            cyan: '#00F2FE', 
+                            emerald: '#10B981'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Three.js y OrbitControls desde CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(71, 85, 105, 1); }
+
+        .glass-panel {
+            background: rgba(11, 17, 32, 0.88);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #1e293b;
+            border-radius: 3px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -5px;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+            transition: all 0.2s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: #0ea5e9;
+        }
+
+        #sidebar-panel-5d {
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+        }
+        #sidebar-panel-5d.collapsed {
+            transform: translateX(calc(-100% - 24px));
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-royal selection:text-white transition-colors duration-300" onclick="closeFloatingInfoOnClickOutside(event)">
+
+    <!-- Modal Salir / Cambio de Apartado -->
+    <div id="loginModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-md hidden">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md p-8 shadow-2xl text-center space-y-6">
+            <div class="w-16 h-16 rounded-2xl bg-brand-emerald/10 border border-brand-emerald/20 mx-auto flex items-center justify-center text-brand-emerald text-2xl">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <div>
+                <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">Cambiar de Apartado</h2>
+                <p class="text-xs text-slate-500 mt-1">Seleccione el módulo o perfil al que desea ingresar</p>
+            </div>
+            <div class="space-y-3 text-left">
+                <div>
+                    <label class="block text-xs font-bold mb-1">Apartado / Perfil</label>
+                    <select id="userRoleSelect" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 rounded-xl text-xs font-semibold">
+                        <option value="instalador" selected>Instalador / Domiciliario (Obra y Evidencias)</option>
+                        <option value="admin">Administrador Maestro</option>
+                        <option value="caja">Cerrajero Operativo (Caja)</option>
+                        <option value="operario">Operario (Taller y Construcción)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold mb-1">Contraseña</label>
+                    <input type="password" value="123456" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 rounded-xl text-xs" placeholder="••••••••">
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="closeLoginModal()" class="w-1/3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold py-3 rounded-xl text-xs transition-colors">Cancelar</button>
+                <button onclick="redirectRole()" class="w-2/3 bg-brand-royal hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs transition-colors shadow-lg">Ir al Apartado</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TARJETA FLOTANTE DE INFORMACIÓN DE ENTREGA / INSTALACIÓN -->
+    <div id="floatingInfoCard" class="fixed z-50 hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-2xl w-80 max-w-sm text-xs space-y-3 backdrop-blur-md">
+        <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
+            <span id="floatingCardTag" class="px-2 py-0.5 bg-brand-emerald/10 text-brand-emerald font-bold rounded text-[10px]">Orden de Instalación</span>
+            <button onclick="closeFloatingInfo()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+        <h4 id="floatingCardTitle" class="font-bold text-sm text-slate-900 dark:text-slate-100">Detalles de Entrega</h4>
+        <div id="floatingCardBody" class="space-y-2 text-slate-600 dark:text-slate-300"></div>
+        <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2" id="floatingCardFooter"></div>
+    </div>
+
+    <!-- MODAL VISOR DE FOTOGRAFÍA EN PANTALLA COMPLETA -->
+    <div id="photoPreviewModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md hidden p-4" onclick="closePhotoModal()">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full p-4 space-y-3 shadow-2xl" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-2">
+                <h4 id="photoModalTitle" class="text-sm font-bold text-slate-900 dark:text-slate-100">Evidencia Fotográfica</h4>
+                <button onclick="closePhotoModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <img id="photoModalImg" src="" alt="Evidencia Ampliada" class="w-full max-h-[68vh] object-contain rounded-xl bg-slate-950">
+            <div class="flex justify-between items-center text-xs text-slate-500">
+                <span id="photoModalDesc">Observación</span>
+                <span id="photoModalTime" class="font-mono">Fecha</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Notificaciones / Formularios -->
+    <div id="appModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 dark:bg-black/70 backdrop-blur-sm hidden">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl transform transition-all">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modalTitle" class="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-brand-emerald"></i> Notificación
+                </h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div id="modalBody" class="text-xs text-slate-600 dark:text-slate-300 mb-6 space-y-3"></div>
+            <div class="flex justify-end gap-3" id="modalFooter">
+                <button onclick="closeModal()" class="px-4 py-2 bg-brand-royal hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm">Entendido</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL INTEGRADO: ALUSTRUST 5D ENGINE (GUÍA DE MONTAJE EN SITIO) -->
+    <div id="modal3D5D" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-[96vw] h-[94vh] shadow-2xl flex flex-col relative overflow-hidden text-slate-100">
+            
+            <div id="webgl-container-5d" class="absolute inset-0 z-10 w-full h-full"></div>
+
+            <header class="absolute top-4 left-4 z-20 pointer-events-auto flex items-center space-x-3">
+                <button id="btn-toggle-sidebar" title="Ocultar / Mostrar Panel" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-slate-300 hover:text-cyan-400 hover:border-cyan-500/40 transition">
+                    <i class="fa-solid fa-bars-staggered"></i>
+                </button>
+
+                <div class="glass-panel px-4 py-2.5 rounded-xl flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                        <i class="fa-solid fa-compass-drafting text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 id="engine-order-title" class="text-sm font-bold tracking-wide text-slate-100 uppercase">AluStruct 5D - Guía de Instalación</h1>
+                        <p class="text-xs text-slate-400">Referencia Visual de Anclaje y Posición en Obra</p>
+                    </div>
+                </div>
+            </header>
+
+            <div class="absolute top-4 right-4 z-20 pointer-events-auto flex space-x-2">
+                <button id="btn-wireframe" title="Modo Wireframe" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-slate-300 hover:text-cyan-400 hover:border-cyan-500/40 transition">
+                    <i class="fa-solid fa-vector-square"></i>
+                </button>
+                <button id="btn-grid" title="Alternar Rejilla de Suelo" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-slate-300 hover:text-cyan-400 hover:border-cyan-500/40 transition">
+                    <i class="fa-solid fa-border-all"></i>
+                </button>
+                <button id="btn-reset-cam" title="Restablecer Cámara" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-slate-300 hover:text-cyan-400 hover:border-cyan-500/40 transition">
+                    <i class="fa-solid fa-camera-rotate"></i>
+                </button>
+                <button onclick="closeModal3D()" title="Cerrar Guía 3D" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-rose-400 hover:bg-rose-500/20 transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <aside id="sidebar-panel-5d" class="absolute left-4 top-20 bottom-4 w-80 z-20 pointer-events-auto glass-panel rounded-2xl flex flex-col overflow-hidden">
+                <div class="p-4 border-b border-slate-700/50 bg-slate-900/50">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                        <i class="fa-solid fa-screwdriver-wrench"></i> Secuencia de Montaje en Sitio
+                    </h3>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-5 space-y-5 custom-scrollbar">
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-2">
+                            <span>Paso de Instalación:</span>
+                            <span id="val-phase-num" class="font-bold text-cyan-400">Paso 3 - Acabado Final</span>
+                        </div>
+                        <input type="range" id="input-phase" min="1" max="3" step="1" value="3" class="w-full">
+                    </div>
+
+                    <div class="space-y-3 text-xs">
+                        <div class="p-3 rounded-xl border border-slate-700 bg-slate-800/40">
+                            <span class="font-bold text-cyan-400">1. Fijación de Anclajes</span>
+                            <p class="text-[11px] text-slate-400 mt-1">Nivelar y fijar platinas base en el vano o superficie indicada por el cliente.</p>
+                        </div>
+                        <div class="p-3 rounded-xl border border-slate-700 bg-slate-800/40">
+                            <span class="font-bold text-cyan-400">2. Montaje de Estructura</span>
+                            <p class="text-[11px] text-slate-400 mt-1">Asegurar bastidor de aluminio y verificar plomada vertical.</p>
+                        </div>
+                        <div class="p-3 rounded-xl border border-slate-700 bg-slate-800/40">
+                            <span class="font-bold text-emerald-400">3. Vidrios y Sellado</span>
+                            <p class="text-[11px] text-slate-400 mt-1">Instalar paneles, sellar perímetro y tomar foto de evidencia.</p>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-700/50 space-y-2">
+                        <span class="text-xs font-bold text-slate-300">Cotas del Proyecto</span>
+                        <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700/60 text-xs space-y-1 font-mono">
+                            <div class="flex justify-between"><span class="text-slate-400">Ancho (X):</span><span id="val-width" class="text-cyan-400">4.5 m</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400">Alto (Y):</span><span id="val-height" class="text-cyan-400">3.6 m</span></div>
+                            <div class="flex justify-between"><span class="text-slate-400">Profundidad (Z):</span><span id="val-depth" class="text-cyan-400">3.0 m</span></div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Dashboard Principal del Instalador / Domiciliario -->
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- SIDEBAR -->
+        <aside id="sidebar" class="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 z-30 fixed lg:relative inset-y-0 left-0 -translate-x-full lg:translate-x-0 shadow-sm">
+            <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-brand-emerald/10 border border-brand-emerald/20 flex items-center justify-center text-brand-emerald shadow-inner p-1">
+                        <i class="fa-solid fa-truck-fast text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-sm text-slate-900 dark:text-slate-100 tracking-tight">Cerrajería Pro</h1>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Instalación & Domicilios</p>
+                    </div>
+                </div>
+                <button onclick="toggleMobileSidebar()" class="lg:hidden text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
+                <p class="px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Módulos de Obra y Ruta</p>
+                
+                <button onclick="switchTab('rutas')" id="btn-rutas" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all bg-brand-royal/10 dark:bg-brand-royal/20 text-brand-cobalt dark:text-brand-cyan border border-brand-royal/20 dark:border-brand-royal/30">
+                    <i class="fa-solid fa-map-location-dot w-5 text-center"></i> Hoja de Ruta y Obra
+                </button>
+
+                <button onclick="switchTab('carga')" id="btn-carga" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-toolbox w-5 text-center"></i> Carga y Herramientas
+                </button>
+
+                <button onclick="switchTab('evidencias')" id="btn-evidencias" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-camera-retro w-5 text-center"></i> Galería de Evidencias
+                </button>
+
+                <button onclick="switchTab('historial')" id="btn-historial" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-clock-rotate-left w-5 text-center"></i> Bitácora de Entregas
+                </button>
+
+                <div class="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 space-y-1">
+                    <p class="px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Conexiones Externas</p>
+                    <a href="Admin.html" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200">
+                        <i class="fa-solid fa-user-shield w-5 text-center text-brand-royal"></i> Panel Administrador
+                    </a>
+                    <a href="Operario.html" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200">
+                        <i class="fa-solid fa-hammer w-5 text-center text-amber-500"></i> Apartado Operario
+                    </a>
+                </div>
+            </nav>
+
+            <div class="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 space-y-3">
+                <button onclick="exportInstallationReport()" class="w-full bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-700 dark:text-slate-200 py-2 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-file-export text-brand-emerald"></i> Reporte de Entregas
+                </button>
+                <div class="flex items-center gap-3">
+                    <div id="userBadge" class="w-9 h-9 rounded-full bg-brand-emerald text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                        IN
+                    </div>
+                    <div class="overflow-hidden flex-1">
+                        <p id="userNameDisplay" class="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">Instalador / Domiciliario</p>
+                        <p id="userRoleDisplay" class="text-[10px] text-brand-emerald font-semibold">Ruta, Actas y Evidencias</p>
+                    </div>
+                    <button onclick="openLoginModal()" class="text-slate-400 hover:text-red-500 transition-colors" title="Salir / Cambiar Apartado">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CONTENIDO PRINCIPAL -->
+        <main class="flex-1 flex flex-col overflow-hidden bg-slate-100 dark:bg-slate-950">
+            <header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/50 backdrop-blur-md px-6 flex items-center justify-between shrink-0 shadow-sm">
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleMobileSidebar()" class="lg:hidden text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                        <i class="fa-solid fa-bars text-lg"></i>
+                    </button>
+                    <div>
+                        <h2 id="current-title" class="text-base font-bold text-slate-900 dark:text-slate-100">Hoja de Ruta e Instalaciones Asignadas</h2>
+                        <p id="current-subtitle" class="text-xs text-slate-500 dark:text-slate-400">Direcciones del cliente, saldo contra-entrega, acta de recepción y fotos de evidencia</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleDarkMode()" class="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-brand-cobalt dark:hover:text-brand-cyan transition-colors shadow-sm" title="Cambiar Tema">
+                        <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
+                    </button>
+
+                    <div class="relative hidden sm:block">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 dark:text-slate-500 text-xs"></i>
+                        <input type="text" id="global-search" oninput="filterCurrentTable()" placeholder="Buscar cliente, orden o dirección..." class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-200 pl-9 pr-4 py-2 rounded-xl focus:outline-none focus:border-brand-royal w-48 lg:w-64 transition-all">
+                    </div>
+
+                    <button onclick="openNewDeliveryModal()" class="bg-brand-emerald hover:opacity-90 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm transition-colors flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i> <span class="hidden md:inline">Nuevo Domicilio</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-6">
+
+                <!-- TARJETAS DE RESUMEN RÁPIDO DE INSTALACIÓN -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-medium text-slate-500">Servicios en Ruta</span>
+                            <h3 id="stat-total-deliveries" class="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">3</h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-brand-royal/10 text-brand-royal dark:text-brand-cyan flex items-center justify-center">
+                            <i class="fa-solid fa-route"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-medium text-slate-500">Saldos Contra-Entrega</span>
+                            <h3 id="stat-pending-balance" class="text-2xl font-bold text-amber-500 mt-1">$0</h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                            <i class="fa-solid fa-hand-holding-dollar"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-medium text-slate-500">Instalados / Entregados</span>
+                            <h3 id="stat-completed" class="text-2xl font-bold text-brand-emerald mt-1">1</h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-brand-emerald/10 text-brand-emerald flex items-center justify-center">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-medium text-slate-500">Fotos Evidencia</span>
+                            <h3 id="stat-total-photos" class="text-2xl font-bold text-brand-royal dark:text-brand-cyan mt-1">0</h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center">
+                            <i class="fa-solid fa-camera"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 1: HOJA DE RUTA E INSTALACIONES ASIGNADAS -->
+                <section id="tab-rutas" class="tab-content space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm gap-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Órdenes de Instalación en Lugar Indicado por el Cliente</h3>
+                            <p class="text-xs text-slate-500">Verifique saldo contra-entrega, cargue fotos de evidencia y registre el acta de recepción del cliente</p>
+                        </div>
+                        <select id="filter-delivery-select" onchange="renderInstallationsList(this.value)" class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-2 rounded-xl text-xs font-semibold">
+                            <option value="all">Todos los servicios</option>
+                            <option value="Listo para instalación">Listos para instalación</option>
+                            <option value="En camino">En camino al cliente</option>
+                            <option value="En instalación">En sitio / Instalando</option>
+                            <option value="Finalizado">Instalado y Finalizado</option>
+                        </select>
+                    </div>
+
+                    <div id="installations-container" class="space-y-4">
+                        <!-- Renderizado dinámico -->
+                    </div>
+                </section>
+
+                <!-- TAB 2: LISTA DE CARGA DE MATERIALES Y HERRAMIENTAS (SECCIÓN 5.1 BPMN) -->
+                <section id="tab-carga" class="tab-content hidden space-y-4">
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Checklist de Carga Antes de Salir del Taller (BPMN 5.1)</h3>
+                        <p class="text-xs text-slate-500">Confirme que lleva los materiales fabricados, herrajes de fijación y herramientas requeridas para cada visita</p>
+                    </div>
+                    <div id="loading-checklist-container" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <!-- Renderizado dinámico -->
+                    </div>
+                </section>
+
+                <!-- TAB 3: GALERÍA GENERAL DE EVIDENCIAS -->
+                <section id="tab-evidencias" class="tab-content hidden space-y-4">
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Respaldo Fotográfico de Instalaciones y Domicilios</h3>
+                        <p class="text-xs text-slate-500">Todas las fotografías enviadas como evidencia organizada por orden y cliente</p>
+                    </div>
+                    <div id="all-evidences-gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <!-- Renderizado dinámico -->
+                    </div>
+                </section>
+
+                <!-- TAB 4: BITÁCORA DE ENTREGAS -->
+                <section id="tab-historial" class="tab-content hidden space-y-4">
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Bitácora de Ruta, Actas y Recaudos</h3>
+                        <p class="text-xs text-slate-500">Registro en tiempo real de llegadas al sitio, cobros contra-entrega, fotos enviadas y actas firmadas</p>
+                    </div>
+                    <div id="delivery-log-container" class="space-y-3">
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm text-xs">
+                            <div>
+                                <span class="px-2 py-0.5 bg-brand-emerald/10 text-brand-emerald font-bold rounded">Instalador / Domiciliario</span>
+                                <p class="font-bold text-slate-900 dark:text-slate-100 mt-1">Inicio de jornada de instalaciones y entregas a domicilio.</p>
+                                <p class="text-[11px] text-slate-400">Hoy • Ruta Activa</p>
+                            </div>
+                            <span class="text-brand-emerald font-bold">En línea</span>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- SCRIPT CONTROLADOR DE INSTALADOR / DOMICILIARIO Y VISOR 3D -->
+    <script>
+        let deliveryOrders = [
+            {
+                id: 'COT-305',
+                ordenRuta: 1,
+                cliente: 'Constructora El Mirador',
+                telefono: '573148889900',
+                telefonoDisplay: '+57 314 888 9900',
+                producto: 'Puerta Principal Reforzada en Hierro Forjado + Cerradura Alta Seguridad',
+                direccion: 'Carrera 5 # 12-34, Edificio El Mirador, Jericó',
+                referenciaLugar: 'Portería principal, preguntar por Ing. Ricardo',
+                estadoTaller: '100% Terminado en Taller',
+                estadoInstalacion: 'Listo para instalación',
+                requiereEvidencia: true,
+                valorTotal: 1200000,
+                saldoPendiente: 600000,
+                saldoCobrado: false,
+                actaFirmada: false,
+                receptorNombre: '',
+                herramientasCarga: [
+                    { item: 'Puerta reforzada embalada + marco metálico', listo: true },
+                    { item: 'Rotomartillo, brocas 3/8" y chazos expansivos', listo: true },
+                    { item: 'Soldadora inversora portátil y electrodos 6013', listo: false },
+                    { item: 'Nivel láser y juego de llaves cerradura', listo: false }
+                ],
+                evidencias: [],
+                dims5D: { width: 2.5, height: 2.7, depth: 1.5 }
+            },
+            {
+                id: 'COT-302',
+                ordenRuta: 2,
+                cliente: 'Carlos Mendoza',
+                telefono: '573124567890',
+                telefonoDisplay: '+57 312 456 7890',
+                producto: 'Estructura de Aluminio y Vidrio DGU (Fachada Modular)',
+                direccion: 'Calle 10 # 15-42, Barrio Centro, Jericó',
+                referenciaLugar: 'Local comercial esquina frente al parque principal',
+                estadoTaller: '100% Listo en Taller',
+                estadoInstalacion: 'En camino',
+                requiereEvidencia: true,
+                valorTotal: 2016000,
+                saldoPendiente: 1008000,
+                saldoCobrado: false,
+                actaFirmada: false,
+                receptorNombre: '',
+                herramientasCarga: [
+                    { item: 'Módulos de aluminio anodizado + 6 paneles vidrio DGU', listo: true },
+                    { item: 'Ventosas dobles para manipulación de vidrio', listo: true },
+                    { item: 'Pistola calafateadora + silicona estructural negra', listo: true },
+                    { item: 'Andamio tubular y taladro percutor', listo: true }
+                ],
+                evidencias: [],
+                dims5D: { width: 4.5, height: 3.6, depth: 3.0 }
+            },
+            {
+                id: 'DOM-118',
+                ordenRuta: 3,
+                cliente: 'Marta Lucía Gómez',
+                telefono: '573102223344',
+                telefonoDisplay: '+57 310 222 3344',
+                producto: 'Apertura de Puerta Residencial e Instalación Cerradura Digital Biométrica',
+                direccion: 'Calle 7 # 4-19, Sector La Plaza, Jericó',
+                referenciaLugar: 'Casa esquinera portón blanco, segundo piso',
+                estadoTaller: 'Producto en Bodega Móvil',
+                estadoInstalacion: 'Finalizado',
+                requiereEvidencia: false,
+                valorTotal: 480000,
+                saldoPendiente: 0,
+                saldoCobrado: true,
+                actaFirmada: true,
+                receptorNombre: 'Marta Lucía Gómez (CC 43.512.890)',
+                herramientasCarga: [
+                    { item: 'Cerradura digital biométrica + baterías AA', listo: true },
+                    { item: 'Kit de instalación y plantilla de perforación', listo: true }
+                ],
+                evidencias: [],
+                dims5D: { width: 2.0, height: 2.4, depth: 1.5 }
+            }
+        ];
+
+        const pendingPhotosPreview = {};
+
+        const state5D = {
+            width: 4.5, height: 3.6, depth: 3.0,
+            divisionsX: 3, divisionsY: 2,
+            profileWidthMm: 80, profileDepthMm: 120,
+            aluColor: 0xd1d5db, aluMetalness: 0.85, aluRoughness: 0.25,
+            glassThicknessMm: 14, transmission: 0.92, roughness: 0.05, ior: 1.52,
+            glassColor: 0xffffff, currentPhase: 3,
+            showWireframe: false, showGrid: true
+        };
+
+        let scene5D, camera5D, renderer5D, controls5D, animationFrame5D;
+        let mainStructureGroup5D, glassMaterial5D, aluMaterial5D, anchorMaterial5D, wireframeMaterial5D, gridHelper5D;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const saved = localStorage.getItem('cerrajeria_instalador_orders_v2');
+            if (saved) {
+                try { deliveryOrders = JSON.parse(saved); } catch (e) { console.error(e); }
+            }
+            renderAllInstallerViews();
+        });
+
+        function persistDeliveries() {
+            try {
+                localStorage.setItem('cerrajeria_instalador_orders_v2', JSON.stringify(deliveryOrders));
+            } catch (e) {
+                console.warn('Almacenamiento local lleno por imágenes de alta resolución, manteniendo en sesión activa.');
+            }
+        }
+
+        function formatCOP(val) {
+            return '$' + Number(val || 0).toLocaleString('es-CO') + ' COP';
+        }
+
+        function renderAllInstallerViews() {
+            const filterVal = document.getElementById('filter-delivery-select')?.value || 'all';
+            renderInstallationsList(filterVal);
+            renderLoadingChecklist();
+            renderAllEvidencesGallery();
+            updateInstallerStats();
+        }
+
+        function updateInstallerStats() {
+            const total = deliveryOrders.length;
+            const pendingBalanceSum = deliveryOrders.reduce((acc, o) => acc + (!o.saldoCobrado ? Number(o.saldoPendiente || 0) : 0), 0);
+            const done = deliveryOrders.filter(o => o.estadoInstalacion === 'Finalizado').length;
+            const photos = deliveryOrders.reduce((acc, o) => acc + (o.evidencias ? o.evidencias.length : 0), 0);
+
+            document.getElementById('stat-total-deliveries').innerText = total;
+            document.getElementById('stat-pending-balance').innerText = formatCOP(pendingBalanceSum);
+            document.getElementById('stat-completed').innerText = done;
+            document.getElementById('stat-total-photos').innerText = photos;
+        }
+
+        function renderInstallationsList(filterStatus = 'all') {
+            const container = document.getElementById('installations-container');
+            if (!container) return;
+
+            const filtered = filterStatus === 'all'
+                ? deliveryOrders
+                : deliveryOrders.filter(o => o.estadoInstalacion === filterStatus);
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-2xl text-center text-xs text-slate-500">
+                        No hay servicios de instalación o domicilio en este filtro.
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(order => {
+                const isFinished = order.estadoInstalacion === 'Finalizado';
+                const statusBadge = isFinished
+                    ? 'bg-brand-emerald/10 text-brand-emerald border-brand-emerald/20'
+                    : (order.estadoInstalacion === 'En camino' || order.estadoInstalacion === 'En instalación'
+                        ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                        : 'bg-amber-500/10 text-amber-500 border-amber-500/20');
+
+                const hasPendingBalance = !order.saldoCobrado && order.saldoPendiente > 0;
+
+                const photosGrid = order.evidencias && order.evidencias.length > 0
+                    ? order.evidencias.map((ev, idx) => `
+                        <div class="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
+                            <img src="${ev.src}" alt="Evidencia ${idx + 1}" onclick="openPhotoModal('${order.id}', ${idx})" class="w-full h-28 object-cover cursor-pointer hover:opacity-90 transition-opacity">
+                            <button type="button" onclick="deletePhotoEvidence('${order.id}', ${idx})" class="absolute top-1.5 right-1.5 w-6 h-6 rounded-lg bg-red-600/90 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" title="Eliminar foto">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                            <div class="p-2 text-[10px]">
+                                <p class="font-bold text-slate-800 dark:text-slate-200 truncate">${ev.nota || 'Evidencia de instalación'}</p>
+                                <p class="text-slate-400 font-mono">${ev.fecha}</p>
+                            </div>
+                        </div>
+                    `).join('')
+                    : `<p class="text-[11px] text-slate-400 italic col-span-full">Aún no se han enviado fotos de evidencia para este servicio.</p>`;
+
+                return `
+                <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm space-y-4 transition-all hover:border-brand-emerald/50">
+                    <!-- Cabecera del Servicio -->
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+                        <div class="flex items-start gap-4 cursor-pointer" onclick="triggerDeliveryFloatingInfo('${order.id}', event)">
+                            <!-- Botón Guía 3D -->
+                            <div onclick="openModal3DForDelivery('${order.id}', event)" class="w-20 h-20 rounded-xl bg-slate-950 border border-slate-700 flex flex-col items-center justify-center shrink-0 relative group overflow-hidden shadow-inner cursor-pointer" title="Ver Guía Visual 3D de Instalación">
+                                <i class="fa-solid fa-cube text-2xl text-emerald-400 group-hover:scale-110 transition-transform"></i>
+                                <span class="text-[8px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Guía 3D</span>
+                            </div>
+
+                            <div class="space-y-1">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="px-2 py-0.5 bg-slate-900 dark:bg-slate-800 text-white text-[10px] font-bold rounded">Parada #${order.ordenRuta}</span>
+                                    <span class="px-2.5 py-0.5 bg-brand-emerald/10 text-brand-emerald text-xs font-extrabold rounded-lg font-mono">#${order.id}</span>
+                                    <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100">${order.producto}</h4>
+                                    ${order.requiereEvidencia ? `<span class="px-2 py-0.5 bg-rose-500/10 text-rose-500 text-[10px] font-bold rounded"><i class="fa-solid fa-camera mr-1"></i>Evidencia Solicitada</span>` : ''}
+                                </div>
+                                <p class="text-xs text-slate-700 dark:text-slate-200 font-semibold flex items-center gap-1.5">
+                                    <i class="fa-solid fa-location-dot text-rose-500"></i>
+                                    <span>Lugar indicado: ${order.direccion}</span>
+                                </p>
+                                <p class="text-[11px] text-slate-500">
+                                    <strong>Cliente:</strong> ${order.cliente} (${order.telefonoDisplay}) • <strong>Ref:</strong> ${order.referenciaLugar}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Selector de Estado, Mapa y WhatsApp Directo (RNF12) -->
+                        <div class="flex flex-wrap items-center gap-2 self-end md:self-center">
+                            <select onchange="changeDeliveryStatus('${order.id}', this.value)" class="text-xs font-bold px-3 py-2 rounded-xl border ${statusBadge} bg-slate-50 dark:bg-slate-950 focus:outline-none">
+                                <option value="Listo para instalación" ${order.estadoInstalacion === 'Listo para instalación' ? 'selected' : ''}>Listo para instalación</option>
+                                <option value="En camino" ${order.estadoInstalacion === 'En camino' ? 'selected' : ''}>En camino al lugar</option>
+                                <option value="En instalación" ${order.estadoInstalacion === 'En instalación' ? 'selected' : ''}>En sitio / Instalando</option>
+                                <option value="Finalizado" ${order.estadoInstalacion === 'Finalizado' ? 'selected' : ''}>Instalado y Finalizado</option>
+                            </select>
+                            <a href="https://wa.me/${order.telefono}?text=${encodeURIComponent('Hola ' + order.cliente + ', le saludamos de Industrias Acevedo. Vamos en camino para la instalación de su orden #' + order.id)}" target="_blank" class="p-2.5 bg-brand-emerald/10 hover:bg-brand-emerald/20 text-brand-emerald rounded-xl text-xs" title="Contactar por WhatsApp">
+                                <i class="fa-brands fa-whatsapp text-sm"></i>
+                            </a>
+                            <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.direccion)}" target="_blank" class="p-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-brand-royal dark:text-brand-cyan rounded-xl text-xs" title="Abrir Dirección en Google Maps">
+                                <i class="fa-solid fa-map-pin"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- BLOQUE FINANCIERO CONTRA-ENTREGA Y ACTA DE RECEPCIÓN (DAS SECCIÓN 5.1 & 8.1) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        <!-- Saldo Contra-Entrega 50% -->
+                        <div class="p-3.5 rounded-xl border ${hasPendingBalance ? 'border-amber-500/40 bg-amber-500/5' : 'border-brand-emerald/30 bg-brand-emerald/5'} flex items-center justify-between gap-3">
+                            <div>
+                                <span class="text-[10px] font-bold uppercase tracking-wider ${hasPendingBalance ? 'text-amber-600 dark:text-amber-400' : 'text-brand-emerald'}">
+                                    ${hasPendingBalance ? 'Saldo Contra-Entrega Pendiente (50%)' : 'Pago 100% Confirmado'}
+                                </span>
+                                <p class="text-base font-extrabold font-mono text-slate-900 dark:text-slate-100 mt-0.5">
+                                    ${hasPendingBalance ? formatCOP(order.saldoPendiente) : '$0 COP (Paz y Salvo)'}
+                                </p>
+                            </div>
+                            ${hasPendingBalance ? `
+                                <button type="button" onclick="confirmBalanceCollection('${order.id}')" class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl font-bold text-xs shadow-sm transition-colors shrink-0">
+                                    <i class="fa-solid fa-money-bill-wave mr-1"></i> Registrar Cobro
+                                </button>
+                            ` : `
+                                <span class="px-2.5 py-1 bg-brand-emerald/20 text-brand-emerald rounded-lg font-bold text-[11px]">
+                                    <i class="fa-solid fa-check-double mr-1"></i> Recaudado
+                                </span>
+                            `}
+                        </div>
+
+                        <!-- Acta de Recepción / Conformidad del Cliente -->
+                        <div class="p-3.5 rounded-xl border ${order.actaFirmada ? 'border-brand-emerald/30 bg-brand-emerald/5' : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60'} flex flex-col justify-center gap-2">
+                            ${order.actaFirmada ? `
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <span class="text-[10px] font-bold uppercase tracking-wider text-brand-emerald">Acta de Recepción Firmada</span>
+                                        <p class="font-bold text-slate-800 dark:text-slate-200 mt-0.5"><i class="fa-solid fa-signature text-brand-emerald mr-1"></i> Recibido por: ${order.receptorNombre}</p>
+                                    </div>
+                                    <span class="px-2.5 py-1 bg-brand-emerald/20 text-brand-emerald rounded-lg font-bold text-[11px]">Validada</span>
+                                </div>
+                            ` : `
+                                <div class="flex gap-2 items-center">
+                                    <input type="text" id="receptor-input-${order.id}" placeholder="Nombre y Cédula quien recibe..." class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-xl text-xs">
+                                    <button type="button" onclick="signReceptionAct('${order.id}')" class="px-3 py-2 bg-brand-royal hover:bg-blue-700 text-white rounded-xl font-bold text-xs shrink-0 transition-colors">
+                                        <i class="fa-solid fa-file-signature mr-1"></i> Firmar Acta
+                                    </button>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+
+                    <!-- Panel de Carga / Toma de Fotografía de Evidencia -->
+                    <div class="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 p-4 rounded-xl space-y-4 text-xs">
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
+                            <div class="lg:col-span-4">
+                                <input type="file" id="photo-file-${order.id}" accept="image/*" class="hidden" onchange="onPhotoSelected('${order.id}', this)">
+                                <button type="button" onclick="triggerPhotoPicker('${order.id}')" class="w-full py-3 px-4 border-2 border-dashed border-brand-emerald/60 hover:border-brand-emerald bg-brand-emerald/5 hover:bg-brand-emerald/10 text-brand-emerald rounded-xl font-bold flex items-center justify-center gap-2 transition-all cursor-pointer">
+                                    <i class="fa-solid fa-camera text-base"></i>
+                                    <span id="btn-photo-label-${order.id}">Subir o Tomar Foto</span>
+                                </button>
+                            </div>
+
+                            <div class="lg:col-span-5">
+                                <input type="text" id="photo-note-${order.id}" placeholder="Escriba observación (Ej. Instalación terminada en sitio)..." class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-xl text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand-emerald">
+                            </div>
+
+                            <div class="lg:col-span-3">
+                                <button type="button" onclick="sendPhotoEvidence('${order.id}')" class="w-full py-3 px-4 bg-brand-emerald hover:opacity-90 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer">
+                                    <i class="fa-solid fa-paper-plane"></i> Mandar Evidencia
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Previsualización inmediata de la foto seleccionada antes de enviar -->
+                        <div id="preview-box-${order.id}" class="hidden bg-white dark:bg-slate-900 border border-brand-emerald/40 p-3 rounded-xl flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <img id="preview-img-${order.id}" src="" alt="Vista previa" class="w-16 h-16 object-cover rounded-lg border border-slate-200 dark:border-slate-700">
+                                <div>
+                                    <span class="px-2 py-0.5 bg-brand-emerald/10 text-brand-emerald font-bold rounded text-[10px]">Foto lista para enviar</span>
+                                    <p id="preview-name-${order.id}" class="font-bold text-slate-800 dark:text-slate-200 mt-1 truncate max-w-[220px]">imagen.jpg</p>
+                                    <p class="text-[10px] text-slate-400">Presione "Mandar Evidencia" para guardar</p>
+                                </div>
+                            </div>
+                            <button type="button" onclick="clearPendingPhoto('${order.id}')" class="p-2 text-slate-400 hover:text-red-500 rounded-lg" title="Quitar selección">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+
+                        <!-- Miniaturas de Evidencias ya Enviadas en esta Orden -->
+                        <div class="pt-2 border-t border-slate-200/70 dark:border-slate-800">
+                            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                                Evidencias Fotográficas Enviadas (${order.evidencias ? order.evidencias.length : 0})
+                            </p>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                ${photosGrid}
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function confirmBalanceCollection(orderId) {
+            const order = deliveryOrders.find(o => o.id === orderId);
+            if (!order) return;
+
+            const monto = formatCOP(order.saldoPendiente);
+            order.saldoCobrado = true;
+            persistDeliveries();
+            renderAllInstallerViews();
+            addDeliveryLog(`Recaudo contra-entrega registrado en #${order.id} (${order.cliente}): ${monto} cobrado en sitio.`);
+            showToast(`Cobro de ${monto} registrado correctamente para la orden #${order.id}.`);
+        }
+
+        function signReceptionAct(orderId) {
+            const order = deliveryOrders.find(o => o.id === orderId);
+            if (!order) return;
+
+            const input = document.getElementById(`receptor-input-${orderId}`);
+            const receptor = input ? input.value.trim() : '';
+            if (!receptor) {
+                showToast('Ingrese el nombre y documento de la persona que recibe en el lugar de instalación.');
+                return;
+            }
+
+            order.actaFirmada = true;
+            order.receptorNombre = receptor;
+            persistDeliveries();
+            renderAllInstallerViews();
+            addDeliveryLog(`Acta de recepción firmada en #${order.id} por: ${receptor}.`);
+            showToast(`Acta de recepción registrada a nombre de ${receptor}.`);
+        }
+
+        function changeDeliveryStatus(orderId, newStatus) {
+            const order = deliveryOrders.find(o => o.id === orderId);
+            if (!order) return;
+
+            // Validación antes de finalizar si falta saldo o acta
+            if (newStatus === 'Finalizado') {
+                if (!order.saldoCobrado && order.saldoPendiente > 0) {
+                    showToast(`Atención: Aún figura un saldo contra-entrega de ${formatCOP(order.saldoPendiente)} pendiente por registrar en #${order.id}.`);
+                    renderAllInstallerViews();
+                    return;
+                }
+                if (!order.actaFirmada) {
+                    showToast(`Atención: Registre primero el nombre de quien firma el Acta de Recepción en #${order.id} antes de finalizar.`);
+                    renderAllInstallerViews();
+                    return;
+                }
+            }
+
+            order.estadoInstalacion = newStatus;
+            persistDeliveries();
+            renderAllInstallerViews();
+            addDeliveryLog(`Estado de servicio #${order.id} (${order.cliente}) actualizado a: ${newStatus}`);
+            showToast(`Estado actualizado a "${newStatus}".`);
+        }
+
+        /* =========================================================
+           CHECKLIST DE CARGA DE MATERIALES Y HERRAMIENTAS (BPMN 5.1)
+           ========================================================= */
+        function renderLoadingChecklist() {
+            const container = document.getElementById('loading-checklist-container');
+            if (!container) return;
+
+            container.innerHTML = deliveryOrders.map(order => {
+                const items = order.herramientasCarga || [];
+                const readyCount = items.filter(i => i.listo).length;
+                const allReady = items.length > 0 && readyCount === items.length;
+
+                return `
+                <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+                        <div>
+                            <span class="px-2 py-0.5 bg-brand-emerald/10 text-brand-emerald font-mono font-bold rounded text-xs">#${order.id}</span>
+                            <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">${order.cliente}</h4>
+                            <p class="text-[11px] text-slate-500">${order.direccion}</p>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-lg text-xs font-bold ${allReady ? 'bg-brand-emerald/10 text-brand-emerald' : 'bg-amber-500/10 text-amber-500'}">
+                            ${readyCount}/${items.length} Cargados
+                        </span>
+                    </div>
+                    <div class="space-y-2 text-xs">
+                        ${items.map((entry, idx) => `
+                            <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 cursor-pointer">
+                                <span class="font-semibold ${entry.listo ? 'line-through text-slate-400' : 'text-slate-700 dark:text-slate-200'}">${entry.item}</span>
+                                <input type="checkbox" ${entry.listo ? 'checked' : ''} onchange="toggleLoadItem('${order.id}', ${idx}, this.checked)" class="w-4 h-4 accent-brand-emerald">
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function toggleLoadItem(orderId, itemIdx, isChecked) {
+            const order = deliveryOrders.find(o => o.id === orderId);
+            if (!order || !order.herramientasCarga[itemIdx]) return;
+            order.herramientasCarga[itemIdx].listo = isChecked;
+            persistDeliveries();
+            renderLoadingChecklist();
+        }
+
+        function triggerPhotoPicker(orderId) {
+            const input = document.getElementById(`photo-file-${orderId}`);
+            if (input) input.click();
+        }
+
+        function onPhotoSelected(orderId, inputEl) {
+            if (!inputEl.files || inputEl.files.length === 0) return;
+            const file = inputEl.files[0];
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                pendingPhotosPreview[orderId] = {
+                    src: e.target.result,
+                    name: file.name
+                };
+
+                const previewBox = document.getElementById(`preview-box-${orderId}`);
+                const previewImg = document.getElementById(`preview-img-${orderId}`);
+                const previewName = document.getElementById(`preview-name-${orderId}`);
+                const btnLabel = document.getElementById(`btn-photo-label-${orderId}`);
+
+                if (previewImg) previewImg.src = e.target.result;
+                if (previewName) previewName.innerText = file.name;
+                if (previewBox) previewBox.classList.remove('hidden');
+                if (btnLabel) btnLabel.innerText = 'Cambiar Foto';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearPendingPhoto(orderId) {
+            delete pendingPhotosPreview[orderId];
+            const input = document.getElementById(`photo-file-${orderId}`);
+            const previewBox = document.getElementById(`preview-box-${orderId}`);
+            const btnLabel = document.getElementById(`btn-photo-label-${orderId}`);
+            if (input) input.value = '';
+            if (previewBox) previewBox.classList.add('hidden');
+            if (btnLabel) btnLabel.innerText = 'Subir o Tomar Foto';
+        }
+
+        function sendPhotoEvidence(orderId) {
+            const order = deliveryOrders.find(o => o.id === orderId);
+            if (!order) return;
+
+            const pending = pendingPhotosPreview[orderId];
+            if (!pending || !pending.src) {
+                showToast('Primero haz clic en el botón verde "Subir o Tomar Foto" para elegir una imagen.');
+                return;
+            }
+
+            const noteInput = document.getElementById(`photo-note-${orderId}`);
+            const now = new Date();
+            const fechaStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+            const notaTexto = noteInput && noteInput.value.trim() ? noteInput.value.trim() : 'Evidencia de instalación en lugar indicado por cliente';
+
+            if (!order.evidencias) order.evidencias = [];
+            order.evidencias.push({
+                src: pending.src,
+                nota: notaTexto,
+                fecha: fechaStr
+            });
+
+            delete pendingPhotosPreview[orderId];
+            persistDeliveries();
+            renderAllInstallerViews();
+            addDeliveryLog(`Evidencia fotográfica enviada para #${order.id} (${order.cliente}) en ${order.direccion}. Nota: "${notaTexto}"`);
+            showToast(`Evidencia fotográfica enviada y registrada correctamente para #${order.id}.`);
+        }
+
+        function deletePhotoEvidence(orderId, photoIndex) {
+            const order = deliveryOrders.find(o => o.id === orderId);
+            if (!order || !order.evidencias) return;
+            if (confirm('¿Desea eliminar esta fotografía de evidencia?')) {
+                order.evidencias.splice(photoIndex, 1);
+                persistDeliveries();
+                renderAllInstallerViews();
+                addDeliveryLog(`Evidencia fotográfica eliminada de la orden #${order.id}.`);
+            }
+        }
+
+        function renderAllEvidencesGallery() {
+            const gallery = document.getElementById('all-evidences-gallery');
+            if (!gallery) return;
+
+            let cards = '';
+            deliveryOrders.forEach(order => {
+                if (order.evidencias && order.evidencias.length > 0) {
+                    order.evidencias.forEach((ev, idx) => {
+                        cards += `
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+                            <img src="${ev.src}" alt="Evidencia" onclick="openPhotoModal('${order.id}', ${idx})" class="w-full h-44 object-cover cursor-pointer hover:opacity-90 transition-opacity">
+                            <div class="p-3.5 space-y-1 text-xs">
+                                <div class="flex justify-between items-center">
+                                    <span class="px-2 py-0.5 bg-brand-emerald/10 text-brand-emerald font-bold rounded font-mono text-[10px]">#${order.id}</span>
+                                    <span class="text-[10px] text-slate-400 font-mono">${ev.fecha}</span>
+                                </div>
+                                <h4 class="font-bold text-slate-900 dark:text-slate-100 truncate">${order.cliente}</h4>
+                                <p class="text-[11px] text-slate-500 truncate">${order.direccion}</p>
+                                <p class="text-[11px] text-slate-600 dark:text-slate-300 pt-1 italic">"${ev.nota}"</p>
+                            </div>
+                        </div>`;
+                    });
+                }
+            });
+
+            gallery.innerHTML = cards || `
+                <div class="col-span-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-2xl text-center text-xs text-slate-500">
+                    No hay fotografías de evidencia cargadas todavía. Dirígete a "Hoja de Ruta y Obra" y pulsa "Subir o Tomar Foto".
+                </div>`;
+        }
+
+        function openPhotoModal(orderId, photoIdx) {
+            const order = deliveryOrders.find(o => o.id === orderId);
+            if (!order || !order.evidencias[photoIdx]) return;
+            const ev = order.evidencias[photoIdx];
+
+            document.getElementById('photoModalTitle').innerText = `Evidencia #${order.id} - ${order.cliente}`;
+            document.getElementById('photoModalImg').src = ev.src;
+            document.getElementById('photoModalDesc').innerText = ev.nota;
+            document.getElementById('photoModalTime').innerText = ev.fecha;
+            document.getElementById('photoPreviewModal').classList.remove('hidden');
+        }
+
+        function closePhotoModal() {
+            document.getElementById('photoPreviewModal').classList.add('hidden');
+        }
+
+        function triggerDeliveryFloatingInfo(orderId, event) {
+            if (event) event.stopPropagation();
+            const order = deliveryOrders.find(o => o.id === orderId);
+            if (!order) return;
+
+            const card = document.getElementById('floatingInfoCard');
+            document.getElementById('floatingCardTag').innerText = `Servicio #${order.id}`;
+            document.getElementById('floatingCardTitle').innerText = order.cliente;
+            document.getElementById('floatingCardBody').innerHTML = `
+                <div class="space-y-1.5">
+                    <p><strong>Producto:</strong> ${order.producto}</p>
+                    <p><strong>Dirección:</strong> ${order.direccion}</p>
+                    <p><strong>Referencia:</strong> ${order.referenciaLugar}</p>
+                    <p><strong>Teléfono:</strong> ${order.telefonoDisplay}</p>
+                    <p><strong>Saldo Pendiente:</strong> ${order.saldoCobrado ? '$0 COP (Pagado)' : formatCOP(order.saldoPendiente)}</p>
+                    <p><strong>Estado Instalación:</strong> <span class="font-bold text-brand-emerald">${order.estadoInstalacion}</span></p>
+                </div>`;
+            document.getElementById('floatingCardFooter').innerHTML = `
+                <button onclick="closeFloatingInfo()" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-semibold">Cerrar</button>
+                <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.direccion)}" target="_blank" class="px-3 py-1.5 bg-brand-emerald text-white rounded-lg text-xs font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-location-dot text-[10px]"></i> Ver Mapa
+                </a>`;
+
+            card.style.top = '120px';
+            card.style.left = '50%';
+            card.style.transform = 'translateX(-50%)';
+            card.classList.remove('hidden');
+        }
+
+        function closeFloatingInfo() {
+            document.getElementById('floatingInfoCard').classList.add('hidden');
+        }
+
+        function closeFloatingInfoOnClickOutside(e) {
+            const card = document.getElementById('floatingInfoCard');
+            if (!card.classList.contains('hidden') && !card.contains(e.target) && !e.target.closest('.searchable-item')) {
+                closeFloatingInfo();
+            }
+        }
+
+        function openNewDeliveryModal() {
+            document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-truck-fast text-brand-emerald"></i> Registrar Servicio / Domicilio`;
+            document.getElementById('modalBody').innerHTML = `
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <label class="block font-bold mb-1">Código de Orden</label>
+                        <input type="text" id="new-del-id" placeholder="Ej. DOM-120" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">Cliente y Teléfono</label>
+                        <input type="text" id="new-del-cli" placeholder="Ej. Jorge Pérez • 311 555 6677" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">Dirección Exacta Indicada por el Cliente</label>
+                        <input type="text" id="new-del-dir" placeholder="Ej. Calle 8 # 11-25, Barrio La Unión" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">Producto o Servicio a Instalar</label>
+                        <input type="text" id="new-del-prod" placeholder="Ej. Instalación de ventana en aluminio y vidrio" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">Saldo Contra-Entrega Pendiente (COP)</label>
+                        <input type="number" id="new-del-saldo" value="0" min="0" placeholder="Ej. 350000" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl font-mono">
+                    </div>
+                    <label class="flex items-center gap-2 pt-1 font-semibold cursor-pointer">
+                        <input type="checkbox" id="new-del-req" checked class="accent-brand-emerald w-4 h-4"> Requiere foto de evidencia obligatoria
+                    </label>
+                </div>`;
+            document.getElementById('modalFooter').innerHTML = `
+                <button onclick="closeModal()" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold">Cancelar</button>
+                <button onclick="createManualDelivery()" class="px-4 py-2 bg-brand-emerald text-white rounded-xl text-xs font-bold">Agregar a Ruta</button>`;
+            document.getElementById('appModal').classList.remove('hidden');
+        }
+
+        function createManualDelivery() {
+            const id = (document.getElementById('new-del-id').value.trim() || 'DOM-' + Math.floor(120 + Math.random() * 80)).toUpperCase();
+            const cliRaw = document.getElementById('new-del-cli').value.trim() || 'Cliente Domicilio';
+            const dir = document.getElementById('new-del-dir').value.trim() || 'Dirección indicada por el cliente';
+            const prod = document.getElementById('new-del-prod').value.trim() || 'Servicio de instalación en sitio';
+            const saldo = parseFloat(document.getElementById('new-del-saldo').value) || 0;
+            const req = document.getElementById('new-del-req').checked;
+
+            deliveryOrders.unshift({
+                id,
+                ordenRuta: deliveryOrders.length + 1,
+                cliente: cliRaw,
+                telefono: '573000000000',
+                telefonoDisplay: 'Contacto directo',
+                producto: prod,
+                direccion: dir,
+                referenciaLugar: 'Confirmar llegada con el cliente',
+                estadoTaller: 'Listo para despacho',
+                estadoInstalacion: 'Listo para instalación',
+                requiereEvidencia: req,
+                valorTotal: saldo * 2,
+                saldoPendiente: saldo,
+                saldoCobrado: saldo === 0,
+                actaFirmada: false,
+                receptorNombre: '',
+                herramientasCarga: [
+                    { item: prod + ' (Verificado en taller)', listo: false },
+                    { item: 'Caja de herramientas y fijaciones', listo: false }
+                ],
+                evidencias: [],
+                dims5D: { width: 3.0, height: 2.4, depth: 1.5 }
+            });
+
+            persistDeliveries();
+            renderAllInstallerViews();
+            addDeliveryLog(`Nuevo domicilio #${id} agregado para ${cliRaw} en ${dir}.`);
+            closeModal();
+            showToast(`Servicio #${id} agregado correctamente a la hoja de ruta.`);
+        }
+
+        function filterCurrentTable() {
+            const query = document.getElementById('global-search').value.toLowerCase();
+            const activeTab = document.querySelector('.tab-content:not(.hidden)');
+            if (!activeTab) return;
+            activeTab.querySelectorAll('.searchable-item').forEach(item => {
+                item.classList.toggle('hidden', !item.innerText.toLowerCase().includes(query));
+            });
+        }
+
+        function addDeliveryLog(text) {
+            const container = document.getElementById('delivery-log-container');
+            if (!container) return;
+            const now = new Date();
+            const timeStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+            const div = document.createElement('div');
+            div.className = "searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm text-xs";
+            div.innerHTML = `
+                <div>
+                    <span class="px-2 py-0.5 bg-brand-emerald/10 text-brand-emerald font-bold rounded">Instalador / Domiciliario</span>
+                    <p class="font-bold text-slate-900 dark:text-slate-100 mt-1">${text}</p>
+                    <p class="text-[11px] text-slate-400">Fecha: ${timeStr}</p>
+                </div>
+                <span class="text-brand-emerald font-bold">Registrado</span>
+            `;
+            container.insertBefore(div, container.firstChild);
+        }
+
+        function exportInstallationReport() {
+            let csv = "\uFEFFOrden,Cliente,Direccion,Producto,EstadoInstalacion,SaldoPendiente,ActaFirmada,FotosEvidencia\n";
+            deliveryOrders.forEach(o => {
+                const count = o.evidencias ? o.evidencias.length : 0;
+                const saldoStr = o.saldoCobrado ? 'Cobrado ($0)' : `$${o.saldoPendiente}`;
+                const actaStr = o.actaFirmada ? `Sí (${o.receptorNombre})` : 'Pendiente';
+                csv += `"${o.id}","${o.cliente}","${o.direccion}","${o.producto}","${o.estadoInstalacion}","${saldoStr}","${actaStr}","${count} foto(s)"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Reporte_Instalaciones_Domicilios_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showToast('Reporte de instalaciones, actas y evidencias descargado.');
+        }
+
+        function switchTab(tabId) {
+            closeFloatingInfo();
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-brand-royal/10', 'dark:bg-brand-royal/20', 'text-brand-cobalt', 'dark:text-brand-cyan', 'border', 'border-brand-royal/20', 'dark:border-brand-royal/30');
+                btn.classList.add('text-slate-600', 'dark:text-slate-400', 'hover:bg-slate-100', 'dark:hover:bg-slate-800/60');
+            });
+
+            document.getElementById('tab-' + tabId).classList.remove('hidden');
+            const activeBtn = document.getElementById('btn-' + tabId);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-brand-royal/10', 'dark:bg-brand-royal/20', 'text-brand-cobalt', 'dark:text-brand-cyan', 'border', 'border-brand-royal/20', 'dark:border-brand-royal/30');
+            }
+
+            const titles = {
+                'rutas': ['Hoja de Ruta e Instalaciones Asignadas', 'Direcciones del cliente, saldo contra-entrega, acta de recepción y fotos de evidencia'],
+                'carga': ['Carga de Materiales y Herramientas', 'Verificación previa en taller antes de salir a instalación en campo'],
+                'evidencias': ['Galería de Evidencias Fotográficas', 'Respaldo visual de trabajos entregados e instalados en sitio'],
+                'historial': ['Bitácora de Entregas', 'Historial de llegadas, recaudos, fotos enviadas y servicios finalizados']
+            };
+            document.getElementById('current-title').innerText = titles[tabId][0];
+            document.getElementById('current-subtitle').innerText = titles[tabId][1];
+        }
+
+        function openLoginModal() { document.getElementById('loginModal').classList.remove('hidden'); }
+        function closeLoginModal() { document.getElementById('loginModal').classList.add('hidden'); }
+
+        function redirectRole() {
+            const val = document.getElementById('userRoleSelect').value;
+            if (val === 'admin' || val === 'caja') {
+                window.location.href = 'Admin.html';
+            } else if (val === 'operario') {
+                window.location.href = 'Operario.html';
+            } else {
+                closeLoginModal();
+            }
+        }
+
+        function toggleMobileSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); }
+
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const themeIcon = document.getElementById('theme-icon');
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                html.classList.add('light');
+                themeIcon.className = 'fa-solid fa-moon text-sm';
+            } else {
+                html.classList.remove('light');
+                html.classList.add('dark');
+                themeIcon.className = 'fa-solid fa-sun text-sm';
+            }
+        }
+
+        function showToast(message) {
+            document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-circle-info text-brand-emerald"></i> Instalación Cerrajería Pro`;
+            document.getElementById('modalBody').innerHTML = `<p class="text-xs text-slate-600 dark:text-slate-300">${message}</p>`;
+            document.getElementById('modalFooter').innerHTML = `<button onclick="closeModal()" class="px-4 py-2 bg-brand-royal text-white rounded-xl text-xs font-bold">Entendido</button>`;
+            document.getElementById('appModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('appModal').classList.add('hidden');
+        }
+
+        /* =========================================================
+           MOTOR ALUSTRUST 5D ENGINE (GUÍA VISUAL DE MONTAJE)
+           ========================================================= */
+        function openModal3DForDelivery(orderId, event) {
+            if (event) event.stopPropagation();
+            const order = deliveryOrders.find(o => o.id === orderId);
+            if (order && order.dims5D) {
+                state5D.width = order.dims5D.width;
+                state5D.height = order.dims5D.height;
+                state5D.depth = order.dims5D.depth;
+                document.getElementById('val-width').innerText = `${state5D.width.toFixed(1)} m`;
+                document.getElementById('val-height').innerText = `${state5D.height.toFixed(1)} m`;
+                document.getElementById('val-depth').innerText = `${state5D.depth.toFixed(1)} m`;
+                document.getElementById('engine-order-title').innerText = `AluStruct 5D - Instalación #${order.id}`;
+            }
+            document.getElementById('modal3D5D').classList.remove('hidden');
+            setTimeout(() => { initEngine5D(); }, 100);
+        }
+
+        function closeModal3D() {
+            document.getElementById('modal3D5D').classList.add('hidden');
+            if (animationFrame5D) cancelAnimationFrame(animationFrame5D);
+            if (renderer5D) {
+                renderer5D.dispose();
+                renderer5D = null;
+            }
+        }
+
+        function initEngine5D() {
+            const container = document.getElementById('webgl-container-5d');
+            if (!container) return;
+            if (renderer5D) {
+                cancelAnimationFrame(animationFrame5D);
+                renderer5D.dispose();
+                container.innerHTML = '';
+            }
+
+            scene5D = new THREE.Scene();
+            scene5D.background = new THREE.Color(0x070a12);
+            scene5D.fog = new THREE.FogExp2(0x070a12, 0.022);
+
+            camera5D = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 100);
+            camera5D.position.set(8, 5.5, 9);
+
+            renderer5D = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer5D.setSize(container.clientWidth, container.clientHeight);
+            renderer5D.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer5D.domElement);
+
+            controls5D = new THREE.OrbitControls(camera5D, renderer5D.domElement);
+            controls5D.enableDamping = true;
+            controls5D.dampingFactor = 0.05;
+            controls5D.maxPolarAngle = Math.PI / 2 - 0.01;
+            controls5D.target.set(0, 1.8, 0);
+
+            scene5D.add(new THREE.AmbientLight(0xffffff, 0.8));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.4);
+            dirLight.position.set(14, 20, 12);
+            scene5D.add(dirLight);
+
+            gridHelper5D = new THREE.GridHelper(30, 30, 0x10b981, 0x1e293b);
+            scene5D.add(gridHelper5D);
+
+            glassMaterial5D = new THREE.MeshPhysicalMaterial({
+                color: state5D.glassColor, roughness: 0.05, transmission: 0.9,
+                transparent: true, opacity: 1.0, side: THREE.DoubleSide, depthWrite: false
+            });
+            aluMaterial5D = new THREE.MeshStandardMaterial({ color: state5D.aluColor, metalness: 0.85, roughness: 0.25 });
+            anchorMaterial5D = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.9, roughness: 0.3 });
+            wireframeMaterial5D = new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true });
+
+            mainStructureGroup5D = new THREE.Group();
+            scene5D.add(mainStructureGroup5D);
+
+            buildStructure5D();
+            setupUIEventListeners5D();
+
+            function animate() {
+                animationFrame5D = requestAnimationFrame(animate);
+                controls5D.update();
+                renderer5D.render(scene5D, camera5D);
+            }
+            animate();
+        }
+
+        function buildStructure5D() {
+            while (mainStructureGroup5D.children.length > 0) {
+                const obj = mainStructureGroup5D.children[0];
+                if (obj.geometry) obj.geometry.dispose();
+                mainStructureGroup5D.remove(obj);
+            }
+
+            const W = state5D.width, H = state5D.height, D = state5D.depth;
+            const profW = state5D.profileWidthMm / 1000.0, profD = state5D.profileDepthMm / 1000.0;
+            const glassThickM = state5D.glassThicknessMm / 1000.0;
+            const divsX = state5D.divisionsX, divsY = state5D.divisionsY;
+            const halfW = W / 2, halfD = D / 2;
+
+            if (state5D.currentPhase >= 1) {
+                const plateSize = profD * 2.0;
+                const plateGeo = new THREE.BoxGeometry(plateSize, 0.03, plateSize);
+                const stepX = W / divsX;
+                for (let i = 0; i <= divsX; i++) {
+                    const posX = -halfW + i * stepX;
+                    [halfD, -halfD].forEach(z => {
+                        const anchor = new THREE.Mesh(plateGeo, anchorMaterial5D);
+                        anchor.position.set(posX, 0.015, z);
+                        mainStructureGroup5D.add(anchor);
+                    });
+                }
+            }
+
+            if (state5D.currentPhase >= 2) {
+                const aluMatToUse = state5D.showWireframe ? wireframeMaterial5D : aluMaterial5D;
+                const stepX = W / divsX, stepY = H / divsY;
+                const mullionGeo = new THREE.BoxGeometry(profW, H, profD);
+                for (let i = 0; i <= divsX; i++) {
+                    const posX = -halfW + i * stepX;
+                    [halfD, -halfD].forEach(z => {
+                        const m = new THREE.Mesh(mullionGeo, aluMatToUse);
+                        m.position.set(posX, H / 2, z);
+                        mainStructureGroup5D.add(m);
+                    });
+                }
+                const transomGeo = new THREE.BoxGeometry(stepX - profW, profW, profD);
+                for (let i = 0; i < divsX; i++) {
+                    const posX = -halfW + (i + 0.5) * stepX;
+                    for (let j = 0; j <= divsY; j++) {
+                        const posY = j * stepY + (j === 0 ? profW / 2 : (j === divsY ? -profW / 2 : 0));
+                        [halfD, -halfD].forEach(z => {
+                            const t = new THREE.Mesh(transomGeo, aluMatToUse);
+                            t.position.set(posX, posY, z);
+                            mainStructureGroup5D.add(t);
+                        });
+                    }
+                }
+                const beamZGeo = new THREE.BoxGeometry(profW, profW, D - profD);
+                for (let i = 0; i <= divsX; i++) {
+                    const posX = -halfW + i * stepX;
+                    [H, profW / 2].forEach(y => {
+                        const b = new THREE.Mesh(beamZGeo, aluMatToUse);
+                        b.position.set(posX, y, 0);
+                        mainStructureGroup5D.add(b);
+                    });
+                }
+            }
+
+            if (state5D.currentPhase >= 3) {
+                const glassMatToUse = state5D.showWireframe ? wireframeMaterial5D : glassMaterial5D;
+                const stepX = W / divsX, stepY = H / divsY;
+                const glassPanelW = stepX - profW, glassPanelH = stepY - profW;
+                const glassPanelGeo = new THREE.BoxGeometry(glassPanelW, glassPanelH, glassThickM);
+                for (let i = 0; i < divsX; i++) {
+                    const posX = -halfW + (i + 0.5) * stepX;
+                    for (let j = 0; j < divsY; j++) {
+                        const posY = (j + 0.5) * stepY;
+                        [halfD, -halfD].forEach(z => {
+                            const g = new THREE.Mesh(glassPanelGeo, glassMatToUse);
+                            g.position.set(posX, posY, z);
+                            mainStructureGroup5D.add(g);
+                        });
+                    }
+                }
+                const glassSideGeo = new THREE.BoxGeometry(glassThickM, H - profW, D - profD);
+                [-halfW, halfW].forEach(x => {
+                    const gs = new THREE.Mesh(glassSideGeo, glassMatToUse);
+                    gs.position.set(x, H / 2, 0);
+                    mainStructureGroup5D.add(gs);
+                });
+                const roofGlassGeo = new THREE.BoxGeometry(glassPanelW, glassThickM, D - profD);
+                for (let i = 0; i < divsX; i++) {
+                    const gr = new THREE.Mesh(roofGlassGeo, glassMatToUse);
+                    gr.position.set(-halfW + (i + 0.5) * stepX, H + profW / 2, 0);
+                    mainStructureGroup5D.add(gr);
+                }
+            }
+
+            controls5D.target.set(0, H / 2, 0);
+        }
+
+        function setupUIEventListeners5D() {
+            const phaseInput = document.getElementById('input-phase');
+            if (phaseInput) {
+                phaseInput.oninput = (e) => {
+                    const p = parseInt(e.target.value);
+                    state5D.currentPhase = p;
+                    const names = { 1: "Paso 1 - Anclajes Base", 2: "Paso 2 - Bastidor", 3: "Paso 3 - Acabado Final" };
+                    document.getElementById('val-phase-num').innerText = names[p] || "";
+                    buildStructure5D();
+                };
+            }
+            document.getElementById('btn-toggle-sidebar').onclick = () => {
+                document.getElementById('sidebar-panel-5d').classList.toggle('collapsed');
+            };
+            document.getElementById('btn-wireframe').onclick = () => {
+                state5D.showWireframe = !state5D.showWireframe;
+                buildStructure5D();
+            };
+            document.getElementById('btn-grid').onclick = () => {
+                state5D.showGrid = !state5D.showGrid;
+                gridHelper5D.visible = state5D.showGrid;
+            };
+            document.getElementById('btn-reset-cam').onclick = () => {
+                camera5D.position.set(8, 5.5, 9);
+                controls5D.target.set(0, state5D.height / 2, 0);
+                controls5D.update();
+            };
+        }
+    </script>
+</body>
+</html>

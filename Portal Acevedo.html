@@ -198,13 +198,144 @@
       animation-play-state: paused;
     }
 
+    /* CARRUSEL CONTINUO HACIA LA IZQUIERDA PARA OPINIONES DE CLIENTES */
+    @keyframes testimonialsMarqueeLeft {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    .testimonials-marquee-track {
+      display: flex;
+      width: max-content;
+      animation: testimonialsMarqueeLeft 32s linear infinite;
+      will-change: transform;
+    }
+
+    .testimonials-marquee-track:hover {
+      animation-play-state: paused;
+    }
+
     /* EFECTO DE TRANSICIÓN PARA EL ZOOM DE PANTALLA COMPLETA */
     #productZoomOverlay {
       transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
+
+    /* MODO DÍA PARA LA PASARELA DE PAGOS (POR DEFECTO, RESPETANDO PALETA CORPORATIVA) */
+    #paymentGatewayModal.pg-day-mode .pg-card {
+      background-color: #F8FAFC !important;
+      color: #0A192F !important;
+      border-color: #cbd5e1 !important;
+    }
+    #paymentGatewayModal.pg-day-mode .pg-divider {
+      border-color: #e2e8f0 !important;
+    }
+    #paymentGatewayModal.pg-day-mode .pg-surface {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #0A192F !important;
+    }
+    #paymentGatewayModal.pg-day-mode .pg-title {
+      color: #0822A0 !important;
+    }
+    #paymentGatewayModal.pg-day-mode .pg-subtitle {
+      color: #2563EB !important;
+    }
+    #paymentGatewayModal.pg-day-mode .pg-label {
+      color: #334155 !important;
+    }
+    #paymentGatewayModal.pg-day-mode .pg-muted {
+      color: #475569 !important;
+    }
+    #paymentGatewayModal.pg-day-mode .pg-value {
+      color: #0A192F !important;
+    }
+    #paymentGatewayModal.pg-day-mode .pg-input {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #0A192F !important;
+    }
+    #paymentGatewayModal.pg-day-mode .pg-input:focus {
+      border-color: #0822A0 !important;
+    }
+    #paymentGatewayModal.pg-day-mode .pg-notice {
+      background-color: #fffbeb !important;
+      border-color: #f59e0b !important;
+      color: #92400e !important;
+    }
+    #paymentGatewayModal.pg-day-mode .pg-notice-title {
+      color: #b45309 !important;
+    }
+    #paymentGatewayModal.pg-day-mode .pg-btn-inactive {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #334155 !important;
+    }
+    #paymentGatewayModal.pg-day-mode .pg-btn-active-blue {
+      background-color: #eff6ff !important;
+      border-color: #0822A0 !important;
+      color: #0822A0 !important;
+    }
+    #paymentGatewayModal.pg-day-mode .pg-btn-active-emerald {
+      background-color: #ecfdf5 !important;
+      border-color: #10B981 !important;
+      color: #065f46 !important;
+    }
+    #paymentGatewayModal.pg-day-mode .pg-confirm-box {
+      background-color: #ecfdf5 !important;
+      border-color: #10B981 !important;
+      color: #065f46 !important;
+    }
+    #paymentGatewayModal.pg-day-mode .pg-back-btn {
+      background-color: #e2e8f0 !important;
+      color: #0A192F !important;
+      border-color: #cbd5e1 !important;
+    }
   </style>
 </head>
 <body class="bg-[#F8FAFC] font-sans text-slate-800 antialiased relative selection:bg-brand-royal selection:text-white">
+
+  <!-- TOAST DE BIENVENIDA / NOTIFICACIONES -->
+  <div id="welcomeToast" class="fixed top-24 right-6 z-[90] hidden max-w-sm bg-slate-900 text-white border border-brand-cyan/50 rounded-2xl p-4 shadow-2xl flex items-start gap-3 transition-all duration-300">
+    <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+      <i class="fa-solid fa-circle-check text-lg"></i>
+    </div>
+    <div class="flex-1">
+      <div id="welcomeToastTitle" class="text-xs font-black text-brand-cyan uppercase tracking-wider">¡Inicio de Sesión Correcto!</div>
+      <p id="welcomeToastMsg" class="text-xs text-slate-200 mt-0.5 leading-snug"></p>
+    </div>
+    <button onclick="hideWelcomeToast()" class="text-slate-400 hover:text-white cursor-pointer">
+      <i class="fa-solid fa-xmark text-sm"></i>
+    </button>
+  </div>
+
+  <!-- MODAL PROFESIONAL DE ACCIÓN / CONFIRMACIÓN DE PEDIDO (REEMPLAZA ALERT/CONFIRM NATIVOS) -->
+  <div id="orderActionModal" class="fixed inset-0 z-[85] hidden flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-950/85 backdrop-blur-md" onclick="closeOrderActionModal()"></div>
+    <div class="relative bg-slate-900 border border-blue-500/40 rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl z-10 text-white space-y-5">
+      <div class="flex items-start gap-3.5 pb-3 border-b border-slate-800">
+        <div id="orderActionIconBox" class="w-11 h-11 rounded-2xl bg-blue-600/20 text-brand-cyan border border-blue-400/30 flex items-center justify-center shrink-0">
+          <i id="orderActionIcon" class="fa-solid fa-circle-info text-lg"></i>
+        </div>
+        <div class="flex-1">
+          <span id="orderActionBadge" class="text-[10px] font-extrabold text-brand-cyan uppercase tracking-widest block mb-0.5">Gestión de Orden</span>
+          <h3 id="orderActionTitle" class="text-lg font-extrabold text-white leading-tight">Confirmación</h3>
+        </div>
+        <button onclick="closeOrderActionModal()" class="text-slate-400 hover:text-white cursor-pointer p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <p id="orderActionMessage" class="text-slate-200 leading-relaxed"></p>
+        <div id="orderActionWarningBox" class="hidden bg-red-950/60 border border-red-500/40 rounded-2xl p-3.5 text-red-200 leading-relaxed flex items-start gap-2.5">
+          <i class="fa-solid fa-triangle-exclamation text-red-400 text-sm mt-0.5 shrink-0"></i>
+          <span id="orderActionWarningText"></span>
+        </div>
+      </div>
+
+      <div id="orderActionButtons" class="flex items-center justify-end gap-3 pt-2 border-t border-slate-800"></div>
+    </div>
+  </div>
 
   <!-- OVERLAY DE DESVANECIDO A BLANCO -->
   <div id="fade-overlay"></div>
@@ -285,31 +416,54 @@
             </button>
             <div class="absolute left-0 top-full pt-2 w-48 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
               <div class="bg-white rounded-xl shadow-xl border border-slate-100 p-2 flex flex-col space-y-1">
-                <a href="javascript:void(0)" onclick="scrollToCategory(0)" class="px-3 py-2 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-[#0822A0] rounded-lg transition-colors flex items-center gap-2">
-                  <i class="fa-solid fa-cubes text-brand-cyan"></i> Hierro
-                </a>
-                <a href="javascript:void(0)" onclick="scrollToCategory(1)" class="px-3 py-2 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-[#0822A0] rounded-lg transition-colors flex items-center gap-2">
-                  <i class="fa-solid fa-vector-square text-brand-royal"></i> Aluminio
-                </a>
-                <a href="javascript:void(0)" onclick="scrollToCategory(2)" class="px-3 py-2 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-[#0822A0] rounded-lg transition-colors flex items-center gap-2">
-                  <i class="fa-regular fa-square text-emerald-500"></i> Vidrio
-                </a>
+                <a href="javascript:void(0)" onclick="scrollToCategory(0)" class="px-3 py-2 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-[#0822A0] rounded-lg transition-colors flex items-center gap-2">Hierro</a>
+                <a href="javascript:void(0)" onclick="scrollToCategory(1)" class="px-3 py-2 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-[#0822A0] rounded-lg transition-colors flex items-center gap-2">Aluminio</a>
+                <a href="javascript:void(0)" onclick="scrollToCategory(2)" class="px-3 py-2 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-[#0822A0] rounded-lg transition-colors flex items-center gap-2">Vidrio</a>
               </div>
             </div>
           </div>
 
           <a href="javascript:void(0)" onclick="scrollToCotizador()" class="px-3 py-2 rounded-lg hover:text-[#0822A0] hover:bg-slate-100 transition-colors">Cotizador Express</a>
-          <a href="#pedidos" class="px-3 py-2 rounded-lg hover:text-[#0822A0] hover:bg-slate-100 transition-colors">Mis Pedidos</a>
+          
+          <div class="relative group">
+            <button class="px-3 py-2 rounded-lg hover:text-[#0822A0] hover:bg-slate-100 transition-colors flex items-center gap-1 cursor-pointer">
+              <span>Mis Pedidos</span>
+              <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 group-hover:text-[#0822A0] transition-transform group-hover:rotate-180"></i>
+            </button>
+            <div class="absolute left-0 top-full pt-2 w-56 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+              <div class="bg-white rounded-xl shadow-xl border border-slate-100 p-2 flex flex-col space-y-1">
+                <a href="#pedidos" onclick="activarRastreoPedido()" class="px-3 py-2 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-[#0822A0] rounded-lg transition-colors flex items-center gap-2">Rastrear pedido</a>
+                <button onclick="openPurchaseHistory()" class="w-full text-left px-3 py-2 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-[#0822A0] rounded-lg transition-colors flex items-center justify-between cursor-pointer">
+                  <span>Historial de Compras</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
           <a href="#sobre-nosotros" class="px-3 py-2 rounded-lg hover:text-[#0822A0] hover:bg-slate-100 transition-colors">Sobre Nosotros</a>
         </nav>
 
         <div class="flex items-center gap-2 sm:gap-3">
-          <div class="hidden sm:flex items-center gap-2">
+          <!-- ÁREA DE USUARIO Y LOGIN -->
+          <div class="hidden sm:flex items-center gap-2" id="headerAuthButtons">
             <button onclick="openAuthModal('login')" class="px-3.5 py-2 text-xs font-extrabold text-[#0822A0] hover:bg-blue-50 rounded-xl transition-colors cursor-pointer">
               Iniciar Sesión
             </button>
             <button onclick="openAuthModal('register')" class="px-4 py-2 bg-[#0822A0] hover:bg-blue-700 text-white text-xs font-extrabold rounded-xl shadow-md transition-all cursor-pointer">
               Registro
+            </button>
+          </div>
+
+          <!-- INDICADOR DE USUARIO LOGEADO (CLIC PARA EDITAR PERFIL) -->
+          <div id="userLoggedInBadge" class="hidden flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-1.5">
+            <button type="button" onclick="openProfileModal()" title="Editar mi perfil" class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+              <div id="headerAvatarContainer" class="w-7 h-7 rounded-full bg-[#0822A0] text-white flex items-center justify-center text-[10px] font-bold overflow-hidden border border-blue-300">
+                <i class="fa-solid fa-user"></i>
+              </div>
+              <span id="loggedInUserName" class="text-xs font-bold text-[#0822A0] underline decoration-dotted">usuario</span>
+            </button>
+            <button onclick="logoutUser()" title="Cerrar Sesión" class="text-slate-400 hover:text-red-500 ml-1 cursor-pointer">
+              <i class="fa-solid fa-right-from-bracket text-xs"></i>
             </button>
           </div>
 
@@ -384,7 +538,7 @@
 
         <div id="hero-content-layer" class="z-20 flex flex-col items-center justify-center text-center max-w-5xl mx-auto space-y-8 select-none pointer-events-auto transition-all duration-300">
           <h1 class="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white leading-none">
-            <span id="title-left" class="split-left inline-block">Estructuras Metálicas &nbsp;</span>
+            <span id="title-left" class="split-left inline-block">Estructuras Metálicas  </span>
             <span id="title-right" class="split-right inline-block">& Vidriería</span>
           </h1>
 
@@ -595,14 +749,14 @@
       <div class="text-center max-w-2xl mx-auto mb-8">
         <span class="text-xs font-extrabold text-[#0822A0] uppercase tracking-widest block mb-1">Telemetría y Rastreo de Taller</span>
         <h2 class="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Estado e Historial de Mis Pedidos</h2>
-        <p class="text-slate-500 text-xs sm:text-sm mt-2">Consulte en tiempo real el progreso de fabricación, ensamble y logística de despacho de sus estructuras metálicas.</p>
+        <p class="text-slate-500 text-xs sm:text-sm mt-2">Consulte en tiempo real el progreso de fabricación, ensamble y logística de despacho (ej: <strong>ORD-2026-88</strong> o <strong>ORD-2026-90</strong> en envío).</p>
       </div>
 
       <div class="max-w-xl mx-auto mb-8 flex gap-2 p-1.5 bg-white border border-slate-200 rounded-2xl shadow-sm focus-within:ring-2 focus-within:ring-brand-royal transition-all">
         <div class="flex items-center pl-4 text-slate-400">
           <i class="fa-solid fa-barcode text-lg"></i>
         </div>
-        <input type="text" id="orderInput" value="ORD-2026-88" placeholder="Ingrese N° de Orden (ej. ORD-2026-88)" class="flex-1 bg-transparent px-2 py-3 text-sm font-extrabold text-slate-800 uppercase focus:outline-none">
+        <input type="text" id="orderInput" value="ORD-2026-88" placeholder="Ingrese N° de Orden (ej. ORD-2026-88 o ORD-2026-90)" class="flex-1 bg-transparent px-2 py-3 text-sm font-extrabold text-slate-800 uppercase focus:outline-none">
         <button onclick="buscarOrden()" class="px-6 py-3 bg-[#0822A0] hover:bg-blue-700 text-white text-xs font-extrabold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer">
           <i class="fa-solid fa-magnifying-glass"></i> Consultar
         </button>
@@ -617,65 +771,35 @@
             </div>
             <h3 class="text-xl sm:text-2xl font-black tracking-wide" id="orderTitle">ORD-2026-88 — Portón Finca Campestre</h3>
             <p class="text-xs text-slate-300 flex items-center gap-2" id="orderSpec">
-              <i class="fa-solid fa-layer-group text-brand-cyan"></i> Hierro Heavy + Madera de Teca &nbsp;|&nbsp; 7.20 m² (2.4m x 3.0m)
+              <i class="fa-solid fa-layer-group text-brand-cyan"></i> Hierro Heavy + Madera de Teca  |  7.20 m² (2.4m x 3.0m)
+            </p>
+            <p class="text-xs text-blue-200 flex items-center gap-2 pt-1" id="orderAddressDisplay">
+              <i class="fa-solid fa-location-dot text-brand-cyan"></i> Entrega: Carrera 5 # 6-40, Jericó, Antioquia
             </p>
           </div>
 
-          <div class="flex flex-col items-start md:items-end gap-1 border-t md:border-t-0 border-slate-700/80 pt-4 md:pt-0">
+          <div class="flex flex-col items-start md:items-end gap-2 border-t md:border-t-0 border-slate-700/80 pt-4 md:pt-0">
             <span class="text-[10px] font-extrabold text-slate-300 uppercase tracking-widest">Etapa Actual</span>
             <span class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-xs font-black" id="orderBadge">
               <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
               <span id="orderStageName">Fase 3: En Fabricación CNC</span>
             </span>
+
+            <div id="cancelOrderContainer" class="pt-1 flex flex-wrap items-center gap-2">
+              <button type="button" id="btnEditOrder" onclick="openEditOrderModal()" class="px-4 py-2 bg-blue-500/20 hover:bg-blue-600 text-blue-200 hover:text-white border border-blue-400/40 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5">
+                <i class="fa-solid fa-pen-to-square"></i> Editar pedido
+              </button>
+              <button type="button" id="btnCancelOrder" onclick="cancelarPedidoActual()" class="px-4 py-2 bg-red-600/20 hover:bg-red-600 text-red-200 hover:text-white border border-red-400/40 rounded-xl text-xs font-extrabold transition-all cursor-pointer">
+                Cancelar pedido
+              </button>
+            </div>
           </div>
         </div>
 
+        <div id="orderCancelAlertBox" class="hidden mx-6 sm:mx-10 mt-6 rounded-2xl p-4 text-xs font-bold border"></div>
+
         <div class="p-6 sm:p-10 border-b border-slate-100 bg-slate-50/50">
-          <div class="grid grid-cols-1 sm:grid-cols-4 gap-6 relative">
-            <div class="flex sm:flex-col items-center sm:text-center gap-4 sm:gap-2 relative z-10">
-              <div class="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-emerald-500/20 shrink-0">
-                <i class="fa-solid fa-check"></i>
-              </div>
-              <div class="sm:pt-1">
-                <h4 class="text-xs font-extrabold text-slate-900">1. Solicitud</h4>
-                <p class="text-[11px] text-slate-500">Recibido en Sistema</p>
-                <span class="text-[10px] font-bold text-emerald-600 block mt-0.5">Completado (18 Sep)</span>
-              </div>
-            </div>
-
-            <div class="flex sm:flex-col items-center sm:text-center gap-4 sm:gap-2 relative z-10">
-              <div class="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-emerald-500/20 shrink-0">
-                <i class="fa-solid fa-check"></i>
-              </div>
-              <div class="sm:pt-1">
-                <h4 class="text-xs font-extrabold text-slate-900">2. Cotización</h4>
-                <p class="text-[11px] text-slate-500">Abono 50% Confirmado</p>
-                <span class="text-[10px] font-bold text-emerald-600 block mt-0.5">Completado (19 Sep)</span>
-              </div>
-            </div>
-
-            <div class="flex sm:flex-col items-center sm:text-center gap-4 sm:gap-2 relative z-10">
-              <div class="w-12 h-12 rounded-2xl bg-[#0822A0] text-white flex items-center justify-center font-bold text-lg shadow-lg shadow-blue-900/30 ring-4 ring-blue-100 shrink-0 animate-bounce">
-                <i class="fa-solid fa-gears"></i>
-              </div>
-              <div class="sm:pt-1">
-                <h4 class="text-xs font-extrabold text-[#0822A0]">3. Fabricación</h4>
-                <p class="text-[11px] font-bold text-blue-900">Corte y Ensamble CNC</p>
-                <span class="text-[10px] font-extrabold text-blue-600 block mt-0.5">En Proceso (Hoy)</span>
-              </div>
-            </div>
-
-            <div class="flex sm:flex-col items-center sm:text-center gap-4 sm:gap-2 relative z-10 opacity-50">
-              <div class="w-12 h-12 rounded-2xl bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-lg shrink-0">
-                <i class="fa-solid fa-truck-ramp-box"></i>
-              </div>
-              <div class="sm:pt-1">
-                <h4 class="text-xs font-extrabold text-slate-700">4. Despacho</h4>
-                <p class="text-[11px] text-slate-500">Entrega en Sitio</p>
-                <span class="text-[10px] font-bold text-slate-400 block mt-0.5">Estimado: 24 Sep</span>
-              </div>
-            </div>
-          </div>
+          <div id="orderTimelineGrid" class="grid grid-cols-1 sm:grid-cols-4 gap-6 relative"></div>
         </div>
 
         <div class="p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -688,10 +812,10 @@
                 <div class="absolute -left-[31px] top-1 w-3.5 h-3.5 rounded-full bg-[#0822A0] ring-4 ring-white"></div>
                 <div class="bg-blue-50/60 border border-blue-100 rounded-2xl p-4">
                   <div class="flex items-center justify-between text-xs mb-1">
-                    <span class="font-black text-[#0822A0]">Corte Plasma CNC y Preparación de Perfiles</span>
-                    <span class="text-[10px] text-slate-400 font-semibold">21 Sep - 10:30 AM</span>
+                    <span id="orderLogTitle" class="font-black text-[#0822A0]">Corte Plasma CNC y Preparación de Perfiles</span>
+                    <span id="orderLogDate" class="text-[10px] text-slate-400 font-semibold">21 Sep - 10:30 AM</span>
                   </div>
-                  <p class="text-xs text-slate-600">Se han cortado los perfiles estructurales de hierro calibre 14. Inicio del proceso de ensamble de marco y bisagras reforzadas.</p>
+                  <p id="orderLogDesc" class="text-xs text-slate-600">Se han cortado los perfiles estructurales de hierro calibre 14. Inicio del proceso de ensamble de marco y bisagras reforzadas.</p>
                 </div>
               </div>
             </div>
@@ -709,12 +833,12 @@
                   <span class="font-extrabold text-white">$ 2.016.000 COP</span>
                 </div>
                 <div class="flex justify-between text-emerald-400">
-                  <span>Anticipo Pagado (50%):</span>
-                  <span class="font-extrabold">$ 1.008.000 COP</span>
+                  <span id="orderPaidLabel">Anticipo Pagado (50%):</span>
+                  <span id="orderPaidAmount" class="font-extrabold">$ 1.008.000 COP</span>
                 </div>
                 <div class="flex justify-between text-amber-300 pt-2 border-t border-slate-800 font-bold">
                   <span>Saldo Contra-Entrega:</span>
-                  <span class="text-sm font-black">$ 1.008.000 COP</span>
+                  <span id="orderBalanceAmount" class="text-sm font-black">$ 1.008.000 COP</span>
                 </div>
               </div>
             </div>
@@ -770,6 +894,196 @@
                 <div class="text-xs font-extrabold text-white mb-1">Planta de Procesamiento Regional</div>
                 <p class="text-[11px] text-slate-300">Jericó, Antioquia — Envíos e Instalaciones en toda la subregión del Suroeste.</p>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LISTA ANIMADA DE OPINIONES DE CLIENTES -->
+        <div id="opiniones-clientes" class="mt-16 pt-12 border-t border-blue-400/20">
+          <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-7">
+            <div>
+              <span class="text-xs font-extrabold text-brand-cyan tracking-[0.25em] uppercase block mb-1">
+                <i class="fa-solid fa-star text-amber-400 mr-1"></i> Reseñas Verificadas
+              </span>
+              <h3 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                Lo Que Dicen Nuestros Clientes
+              </h3>
+            </div>
+            <span class="text-xs text-blue-200 flex items-center gap-1.5">
+              <i class="fa-solid fa-arrows-left-right text-brand-cyan"></i> Pasa el cursor para pausar
+            </span>
+          </div>
+
+          <div class="w-full overflow-hidden py-2 relative">
+            <div id="clientReviewsTrack" class="testimonials-marquee-track flex gap-5">
+              <article class="w-[310px] sm:w-[360px] shrink-0 bg-blue-950/75 border border-blue-400/30 rounded-2xl p-5 backdrop-blur-md shadow-xl flex flex-col justify-between space-y-4">
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1 text-amber-400 text-xs">
+                      <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                    </div>
+                    <span class="text-[10px] font-bold text-brand-cyan bg-blue-900/60 px-2.5 py-0.5 rounded-full border border-blue-400/20">Portón en Hierro</span>
+                  </div>
+                  <p class="text-xs sm:text-sm text-blue-50 leading-relaxed italic">
+                    "El portón de nuestra finca en Jericó quedó impecable. Soldadura limpia, acabado excelente y pudimos revisar cada etapa del taller."
+                  </p>
+                </div>
+                <div class="pt-3 border-t border-blue-800/70 flex items-center justify-between">
+                  <div>
+                    <div class="text-xs font-extrabold text-white">Camilo Restrepo</div>
+                    <div class="text-[11px] text-blue-300">Finca La Pradera, Jericó</div>
+                  </div>
+                  <i class="fa-solid fa-quote-right text-blue-400/40 text-xl"></i>
+                </div>
+              </article>
+
+              <article class="w-[310px] sm:w-[360px] shrink-0 bg-blue-950/75 border border-blue-400/30 rounded-2xl p-5 backdrop-blur-md shadow-xl flex flex-col justify-between space-y-4">
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1 text-amber-400 text-xs">
+                      <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                    </div>
+                    <span class="text-[10px] font-bold text-brand-cyan bg-blue-900/60 px-2.5 py-0.5 rounded-full border border-blue-400/20">Aluminio Serie 7000</span>
+                  </div>
+                  <p class="text-xs sm:text-sm text-blue-50 leading-relaxed italic">
+                    "Instalamos ventanería en aluminio para toda la casa. Aislamiento real del ruido y entrega puntual en el Suroeste antioqueño."
+                  </p>
+                </div>
+                <div class="pt-3 border-t border-blue-800/70 flex items-center justify-between">
+                  <div>
+                    <div class="text-xs font-extrabold text-white">Marcela Uribe</div>
+                    <div class="text-[11px] text-blue-300">Támesis, Antioquia</div>
+                  </div>
+                  <i class="fa-solid fa-quote-right text-blue-400/40 text-xl"></i>
+                </div>
+              </article>
+
+              <article class="w-[310px] sm:w-[360px] shrink-0 bg-blue-950/75 border border-blue-400/30 rounded-2xl p-5 backdrop-blur-md shadow-xl flex flex-col justify-between space-y-4">
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1 text-amber-400 text-xs">
+                      <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                    </div>
+                    <span class="text-[10px] font-bold text-brand-cyan bg-blue-900/60 px-2.5 py-0.5 rounded-full border border-blue-400/20">Vidrio Templado</span>
+                  </div>
+                  <p class="text-xs sm:text-sm text-blue-50 leading-relaxed italic">
+                    "Las cabinas de baño y divisiones en vidrio templado transformaron nuestro proyecto. Herrajes firmes y acabados de primera."
+                  </p>
+                </div>
+                <div class="pt-3 border-t border-blue-800/70 flex items-center justify-between">
+                  <div>
+                    <div class="text-xs font-extrabold text-white">Andrés Felipe Montoya</div>
+                    <div class="text-[11px] text-blue-300">Andes, Antioquia</div>
+                  </div>
+                  <i class="fa-solid fa-quote-right text-blue-400/40 text-xl"></i>
+                </div>
+              </article>
+
+              <article class="w-[310px] sm:w-[360px] shrink-0 bg-blue-950/75 border border-blue-400/30 rounded-2xl p-5 backdrop-blur-md shadow-xl flex flex-col justify-between space-y-4">
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1 text-amber-400 text-xs">
+                      <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                    </div>
+                    <span class="text-[10px] font-bold text-brand-cyan bg-blue-900/60 px-2.5 py-0.5 rounded-full border border-blue-400/20">Estructura Metálica</span>
+                  </div>
+                  <p class="text-xs sm:text-sm text-blue-50 leading-relaxed italic">
+                    "El cotizador nos dio claridad desde el inicio y el equipo cumplió exactamente con las medidas y tiempos acordados."
+                  </p>
+                </div>
+                <div class="pt-3 border-t border-blue-800/70 flex items-center justify-between">
+                  <div>
+                    <div class="text-xs font-extrabold text-white">Natalia Echeverri</div>
+                    <div class="text-[11px] text-blue-300">Jardín, Antioquia</div>
+                  </div>
+                  <i class="fa-solid fa-quote-right text-blue-400/40 text-xl"></i>
+                </div>
+              </article>
+
+              <!-- Duplicado -->
+              <article class="w-[310px] sm:w-[360px] shrink-0 bg-blue-950/75 border border-blue-400/30 rounded-2xl p-5 backdrop-blur-md shadow-xl flex flex-col justify-between space-y-4">
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1 text-amber-400 text-xs">
+                      <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                    </div>
+                    <span class="text-[10px] font-bold text-brand-cyan bg-blue-900/60 px-2.5 py-0.5 rounded-full border border-blue-400/20">Portón en Hierro</span>
+                  </div>
+                  <p class="text-xs sm:text-sm text-blue-50 leading-relaxed italic">
+                    "El portón de nuestra finca en Jericó quedó impecable. Soldadura limpia, acabado excelente y pudimos revisar cada etapa del taller."
+                  </p>
+                </div>
+                <div class="pt-3 border-t border-blue-800/70 flex items-center justify-between">
+                  <div>
+                    <div class="text-xs font-extrabold text-white">Camilo Restrepo</div>
+                    <div class="text-[11px] text-blue-300">Finca La Pradera, Jericó</div>
+                  </div>
+                  <i class="fa-solid fa-quote-right text-blue-400/40 text-xl"></i>
+                </div>
+              </article>
+
+              <article class="w-[310px] sm:w-[360px] shrink-0 bg-blue-950/75 border border-blue-400/30 rounded-2xl p-5 backdrop-blur-md shadow-xl flex flex-col justify-between space-y-4">
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1 text-amber-400 text-xs">
+                      <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                    </div>
+                    <span class="text-[10px] font-bold text-brand-cyan bg-blue-900/60 px-2.5 py-0.5 rounded-full border border-blue-400/20">Aluminio Serie 7000</span>
+                  </div>
+                  <p class="text-xs sm:text-sm text-blue-50 leading-relaxed italic">
+                    "Instalamos ventanería en aluminio para toda la casa. Aislamiento real del ruido y entrega puntual en el Suroeste antioqueño."
+                  </p>
+                </div>
+                <div class="pt-3 border-t border-blue-800/70 flex items-center justify-between">
+                  <div>
+                    <div class="text-xs font-extrabold text-white">Marcela Uribe</div>
+                    <div class="text-[11px] text-blue-300">Támesis, Antioquia</div>
+                  </div>
+                  <i class="fa-solid fa-quote-right text-blue-400/40 text-xl"></i>
+                </div>
+              </article>
+
+              <article class="w-[310px] sm:w-[360px] shrink-0 bg-blue-950/75 border border-blue-400/30 rounded-2xl p-5 backdrop-blur-md shadow-xl flex flex-col justify-between space-y-4">
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1 text-amber-400 text-xs">
+                      <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                    </div>
+                    <span class="text-[10px] font-bold text-brand-cyan bg-blue-900/60 px-2.5 py-0.5 rounded-full border border-blue-400/20">Vidrio Templado</span>
+                  </div>
+                  <p class="text-xs sm:text-sm text-blue-50 leading-relaxed italic">
+                    "Las cabinas de baño y divisiones en vidrio templado transformaron nuestro proyecto. Herrajes firmes y acabados de primera."
+                  </p>
+                </div>
+                <div class="pt-3 border-t border-blue-800/70 flex items-center justify-between">
+                  <div>
+                    <div class="text-xs font-extrabold text-white">Andrés Felipe Montoya</div>
+                    <div class="text-[11px] text-blue-300">Andes, Antioquia</div>
+                  </div>
+                  <i class="fa-solid fa-quote-right text-blue-400/40 text-xl"></i>
+                </div>
+              </article>
+
+              <article class="w-[310px] sm:w-[360px] shrink-0 bg-blue-950/75 border border-blue-400/30 rounded-2xl p-5 backdrop-blur-md shadow-xl flex flex-col justify-between space-y-4">
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1 text-amber-400 text-xs">
+                      <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                    </div>
+                    <span class="text-[10px] font-bold text-brand-cyan bg-blue-900/60 px-2.5 py-0.5 rounded-full border border-blue-400/20">Estructura Metálica</span>
+                  </div>
+                  <p class="text-xs sm:text-sm text-blue-50 leading-relaxed italic">
+                    "El cotizador nos dio claridad desde el inicio y el equipo cumplió exactamente con las medidas y tiempos acordados."
+                  </p>
+                </div>
+                <div class="pt-3 border-t border-blue-800/70 flex items-center justify-between">
+                  <div>
+                    <div class="text-xs font-extrabold text-white">Natalia Echeverri</div>
+                    <div class="text-[11px] text-blue-300">Jardín, Antioquia</div>
+                  </div>
+                  <i class="fa-solid fa-quote-right text-blue-400/40 text-xl"></i>
+                </div>
+              </article>
             </div>
           </div>
         </div>
@@ -861,7 +1175,6 @@
   <!-- MODAL CATÁLOGO -->
   <div id="galleryModal" class="fixed inset-0 z-50 hidden flex flex-col justify-center items-center">
     <div class="absolute inset-0 bg-slate-950/85 backdrop-blur-2xl" onclick="closeGalleryModal()"></div>
-    
     <div class="relative w-full z-15 flex flex-col items-center px-4">
       <div class="max-w-7xl w-full flex justify-between items-center mb-8 px-6">
         <div>
@@ -872,11 +1185,9 @@
           <i class="fa-solid fa-xmark text-xl"></i>
         </button>
       </div>
-
       <div class="w-full overflow-hidden py-4 relative">
         <div id="marqueeTrackContainer" class="marquee-track flex gap-6 px-4"></div>
       </div>
-      
       <p class="text-xs text-slate-400 mt-6 tracking-wide flex items-center gap-2">
         <i class="fa-solid fa-hand-pointer text-brand-cyan"></i> Coloca el cursor sobre cualquier tarjeta para pausar | Haz clic para ver información ampliada
       </p>
@@ -898,7 +1209,6 @@
           <span class="text-xs font-extrabold text-brand-cyan uppercase tracking-widest block">Información Técnica del Producto</span>
           <h3 id="zoomProductTitle" class="text-2xl sm:text-3xl font-black text-white"></h3>
           <p id="zoomProductDesc" class="text-sm text-slate-300 leading-relaxed"></p>
-          
           <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
             <div class="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
               <i class="fa-solid fa-circle-info text-brand-cyan"></i> Especificaciones de Taller
@@ -906,7 +1216,6 @@
             <p class="text-xs text-slate-400">Fabricación a la medida bajo estándares de calidad industrial Acevedo. Garantía directa sobre soldadura, acabados anticorrosivos y herrajes.</p>
           </div>
         </div>
-
         <div class="flex items-center gap-3 pt-4 border-t border-slate-800">
           <button onclick="scrollToCotizador(); closeProductZoom(); closeGalleryModal();" class="flex-1 py-3.5 bg-[#0822A0] hover:bg-blue-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer">
             <i class="fa-solid fa-calculator text-brand-cyan"></i> Cotizar Esta Medida
@@ -916,53 +1225,328 @@
     </div>
   </div>
 
-  <!-- MODAL DE AUTENTICACIÓN (CONECTADO A ADMIN.HTML + GOOGLE Y APPLE) -->
+  <!-- MODAL DE PERFIL DE USUARIO -->
+  <div id="profileModal" class="fixed inset-0 z-[75] hidden flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-950/85 backdrop-blur-md" onclick="closeProfileModal()"></div>
+    <div class="relative bg-slate-900 border border-blue-500/40 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl z-10 text-white max-h-[92vh] overflow-y-auto no-scrollbar space-y-5">
+      <div class="flex items-start justify-between pb-4 border-b border-slate-800">
+        <div>
+          <span class="text-[10px] font-extrabold text-brand-cyan uppercase tracking-widest block mb-1">
+            <i class="fa-solid fa-user-gear mr-1"></i> Configuración de Cuenta
+          </span>
+          <h3 class="text-xl font-extrabold text-white">Editar Mi Perfil</h3>
+        </div>
+        <button onclick="closeProfileModal()" class="text-slate-400 hover:text-white p-1 cursor-pointer">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </div>
+
+      <div class="flex items-center gap-4 bg-slate-950 p-4 rounded-2xl border border-slate-800">
+        <div id="profileAvatarPreview" class="w-16 h-16 rounded-2xl bg-[#0822A0] text-white flex items-center justify-center text-2xl font-bold overflow-hidden border-2 border-brand-cyan/50 shrink-0">
+          <i class="fa-solid fa-user"></i>
+        </div>
+        <div class="flex-1 space-y-1.5">
+          <div class="text-xs font-extrabold text-white">Imagen de Perfil</div>
+          <label class="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold rounded-xl cursor-pointer transition-all">
+            <i class="fa-solid fa-camera"></i> Cambiar Foto
+            <input type="file" id="profileAvatarInput" accept="image/*" class="hidden" onchange="previewProfileAvatar(this)">
+          </label>
+        </div>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Nombre Completo *</label>
+            <input type="text" id="profName" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+          </div>
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Teléfono / WhatsApp *</label>
+            <input type="tel" id="profPhone" placeholder="+57 300 000 0000" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+          </div>
+        </div>
+        <div>
+          <label class="block text-slate-400 font-bold mb-1">Correo Electrónico *</label>
+          <input type="email" id="profEmail" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+        </div>
+        <div>
+          <label class="block text-slate-400 font-bold mb-1">Dirección de Envío (Opcional)</label>
+          <input type="text" id="profAddress" placeholder="Ej. Carrera 5 # 6-40, Jericó, Antioquia" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+        </div>
+
+        <div class="pt-3 border-t border-slate-800 space-y-3">
+          <div class="text-[11px] font-extrabold text-brand-cyan uppercase tracking-wider">Cambiar Contraseña (Opcional)</div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-slate-400 font-bold mb-1">Nueva Contraseña</label>
+              <input type="password" id="profNewPass" placeholder="••••••••" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+            </div>
+            <div>
+              <label class="block text-slate-400 font-bold mb-1">Confirmar Contraseña</label>
+              <input type="password" id="profConfirmPass" placeholder="••••••••" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 pt-2">
+        <button type="button" onclick="closeProfileModal()" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl border border-slate-700 cursor-pointer">
+          Cancelar
+        </button>
+        <button type="button" onclick="saveProfileChanges()" class="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg cursor-pointer transition-all">
+          Guardar Cambios
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL EDITAR PEDIDO -->
+  <div id="editOrderModal" class="fixed inset-0 z-[75] hidden flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-950/85 backdrop-blur-md" onclick="closeEditOrderModal()"></div>
+    <div class="relative bg-slate-900 border border-blue-500/40 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl z-10 text-white space-y-5">
+      <div class="flex items-start justify-between pb-3 border-b border-slate-800">
+        <div>
+          <span class="text-[10px] font-extrabold text-brand-cyan uppercase tracking-widest block mb-1">Modificación de Orden</span>
+          <h3 id="editOrderTitle" class="text-lg font-extrabold text-white">Editar Pedido</h3>
+        </div>
+        <button onclick="closeEditOrderModal()" class="text-slate-400 hover:text-white cursor-pointer">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <div>
+          <label class="block text-slate-400 font-bold mb-1">Modalidad de Entrega</label>
+          <select id="editOrderDeliveryType" onchange="toggleEditOrderAddress()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+            <option value="domicilio">Envío a Domicilio</option>
+            <option value="taller">Recoger en Taller (Jericó, Antioquia)</option>
+          </select>
+        </div>
+
+        <div id="editOrderAddressWrapper">
+          <label class="block text-slate-400 font-bold mb-1">Dirección de Envío *</label>
+          <input type="text" id="editOrderAddressInput" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+        </div>
+
+        <div>
+          <label class="block text-slate-400 font-bold mb-1">Notas / Ajustes del Proyecto</label>
+          <textarea id="editOrderNotes" rows="3" placeholder="Ej. Cambiar tono de pintura o horario de entrega..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-semibold focus:outline-none focus:border-brand-cyan"></textarea>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 pt-2">
+        <button type="button" onclick="closeEditOrderModal()" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl border border-slate-700 cursor-pointer">
+          Cancelar
+        </button>
+        <button type="button" onclick="saveOrderEdits()" class="flex-1 py-3 bg-[#0822A0] hover:bg-blue-600 text-white font-extrabold text-xs uppercase rounded-xl shadow-lg cursor-pointer">
+          Guardar Modificación
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE HISTORIAL DE COMPRAS -->
+  <div id="purchaseHistoryModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-950/85 backdrop-blur-md" onclick="closePurchaseHistory()"></div>
+    <div class="relative bg-slate-900 border border-blue-500/40 rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl z-10 text-white max-h-[90vh] overflow-y-auto no-scrollbar space-y-6">
+      <div class="flex items-start justify-between pb-4 border-b border-slate-800">
+        <div>
+          <span class="text-[10px] font-extrabold text-brand-cyan uppercase tracking-widest block mb-1">
+            <i class="fa-solid fa-box-archive mr-1"></i> Expediente del Cliente
+          </span>
+          <h3 class="text-xl sm:text-2xl font-extrabold text-white">Mi Historial de Compras y Cotizaciones</h3>
+        </div>
+        <button onclick="closePurchaseHistory()" class="text-slate-400 hover:text-white p-1 cursor-pointer">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </div>
+
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-950 p-4 rounded-2xl border border-slate-800">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-blue-600/20 text-brand-cyan border border-blue-400/30 flex items-center justify-center font-bold">
+            <i class="fa-solid fa-user-check text-lg"></i>
+          </div>
+          <div>
+            <div class="text-xs font-extrabold text-white" id="historyClientName">Usuario Verificado</div>
+            <div class="text-[11px] text-slate-400" id="historyClientEmail">usuario@ejemplo.com</div>
+          </div>
+        </div>
+        <div class="text-xs text-slate-300">
+          Total Compras Registradas: <span class="font-extrabold text-brand-cyan" id="historyTotalCount">2 Proyectos</span>
+        </div>
+      </div>
+
+      <div id="historyOrdersContainer" class="space-y-4">
+        <div class="bg-slate-950 border border-slate-800 hover:border-blue-500/50 rounded-2xl p-5 space-y-3 transition-all">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-slate-800">
+            <div>
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Código: ORD-2026-88</span>
+              <h4 class="text-sm font-extrabold text-white">Portón Heavy en Hierro Forjado + Madera Teca</h4>
+            </div>
+            <span class="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-extrabold border border-amber-500/40">
+              <i class="fa-solid fa-file-invoice-dollar mr-1"></i> En Cotización
+            </span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div><span class="text-slate-500 block text-[10px]">Fecha Solicitud</span><span class="font-bold text-slate-200">18 Sep, 2026</span></div>
+            <div><span class="text-slate-500 block text-[10px]">Especificación</span><span class="font-bold text-slate-200">7.20 m² (2.4m x 3.0m)</span></div>
+            <div><span class="text-slate-500 block text-[10px]">Monto Pagado</span><span class="font-bold text-slate-300">$ 0 COP</span></div>
+            <div><span class="text-slate-500 block text-[10px]">Valor Cotizado</span><span class="font-bold text-amber-300">$ 2.016.000 COP</span></div>
+          </div>
+
+          <div class="pt-2 flex justify-end">
+            <button onclick="downloadInvoiceSimulated('ORD-2026-88')" class="text-[11px] font-bold text-brand-cyan hover:underline flex items-center gap-1.5 cursor-pointer">
+              <i class="fa-solid fa-file-pdf"></i> Descargar Comprobante PDF
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-slate-950 border border-slate-800 hover:border-blue-500/50 rounded-2xl p-5 space-y-3 transition-all">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-3 border-b border-slate-800">
+            <div>
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Código: ORD-2026-42</span>
+              <h4 class="text-sm font-extrabold text-white">Cabina de Baño en Vidrio Templado 8mm</h4>
+            </div>
+            <span class="px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-extrabold border border-blue-500/40">
+              <i class="fa-solid fa-circle-check mr-1"></i> Entregado & Finalizado
+            </span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div><span class="text-slate-500 block text-[10px]">Fecha Compra</span><span class="font-bold text-slate-200">04 Ago, 2026</span></div>
+            <div><span class="text-slate-500 block text-[10px]">Especificación</span><span class="font-bold text-slate-200">2.28 m² (1.9m x 1.2m)</span></div>
+            <div><span class="text-slate-500 block text-[10px]">Monto Pagado</span><span class="font-bold text-emerald-400">$ 547.200 COP</span></div>
+            <div><span class="text-slate-500 block text-[10px]">Saldo Pendiente</span><span class="font-bold text-slate-400">$ 0 COP</span></div>
+          </div>
+
+          <div class="pt-2 flex justify-end">
+            <button onclick="downloadInvoiceSimulated('ORD-2026-42')" class="text-[11px] font-bold text-brand-cyan hover:underline flex items-center gap-1.5 cursor-pointer">
+              <i class="fa-solid fa-file-pdf"></i> Descargar Comprobante PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE AUTENTICACIÓN (CON SEGURIDAD DE 5 INTENTOS Y ALERTA AL CORREO) -->
   <div id="authModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onclick="closeAuthModal()"></div>
-    <div class="relative bg-slate-900 border border-blue-500/40 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl z-10 text-white">
+    <div class="relative bg-slate-900 border border-blue-500/40 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl z-10 text-white max-h-[92vh] overflow-y-auto no-scrollbar">
       <div class="flex justify-between items-center mb-6 pb-3 border-b border-slate-800">
         <h3 id="authModalTitle" class="text-lg font-extrabold text-white">Iniciar Sesión</h3>
         <button onclick="closeAuthModal()" class="text-slate-400 hover:text-white cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
 
-      <!-- Botones de Autenticación Social (Google / Apple) -->
-      <div class="space-y-2.5 mb-5">
-        <button onclick="handleSocialAuth('Google')" class="w-full py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2.5 border border-slate-200 shadow-sm cursor-pointer">
-          <i class="fa-brands fa-google text-blue-600 text-sm"></i>
-          <span>Continuar con Google</span>
-        </button>
-        <button onclick="handleSocialAuth('Apple')" class="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2.5 border border-slate-700 shadow-sm cursor-pointer">
-          <i class="fa-brands fa-apple text-base"></i>
-          <span>Continuar con Apple</span>
-        </button>
-      </div>
+      <!-- Contenedor Principal de Login / Registro -->
+      <div id="authStandardView">
+        <div class="space-y-2.5 mb-5">
+          <button onclick="handleSocialAuth('Google')" class="w-full py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2.5 border border-slate-200 shadow-sm cursor-pointer">
+            <i class="fa-brands fa-google text-blue-600 text-sm"></i>
+            <span>Continuar con Google</span>
+          </button>
+          <button onclick="handleSocialAuth('Apple')" class="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2.5 border border-slate-700 shadow-sm cursor-pointer">
+            <i class="fa-brands fa-apple text-base"></i>
+            <span>Continuar con Apple</span>
+          </button>
+        </div>
 
-      <!-- Divisor "O" -->
-      <div class="relative flex py-2 items-center mb-4">
-        <div class="flex-grow border-t border-slate-800"></div>
-        <span class="flex-shrink mx-3 text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">o con correo</span>
-        <div class="flex-grow border-t border-slate-800"></div>
-      </div>
+        <div class="relative flex py-2 items-center mb-4">
+          <div class="flex-grow border-t border-slate-800"></div>
+          <span class="flex-shrink mx-3 text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">o con correo</span>
+          <div class="flex-grow border-t border-slate-800"></div>
+        </div>
 
-      <!-- Formulario Tradicional -->
-      <div class="space-y-4 text-xs">
-        <div id="registerFields" class="hidden space-y-4">
-          <div>
-            <label class="block text-slate-400 font-bold mb-1">Nombre Completo</label>
-            <input type="text" placeholder="Ej. Carlos Acevedo" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-brand-cyan">
+        <!-- ALERTA DE SEGURIDAD DE INTENTOS / BLOQUEO -->
+        <div id="loginSecurityAlert" class="hidden mb-4 rounded-2xl p-3.5 text-xs border space-y-2"></div>
+
+        <div class="space-y-4 text-xs">
+          <div id="registerFields" class="hidden space-y-4">
+            <div>
+              <label class="block text-slate-400 font-bold mb-1">Nombre Completo *</label>
+              <input type="text" id="regNameField" placeholder="Ej. Carlos Acevedo" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-brand-cyan">
+            </div>
+            <div>
+              <label class="block text-slate-400 font-bold mb-1">WhatsApp *</label>
+              <input type="tel" id="regWhatsappField" placeholder="Ej. +57 300 000 0000" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-brand-cyan">
+            </div>
+            <div>
+              <label class="block text-slate-400 font-bold mb-1">Dirección <span class="text-slate-500 font-normal">(Opcional)</span></label>
+              <input type="text" id="regAddressField" placeholder="Ej. Carrera 5 # 6-40, Jericó, Antioquia" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-brand-cyan">
+            </div>
           </div>
+
+          <div>
+            <label class="block text-slate-400 font-bold mb-1">Correo Electrónico / Usuario *</label>
+            <input type="text" id="loginEmailField" placeholder="Ej. usuario o correo@ejemplo.com" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-brand-cyan">
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-slate-400 font-bold">Contraseña *</label>
+              <button type="button" id="forgotPasswordBtn" onclick="openForgotPasswordStep()" class="text-[11px] font-bold text-brand-cyan hover:underline cursor-pointer">
+                ¿Se me olvidó la contraseña?
+              </button>
+            </div>
+            <input type="password" id="loginPasswordField" placeholder="••••••••" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-brand-cyan">
+          </div>
+
+          <div id="confirmPasswordWrapper" class="hidden">
+            <label class="block text-slate-400 font-bold mb-1">Confirmación de Contraseña *</label>
+            <input type="password" id="regConfirmPasswordField" placeholder="Repita su contraseña" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-brand-cyan">
+          </div>
+
+          <button id="authSubmitBtn" onclick="handleAuthSubmit()" class="w-full mt-4 py-3.5 bg-[#0822A0] hover:bg-blue-600 text-white font-extrabold uppercase rounded-xl transition-all shadow-lg cursor-pointer">
+            Continuar
+          </button>
         </div>
-        <div>
-          <label class="block text-slate-400 font-bold mb-1">Correo Electrónico</label>
-          <input type="email" id="loginEmailField" placeholder="Usuario" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-brand-cyan">
-        </div>
-        <div>
-          <label class="block text-slate-400 font-bold mb-1">Contraseña</label>
-          <input type="password" id="loginPasswordField" placeholder="••••••••" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-brand-cyan">
+      </div>
+
+      <!-- Vista de Recuperación de Contraseña Paso a Paso -->
+      <div id="forgotPasswordView" class="hidden space-y-4 text-xs">
+        <div class="bg-blue-950/60 border border-blue-500/30 rounded-2xl p-4 space-y-1">
+          <div class="text-xs font-extrabold text-brand-cyan uppercase tracking-wider flex items-center gap-1.5">
+            <i class="fa-solid fa-key"></i> Recuperación de Contraseña
+          </div>
+          <p class="text-[11px] text-slate-300 leading-relaxed">
+            Ingrese su correo electrónico registrado para generar y enviar el proceso de recuperación paso a paso.
+          </p>
         </div>
 
-        <button onclick="handleAuthSubmit()" class="w-full mt-4 py-3.5 bg-[#0822A0] hover:bg-blue-600 text-white font-extrabold uppercase rounded-xl transition-all shadow-lg cursor-pointer">
-          Continuar
+        <div>
+          <label class="block text-slate-400 font-bold mb-1">Correo Electrónico *</label>
+          <input type="email" id="recoveryEmailInput" placeholder="Ingrese su correo electrónico" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white font-bold focus:outline-none focus:border-brand-cyan">
+          <p id="recoveryErrorMsg" class="hidden text-[11px] font-bold text-red-400 mt-1.5">
+            Por favor ingrese un correo electrónico válido.
+          </p>
+        </div>
+
+        <button type="button" onclick="sendRecoverySteps()" class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-extrabold uppercase rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer">
+          <i class="fa-solid fa-paper-plane"></i> Enviar Recuperación al Correo
+        </button>
+
+        <div id="recoveryStepsBox" class="hidden bg-slate-950 border border-emerald-500/40 rounded-2xl p-4 space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span class="text-xs font-black text-emerald-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-circle-check"></i> Instrucciones enviadas a: <span id="recoveryTargetEmail" class="underline text-white"></span>
+            </span>
+          </div>
+
+          <ol class="space-y-2.5 text-[11px] text-slate-200 leading-relaxed list-decimal list-inside">
+            <li><strong class="text-brand-cyan">Paso 1 — Revise su bandeja de entrada:</strong> Busque el correo con asunto <em>"Recuperación de Contraseña — Industrias Acevedo"</em>.</li>
+            <li><strong class="text-brand-cyan">Paso 2 — Abra el enlace seguro de verificación:</strong> Ingrese al enlace temporal enviado a <span id="recoveryStepEmail2" class="font-bold text-white"></span>.</li>
+            <li><strong class="text-brand-cyan">Paso 3 — Cree su nueva contraseña:</strong> Establezca una contraseña segura y confírmela.</li>
+            <li><strong class="text-brand-cyan">Paso 4 — Inicie sesión nuevamente:</strong> Regrese a <em>Iniciar Sesión</em> con su nueva clave.</li>
+          </ol>
+
+          <button type="button" onclick="backToLoginFromRecovery()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-brand-cyan font-extrabold text-[11px] uppercase rounded-xl border border-slate-700 transition-all cursor-pointer">
+            ← Volver a Iniciar Sesión
+          </button>
+        </div>
+
+        <button type="button" id="cancelRecoveryBtn" onclick="backToLoginFromRecovery()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl border border-slate-700 transition-all cursor-pointer">
+          Cancelar y Volver
         </button>
       </div>
     </div>
@@ -991,27 +1575,382 @@
           <span>Subtotal:</span>
           <span id="cartDrawerSubtotal">$0 COP</span>
         </div>
-        <button onclick="alert('Iniciando pasarela de pago segura...')" class="w-full py-3.5 bg-[#0822A0] hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-lg transition-all cursor-pointer">
+        <button onclick="openPaymentGateway()" class="w-full py-3.5 bg-[#0822A0] hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-lg transition-all cursor-pointer">
           Procesar Pedido / Pagar Anticipo →
         </button>
       </div>
     </div>
   </div>
 
+  <!-- MODAL PASARELA DE PAGOS COMPLETA PARA COLOMBIA (INICIA EN MODO DÍA POR DEFECTO, CAMBIA A MODO NOCHE) -->
+  <div id="paymentGatewayModal" class="pg-day-mode fixed inset-0 z-[70] hidden flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-950/85 backdrop-blur-md" onclick="closePaymentGateway()"></div>
+    <div class="pg-card relative bg-slate-900 border border-blue-500/40 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl z-10 text-white max-h-[92vh] overflow-y-auto no-scrollbar space-y-6 transition-colors duration-300">
+      <div class="pg-divider flex items-start justify-between pb-4 border-b border-slate-800 gap-3">
+        <div>
+          <span class="pg-subtitle text-[10px] font-extrabold text-brand-cyan uppercase tracking-widest block mb-1">
+            <i class="fa-solid fa-shield-halved mr-1"></i> Pasarela de Pagos Colombia — Industrias Acevedo
+          </span>
+          <h3 class="pg-title text-xl font-extrabold text-white">Procesar Pedido y Pago de Anticipo</h3>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button type="button" id="pgThemeToggleBtn" onclick="togglePaymentTheme()" class="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#0822A0] border border-blue-200 text-[11px] font-extrabold flex items-center gap-1.5 cursor-pointer transition-all">
+            <i id="pgThemeIcon" class="fa-solid fa-moon text-[#0822A0]"></i>
+            <span id="pgThemeText">Modo Noche</span>
+          </button>
+          <button onclick="closePaymentGateway()" class="pg-muted text-slate-400 hover:text-white p-1 cursor-pointer">
+            <i class="fa-solid fa-xmark text-xl"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Aviso Clarísimo del Pago Mínimo del 50% -->
+      <div class="pg-notice bg-amber-950/60 border border-amber-400/50 rounded-2xl p-4 space-y-1.5">
+        <div class="pg-notice-title text-xs font-black text-amber-300 uppercase tracking-wider flex items-center gap-2">
+          <i class="fa-solid fa-circle-exclamation text-amber-400 text-sm"></i>
+          Condición Obligatoria: Pago Mínimo del 50% para Iniciar
+        </div>
+        <p class="text-xs leading-relaxed">
+          Para iniciar la orden de fabricación en taller, debes abonar como <strong>mínimo el 50%</strong>. También puedes realizar el <strong>pago completo (100%)</strong> o ingresar <strong>otro valor superior al 50%</strong>.
+        </p>
+      </div>
+
+      <!-- Resumen Financiero de la Operación -->
+      <div class="pg-surface bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-2.5 text-xs">
+        <div class="flex justify-between">
+          <span class="pg-muted text-slate-300">Valor Total de la Operación:</span>
+          <span id="pgTotalOperation" class="pg-value font-extrabold text-white text-sm">$ 0 COP</span>
+        </div>
+        <div class="flex justify-between text-emerald-500 font-bold">
+          <span>Pago Mínimo Requerido (50%):</span>
+          <span id="pgMinAdvance" class="font-black text-sm">$ 0 COP</span>
+        </div>
+        <div class="flex justify-between pg-subtitle text-brand-cyan font-bold">
+          <span>Monto Seleccionado a Pagar Hoy:</span>
+          <span id="pgSelectedToday" class="font-black text-sm">$ 0 COP</span>
+        </div>
+        <div class="pg-divider flex justify-between pt-2 border-t border-slate-800">
+          <span class="pg-muted text-slate-400">Saldo Pendiente Contra-Entrega:</span>
+          <span id="pgRemainingBalance" class="font-bold text-amber-500">$ 0 COP</span>
+        </div>
+      </div>
+
+      <!-- 1. Selección de Modalidad de Pago -->
+      <div class="space-y-3">
+        <label class="pg-subtitle block text-xs font-extrabold text-blue-300 uppercase tracking-wider">
+          1. Seleccione el Monto a Abonar (COP)
+        </label>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <button type="button" id="btnPayMin50" onclick="setPaymentOption('min50')" class="pg-btn-active-emerald p-3 rounded-xl border border-emerald-400 bg-emerald-500/20 text-white font-extrabold text-xs flex flex-col items-center gap-1 cursor-pointer transition-all">
+            <span class="text-[10px] uppercase tracking-wider">Mínimo (50%)</span>
+            <span id="preset50Label" class="text-xs sm:text-sm">$ 0 COP</span>
+          </button>
+          <button type="button" id="btnPayFull100" onclick="setPaymentOption('full100')" class="pg-btn-inactive p-3 rounded-xl border border-slate-700 bg-slate-950/60 hover:border-blue-400 text-slate-200 font-extrabold text-xs flex flex-col items-center gap-1 cursor-pointer transition-all">
+            <span class="text-[10px] uppercase tracking-wider">Pago Completo (100%)</span>
+            <span id="preset100Label" class="text-xs sm:text-sm">$ 0 COP</span>
+          </button>
+          <button type="button" id="btnPayCustom" onclick="setPaymentOption('custom')" class="pg-btn-inactive p-3 rounded-xl border border-slate-700 bg-slate-950/60 hover:border-brand-cyan text-slate-200 font-extrabold text-xs flex flex-col items-center gap-1 cursor-pointer transition-all">
+            <span class="text-[10px] uppercase tracking-wider">Otro Valor (>50%)</span>
+            <span class="text-xs sm:text-sm">Abonar Más</span>
+          </button>
+        </div>
+
+        <div>
+          <label class="pg-label block text-[11px] font-bold text-slate-400 mb-1">Valor a Pagar en Pesos Colombianos (COP)</label>
+          <input type="number" id="pgCustomAmount" min="0" step="1000" oninput="handleCustomPaymentInput()" class="pg-input w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm font-extrabold focus:outline-none focus:border-brand-cyan">
+          <p id="pgValidationError" class="hidden text-[11px] font-bold text-red-500 mt-1.5 flex items-center gap-1.5">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span id="pgValidationErrorText">El monto ingresado es menor al 50% mínimo requerido.</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- 2. Método de Pago Colombia -->
+      <div class="space-y-3">
+        <label class="pg-subtitle block text-xs font-extrabold text-blue-300 uppercase tracking-wider">
+          2. Método de Pago en Colombia
+        </label>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-bold">
+          <button type="button" onclick="selectPaymentMethod('pse', this)" class="pg-method-btn pg-btn-active-blue p-2.5 rounded-xl border border-blue-500 bg-blue-600/30 text-white flex flex-col items-center gap-1 cursor-pointer transition-all">
+            <i class="fa-solid fa-building-columns text-brand-cyan text-base"></i>
+            <span class="text-[11px]">PSE Bancos</span>
+          </button>
+          <button type="button" onclick="selectPaymentMethod('card', this)" class="pg-method-btn pg-btn-inactive p-2.5 rounded-xl border border-slate-700 bg-slate-950/60 text-slate-300 flex flex-col items-center gap-1 cursor-pointer transition-all">
+            <i class="fa-regular fa-credit-card text-blue-400 text-base"></i>
+            <span class="text-[11px]">Tarjeta Cr/Db</span>
+          </button>
+          <button type="button" onclick="selectPaymentMethod('wallet', this)" class="pg-method-btn pg-btn-inactive p-2.5 rounded-xl border border-slate-700 bg-slate-950/60 text-slate-300 flex flex-col items-center gap-1 cursor-pointer transition-all">
+            <i class="fa-solid fa-mobile-screen-button text-emerald-400 text-base"></i>
+            <span class="text-[11px]">Nequi / Daviplata</span>
+          </button>
+          <button type="button" onclick="selectPaymentMethod('cash', this)" class="pg-method-btn pg-btn-inactive p-2.5 rounded-xl border border-slate-700 bg-slate-950/60 text-slate-300 flex flex-col items-center gap-1 cursor-pointer transition-all">
+            <i class="fa-solid fa-money-bill-wave text-amber-400 text-base"></i>
+            <span class="text-[11px]">Efecty / Corr.</span>
+          </button>
+        </div>
+
+        <!-- Campos Dinámicos: PSE -->
+        <div id="pgFieldsPSE" class="pg-surface bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-3 text-xs">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="pg-label block text-slate-400 font-bold mb-1">Banco en Colombia *</label>
+              <select id="pseBank" class="pg-input w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+                <option value="Bancolombia">Bancolombia</option>
+                <option value="Davivienda">Davivienda</option>
+                <option value="Banco de Bogotá">Banco de Bogotá</option>
+                <option value="BBVA Colombia">BBVA Colombia</option>
+                <option value="Banco de Occidente">Banco de Occidente</option>
+                <option value="Banco Popular">Banco Popular</option>
+                <option value="Banco AV Villas">Banco AV Villas</option>
+                <option value="Scotiabank Colpatria">Scotiabank Colpatria</option>
+                <option value="Banco Caja Social">Banco Caja Social</option>
+                <option value="Nequi (PSE)">Nequi (PSE)</option>
+                <option value="Daviplata (PSE)">Daviplata (PSE)</option>
+                <option value="Nu Colombia">Nu Colombia</option>
+                <option value="Lulo Bank">Lulo Bank</option>
+              </select>
+            </div>
+            <div>
+              <label class="pg-label block text-slate-400 font-bold mb-1">Tipo de Persona *</label>
+              <select id="psePersonType" class="pg-input w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+                <option value="Natural">Persona Natural</option>
+                <option value="Jurídica">Persona Jurídica (Empresa)</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="pg-label block text-slate-400 font-bold mb-1">Tipo Doc. *</label>
+              <select id="pseDocType" class="pg-input w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+                <option value="CC">CC - Cédula</option>
+                <option value="CE">CE - Extranjería</option>
+                <option value="NIT">NIT</option>
+                <option value="PAS">Pasaporte</option>
+              </select>
+            </div>
+            <div class="sm:col-span-2">
+              <label class="pg-label block text-slate-400 font-bold mb-1">Número de Documento *</label>
+              <input type="text" id="pseDocNumber" placeholder="Ej. 1036945821" class="pg-input w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+            </div>
+          </div>
+        </div>
+
+        <!-- Campos Dinámicos: Tarjeta -->
+        <div id="pgFieldsCard" class="hidden pg-surface bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-3 text-xs">
+          <div class="flex items-center justify-between text-[11px] pg-muted text-slate-400">
+            <span>Tarjetas aceptadas en Colombia</span>
+            <div class="flex items-center gap-2 text-base">
+              <i class="fa-brands fa-cc-visa"></i>
+              <i class="fa-brands fa-cc-mastercard"></i>
+              <i class="fa-brands fa-cc-amex"></i>
+              <i class="fa-brands fa-cc-diners-club"></i>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="sm:col-span-2">
+              <label class="pg-label block text-slate-400 font-bold mb-1">Número de Tarjeta *</label>
+              <input type="text" id="cardNumber" maxlength="19" placeholder="4532 1234 5678 9010" class="pg-input w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="pg-label block text-slate-400 font-bold mb-1">Nombre del Titular *</label>
+              <input type="text" id="cardHolder" placeholder="Como aparece en la tarjeta" class="pg-input w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+            </div>
+            <div>
+              <label class="pg-label block text-slate-400 font-bold mb-1">Vencimiento (MM/AA) *</label>
+              <input type="text" id="cardExpiry" maxlength="5" placeholder="08/29" class="pg-input w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="pg-label block text-slate-400 font-bold mb-1">CVV *</label>
+                <input type="password" id="cardCvv" maxlength="4" placeholder="123" class="pg-input w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+              </div>
+              <div>
+                <label class="pg-label block text-slate-400 font-bold mb-1">Cuotas</label>
+                <select id="cardInstallments" class="pg-input w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-2 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+                  <option value="1">1 cuota</option>
+                  <option value="3">3 cuotas</option>
+                  <option value="6">6 cuotas</option>
+                  <option value="12">12 cuotas</option>
+                  <option value="24">24 cuotas</option>
+                  <option value="36">36 cuotas</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Campos Dinámicos: Billetera -->
+        <div id="pgFieldsWallet" class="hidden pg-surface bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-3 text-xs">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="pg-label block text-slate-400 font-bold mb-1">Billetera Digital *</label>
+              <select id="walletProvider" class="pg-input w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+                <option value="Nequi">Nequi</option>
+                <option value="Daviplata">Daviplata</option>
+              </select>
+            </div>
+            <div>
+              <label class="pg-label block text-slate-400 font-bold mb-1">Celular Registrado (+57) *</label>
+              <input type="tel" id="walletPhone" placeholder="Ej. 310 555 1234" class="pg-input w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+            </div>
+          </div>
+          <p class="pg-muted text-[11px] text-slate-400">Recibirás una notificación push en tu app para aprobar el débito de forma inmediata.</p>
+        </div>
+
+        <!-- Campos Dinámicos: Efectivo -->
+        <div id="pgFieldsCash" class="hidden pg-surface bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-2.5 text-xs">
+          <div>
+            <label class="pg-label block text-slate-400 font-bold mb-1">Punto de Pago en Efectivo *</label>
+            <select id="cashProvider" class="pg-input w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+              <option value="Efecty (Convenio 110452)">Efecty — Convenio 110452</option>
+              <option value="Corresponsal Bancolombia (Convenio 88410)">Corresponsal Bancolombia — Convenio 88410</option>
+              <option value="SuRed / Gana (Convenio 55209)">SuRed / Gana — Convenio 55209</option>
+            </select>
+          </div>
+          <p class="pg-muted text-[11px] text-slate-400">Al confirmar se generará un código de pago válido por 48 horas para cancelar en cualquier punto físico del país.</p>
+        </div>
+      </div>
+
+      <!-- 3. Entrega y Datos de Facturación -->
+      <div class="space-y-3">
+        <label class="pg-subtitle block text-xs font-extrabold text-blue-300 uppercase tracking-wider">
+          3. Entrega y Datos de Facturación
+        </label>
+
+        <div class="grid grid-cols-2 gap-2.5 text-xs font-bold">
+          <button type="button" id="btnDeliveryHome" onclick="setDeliveryMode('domicilio')" class="pg-btn-active-blue p-2.5 rounded-xl border border-blue-500 bg-blue-600/30 text-white flex items-center justify-center gap-2 cursor-pointer transition-all">
+            <i class="fa-solid fa-truck"></i> Envío a Domicilio
+          </button>
+          <button type="button" id="btnDeliveryPickup" onclick="setDeliveryMode('taller')" class="pg-btn-inactive p-2.5 rounded-xl border border-slate-700 bg-slate-950/60 text-slate-300 flex items-center justify-center gap-2 cursor-pointer transition-all">
+            <i class="fa-solid fa-industry"></i> Recoger en Taller
+          </button>
+        </div>
+
+        <div id="pgAddressWrapper" class="text-xs">
+          <label class="pg-label block text-slate-400 font-bold mb-1">Dirección de Envío (Obligatoria para Domicilio) *</label>
+          <input type="text" id="pgClientAddress" placeholder="Ej. Carrera 5 # 6-40, Barrio Centro" class="pg-input w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+        </div>
+
+        <div id="pgPickupNotice" class="hidden pg-surface bg-slate-950/70 border border-slate-800 rounded-xl p-3 text-[11px] pg-muted text-slate-300">
+          <i class="fa-solid fa-location-dot text-brand-cyan mr-1"></i> Retiro presencial en planta: <strong>Industrias Acevedo — Jericó, Antioquia</strong> (No requiere dirección de envío).
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div>
+            <label class="pg-label block text-slate-400 font-bold mb-1">Nombre / Razón Social *</label>
+            <input type="text" id="pgClientName" placeholder="Ej. Juan Pérez" class="pg-input w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+          </div>
+          <div>
+            <label class="pg-label block text-slate-400 font-bold mb-1">Correo para Comprobante *</label>
+            <input type="email" id="pgClientEmail" placeholder="correo@ejemplo.com" class="pg-input w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+          </div>
+          <div>
+            <label class="pg-label block text-slate-400 font-bold mb-1">Teléfono / WhatsApp *</label>
+            <input type="tel" id="pgClientPhone" placeholder="Ej. 300 000 0000" class="pg-input w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+          </div>
+          <div>
+            <label class="pg-label block text-slate-400 font-bold mb-1">Municipio / Departamento *</label>
+            <input type="text" id="pgClientCity" value="Jericó, Antioquia" class="pg-input w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-white font-semibold focus:outline-none focus:border-brand-cyan">
+          </div>
+        </div>
+      </div>
+
+      <div id="pgConfirmationBox" class="hidden pg-confirm-box bg-emerald-950/70 border border-emerald-400/50 rounded-2xl p-4 text-xs text-emerald-200 space-y-1.5"></div>
+
+      <div class="flex items-center gap-3 pt-2">
+        <button type="button" onclick="closePaymentGateway()" class="pg-back-btn px-4 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl border border-slate-700 cursor-pointer transition-all">
+          Volver
+        </button>
+        <button type="button" onclick="confirmPaymentGateway()" class="flex-1 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer">
+          <i class="fa-solid fa-lock"></i> Confirmar y Pagar Seguro
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
+    /* ESTADO DE SESIÓN GLOBAL Y SEGURIDAD DE INTENTOS */
+    let currentUser = null;
+    let toastTimeout = null;
+
+    const MAX_LOGIN_ATTEMPTS = 5;
+    let failedLoginAttempts = 0;
+    let loginLockoutUntil = 0;
+    let loginLockoutInterval = null;
+
+    function showWelcomeToast(title, message) {
+      const toast = document.getElementById('welcomeToast');
+      document.getElementById('welcomeToastTitle').innerText = title;
+      document.getElementById('welcomeToastMsg').innerText = message;
+      toast.classList.remove('hidden');
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 4500);
+    }
+
+    function hideWelcomeToast() {
+      document.getElementById('welcomeToast').classList.add('hidden');
+    }
+
+    /* MODAL PROFESIONAL DE ACCIÓN / CONFIRMACIÓN */
+    function openOrderActionModal({ badge = 'Gestión de Orden', title, message, warning = '', icon = 'fa-circle-info', iconTone = 'blue', buttons = [] }) {
+      const modal = document.getElementById('orderActionModal');
+      const iconBox = document.getElementById('orderActionIconBox');
+      const iconEl = document.getElementById('orderActionIcon');
+      const warningBox = document.getElementById('orderActionWarningBox');
+      const warningText = document.getElementById('orderActionWarningText');
+      const btnContainer = document.getElementById('orderActionButtons');
+
+      document.getElementById('orderActionBadge').innerText = badge;
+      document.getElementById('orderActionTitle').innerText = title;
+      document.getElementById('orderActionMessage').innerHTML = message;
+
+      iconEl.className = `fa-solid ${icon} text-lg`;
+      if (iconTone === 'red') {
+        iconBox.className = 'w-11 h-11 rounded-2xl bg-red-600/20 text-red-400 border border-red-400/30 flex items-center justify-center shrink-0';
+      } else if (iconTone === 'amber') {
+        iconBox.className = 'w-11 h-11 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-400/30 flex items-center justify-center shrink-0';
+      } else {
+        iconBox.className = 'w-11 h-11 rounded-2xl bg-blue-600/20 text-brand-cyan border border-blue-400/30 flex items-center justify-center shrink-0';
+      }
+
+      if (warning) {
+        warningText.innerText = warning;
+        warningBox.classList.remove('hidden');
+      } else {
+        warningBox.classList.add('hidden');
+      }
+
+      btnContainer.innerHTML = '';
+      buttons.forEach(btn => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.innerText = btn.label;
+        b.className = btn.className || 'px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 cursor-pointer transition-all';
+        b.onclick = () => {
+          closeOrderActionModal();
+          if (btn.onClick) btn.onClick();
+        };
+        btnContainer.appendChild(b);
+      });
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeOrderActionModal() {
+      document.getElementById('orderActionModal').classList.add('hidden');
+    }
+
     function toggleNotificationsDropdown() {
-      const dropdown = document.getElementById('notifDropdown');
-      dropdown.classList.toggle('hidden');
+      document.getElementById('notifDropdown').classList.toggle('hidden');
     }
 
     function markAllNotificationsRead() {
       document.getElementById('notifCountBadge').innerText = '0';
       document.getElementById('notifCountBadge').classList.add('hidden');
       const container = document.getElementById('notifListContainer');
-      const items = container.querySelectorAll('.bg-blue-50\\/20');
-      items.forEach(item => {
-        item.classList.remove('bg-blue-50/20');
-      });
+      container.querySelectorAll('.bg-blue-50\\/20').forEach(item => item.classList.remove('bg-blue-50/20'));
     }
 
     window.addEventListener('click', function(e) {
@@ -1054,6 +1993,7 @@
       if (localStorage.getItem('acevedo_cookies_accepted')) {
         document.getElementById('cookieConsentBanner').style.display = 'none';
       }
+      renderOrderView('fabricacion');
     });
 
     const catalogData = {
@@ -1087,7 +2027,7 @@
       const items = catalogData[activeCategoryKey] || [];
       const duplicatedItems = [...items, ...items, ...items];
 
-      trackContainer.innerHTML = duplicatedItems.map((item, index) => `
+      trackContainer.innerHTML = duplicatedItems.map((item) => `
         <div onclick="openProductZoom('${encodeURIComponent(item.title)}', '${encodeURIComponent(item.desc)}', '${encodeURIComponent(item.img)}')" class="w-[320px] sm:w-[380px] shrink-0 bg-slate-900/90 rounded-3xl overflow-hidden border border-blue-500/30 shadow-2xl group transition-all duration-300 hover:scale-[1.03] hover:border-brand-cyan cursor-pointer">
           <div class="h-52 overflow-hidden relative">
             <img src="${item.img}" alt="${item.title}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
@@ -1128,17 +2068,36 @@
       }, 400);
     }
 
+    let currentAuthMode = 'login';
+
     function openAuthModal(mode) {
+      currentAuthMode = mode;
       const modal = document.getElementById('authModal');
       const title = document.getElementById('authModalTitle');
       const regFields = document.getElementById('registerFields');
+      const confirmPassWrapper = document.getElementById('confirmPasswordWrapper');
+      const forgotBtn = document.getElementById('forgotPasswordBtn');
+      const submitBtn = document.getElementById('authSubmitBtn');
+      const standardView = document.getElementById('authStandardView');
+      const forgotView = document.getElementById('forgotPasswordView');
+      const secAlert = document.getElementById('loginSecurityAlert');
+
+      standardView.classList.remove('hidden');
+      forgotView.classList.add('hidden');
+      if (mode === 'register') secAlert.classList.add('hidden');
       
       if(mode === 'login') {
         title.innerText = 'Iniciar Sesión en Acevedo';
         regFields.classList.add('hidden');
+        confirmPassWrapper.classList.add('hidden');
+        forgotBtn.classList.remove('hidden');
+        submitBtn.innerText = 'Continuar';
       } else {
         title.innerText = 'Crear Nueva Cuenta';
         regFields.classList.remove('hidden');
+        confirmPassWrapper.classList.remove('hidden');
+        forgotBtn.classList.add('hidden');
+        submitBtn.innerText = 'Registrarse';
       }
       modal.classList.remove('hidden');
     }
@@ -1147,24 +2106,333 @@
       document.getElementById('authModal').classList.add('hidden');
     }
 
+    function openForgotPasswordStep() {
+      document.getElementById('authModalTitle').innerText = 'Recuperar Contraseña';
+      document.getElementById('authStandardView').classList.add('hidden');
+      document.getElementById('forgotPasswordView').classList.remove('hidden');
+      document.getElementById('recoveryStepsBox').classList.add('hidden');
+      document.getElementById('recoveryErrorMsg').classList.add('hidden');
+
+      const existingEmail = document.getElementById('loginEmailField').value.trim();
+      document.getElementById('recoveryEmailInput').value = existingEmail.includes('@') ? existingEmail : 'usuario@ejemplo.com';
+    }
+
+    function sendRecoverySteps() {
+      const emailInput = document.getElementById('recoveryEmailInput');
+      const errorMsg = document.getElementById('recoveryErrorMsg');
+      const stepsBox = document.getElementById('recoveryStepsBox');
+      const email = emailInput.value.trim();
+
+      if (!email || !email.includes('@')) {
+        errorMsg.classList.remove('hidden');
+        stepsBox.classList.add('hidden');
+        return;
+      }
+
+      errorMsg.classList.add('hidden');
+      document.getElementById('recoveryTargetEmail').innerText = email;
+      document.getElementById('recoveryStepEmail2').innerText = email;
+      stepsBox.classList.remove('hidden');
+    }
+
+    function backToLoginFromRecovery() {
+      openAuthModal('login');
+    }
+
     function handleSocialAuth(provider) {
-      alert(`Iniciando autenticación rápida con ${provider}...`);
+      currentUser = {
+        username: `${provider}_User`,
+        email: `${provider.toLowerCase()}@user.com`,
+        phone: '+57 300 000 0000',
+        address: '',
+        avatar: null
+      };
+      updateUserUI();
       closeAuthModal();
+      showWelcomeToast('¡Bienvenido!', `Logeo correcto con ${provider}. Hola ${currentUser.username}.`);
+    }
+
+    /* SEGURIDAD: CONTROL DE 5 INTENTOS + BLOQUEO TEMPORAL + ALERTA AL CORREO */
+    function renderLoginLockoutAlert(targetEmail) {
+      const secAlert = document.getElementById('loginSecurityAlert');
+      const submitBtn = document.getElementById('authSubmitBtn');
+      const remainingSec = Math.max(0, Math.ceil((loginLockoutUntil - Date.now()) / 1000));
+
+      secAlert.className = 'mb-4 rounded-2xl p-4 text-xs border bg-red-950/70 border-red-500/50 text-red-100 space-y-2.5';
+      secAlert.innerHTML = `
+        <div class="font-black text-red-300 flex items-center gap-2">
+          <i class="fa-solid fa-shield-virus text-sm"></i> Cuenta Protegida — Alerta Enviada al Correo
+        </div>
+        <p class="text-[11px] leading-relaxed text-red-100/90">
+          Se superó el límite de <strong>${MAX_LOGIN_ATTEMPTS} intentos fallidos</strong>. Por seguridad, hemos enviado una alerta al correo <strong>${targetEmail}</strong> informando un posible intento de acceso no autorizado.
+        </p>
+        <div class="text-[11px] font-bold text-amber-300 flex items-center gap-1.5">
+          <i class="fa-solid fa-hourglass-half"></i> Bloqueo temporal activo: <span id="lockoutCountdown">${remainingSec}s</span>
+        </div>
+        <button type="button" onclick="openForgotPasswordStep()" class="w-full py-2 bg-red-600 hover:bg-red-500 text-white font-extrabold text-[11px] uppercase rounded-xl transition-all cursor-pointer">
+          <i class="fa-solid fa-key mr-1"></i> Soy el titular — Restablecer Contraseña
+        </button>
+      `;
+      secAlert.classList.remove('hidden');
+
+      if (remainingSec > 0) {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      } else {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+    }
+
+    function startLoginLockout(emailInput) {
+      const targetEmail = emailInput && emailInput.includes('@') ? emailInput : 'usuario@ejemplo.com';
+      loginLockoutUntil = Date.now() + 60000; // 60 segundos de bloqueo temporal
+      renderLoginLockoutAlert(targetEmail);
+
+      if (loginLockoutInterval) clearInterval(loginLockoutInterval);
+      loginLockoutInterval = setInterval(() => {
+        const remaining = Math.ceil((loginLockoutUntil - Date.now()) / 1000);
+        const countdownEl = document.getElementById('lockoutCountdown');
+        if (remaining <= 0) {
+          clearInterval(loginLockoutInterval);
+          failedLoginAttempts = 0;
+          loginLockoutUntil = 0;
+          const submitBtn = document.getElementById('authSubmitBtn');
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+          const secAlert = document.getElementById('loginSecurityAlert');
+          secAlert.className = 'mb-4 rounded-2xl p-3.5 text-xs border bg-blue-950/70 border-blue-500/40 text-blue-200';
+          secAlert.innerHTML = `<i class="fa-solid fa-unlock mr-1 text-brand-cyan"></i> Bloqueo temporal finalizado. Puedes intentar iniciar sesión nuevamente.`;
+        } else if (countdownEl) {
+          countdownEl.innerText = `${remaining}s`;
+        }
+      }, 1000);
     }
 
     function handleAuthSubmit() {
       const emailInput = document.getElementById('loginEmailField').value.trim();
       const passwordInput = document.getElementById('loginPasswordField').value.trim();
+      const secAlert = document.getElementById('loginSecurityAlert');
 
+      if (currentAuthMode === 'register') {
+        const regName = document.getElementById('regNameField').value.trim();
+        const regWhatsapp = document.getElementById('regWhatsappField').value.trim();
+        const regAddress = document.getElementById('regAddressField').value.trim();
+        const regConfirmPass = document.getElementById('regConfirmPasswordField').value.trim();
+
+        if (!regName || !regWhatsapp || !emailInput || !passwordInput || !regConfirmPass) {
+          secAlert.className = 'mb-4 rounded-2xl p-3.5 text-xs border bg-amber-950/70 border-amber-500/40 text-amber-200';
+          secAlert.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-1"></i> Complete los campos obligatorios (Nombre, WhatsApp, Correo, Contraseña y Confirmación). La dirección es opcional.`;
+          secAlert.classList.remove('hidden');
+          return;
+        }
+
+        if (passwordInput !== regConfirmPass) {
+          secAlert.className = 'mb-4 rounded-2xl p-3.5 text-xs border bg-red-950/70 border-red-500/40 text-red-200';
+          secAlert.innerHTML = `<i class="fa-solid fa-xmark-circle mr-1"></i> La contraseña y su confirmación no coinciden.`;
+          secAlert.classList.remove('hidden');
+          return;
+        }
+
+        currentUser = {
+          username: regName,
+          email: emailInput,
+          phone: regWhatsapp,
+          address: regAddress,
+          password: passwordInput,
+          avatar: null
+        };
+        failedLoginAttempts = 0;
+        secAlert.classList.add('hidden');
+        updateUserUI();
+        closeAuthModal();
+        showWelcomeToast('¡Registro y Acceso Correcto!', `Bienvenido ${regName}, tu cuenta ha sido creada exitosamente.`);
+        return;
+      }
+
+      // Verificar si hay bloqueo activo
+      if (Date.now() < loginLockoutUntil) {
+        renderLoginLockoutAlert(emailInput && emailInput.includes('@') ? emailInput : 'usuario@ejemplo.com');
+        return;
+      }
+
+      const demoUser = "usuario";
+      const demoUserEmail = "usuario@ejemplo.com";
+      const demoPass = "123";
       const adminEmail = "admin@industriasacevedo.com";
       const adminPassword = "AdminPassword2026*";
 
-      if (emailInput === adminEmail && passwordInput === adminPassword) {
+      if ((emailInput === demoUser || emailInput === demoUserEmail) && passwordInput === demoPass) {
+        failedLoginAttempts = 0;
+        secAlert.classList.add('hidden');
+        currentUser = {
+          username: "usuario",
+          email: demoUserEmail,
+          phone: "+57 300 123 4567",
+          address: "Carrera 5 # 6-40, Jericó, Antioquia",
+          password: demoPass,
+          avatar: null,
+          isDemoCotizacion: true
+        };
+        updateUserUI();
+        currentOrderCode = 'ORD-2026-88';
+        document.getElementById('orderInput').value = currentOrderCode;
+        renderOrderView('cotizacion');
+        closeAuthModal();
+        showWelcomeToast('¡Bienvenido, usuario!', 'Logeo correcto. Tu pedido actual se encuentra en etapa de Cotización.');
+      } else if (emailInput === adminEmail && passwordInput === adminPassword) {
+        failedLoginAttempts = 0;
         window.location.href = "Admin.html";
       } else {
-        alert('¡Acceso procesado con éxito!');
-        closeAuthModal();
+        failedLoginAttempts++;
+        const remaining = MAX_LOGIN_ATTEMPTS - failedLoginAttempts;
+
+        if (remaining > 0) {
+          secAlert.className = 'mb-4 rounded-2xl p-3.5 text-xs border bg-amber-950/70 border-amber-500/40 text-amber-200';
+          secAlert.innerHTML = `
+            <div class="font-bold flex items-center gap-1.5">
+              <i class="fa-solid fa-triangle-exclamation text-amber-400"></i> Credenciales incorrectas.
+            </div>
+            <div class="text-[11px] mt-1">
+              Te quedan <strong>${remaining} intento${remaining === 1 ? '' : 's'}</strong> antes de activar la protección y alerta de seguridad al correo.
+            </div>
+          `;
+          secAlert.classList.remove('hidden');
+        } else {
+          // Al alcanzar el 5to fallo, se bloquea y se envía la alerta de seguridad al correo
+          startLoginLockout(emailInput);
+        }
       }
+    }
+
+    function updateUserUI() {
+      const headerBtns = document.getElementById('headerAuthButtons');
+      const userBadge = document.getElementById('userLoggedInBadge');
+      const userNameEl = document.getElementById('loggedInUserName');
+      const avatarContainer = document.getElementById('headerAvatarContainer');
+
+      if (currentUser) {
+        headerBtns.classList.add('hidden');
+        userBadge.classList.remove('hidden');
+        userNameEl.innerText = currentUser.username;
+        if (currentUser.avatar) {
+          avatarContainer.innerHTML = `<img src="${currentUser.avatar}" alt="Avatar" class="w-full h-full object-cover">`;
+        } else {
+          avatarContainer.innerHTML = `<i class="fa-solid fa-user"></i>`;
+        }
+      } else {
+        headerBtns.classList.remove('hidden');
+        userBadge.classList.add('hidden');
+      }
+    }
+
+    function logoutUser() {
+      currentUser = null;
+      updateUserUI();
+      currentOrderCode = 'ORD-2026-88';
+      document.getElementById('orderInput').value = currentOrderCode;
+      renderOrderView('fabricacion');
+      showWelcomeToast('Sesión Cerrada', 'Has cerrado sesión correctamente.');
+    }
+
+    /* GESTIÓN DE PERFIL DE USUARIO */
+    let tempAvatarDataUrl = null;
+
+    function openProfileModal() {
+      if (!currentUser) return;
+      tempAvatarDataUrl = currentUser.avatar || null;
+      document.getElementById('profName').value = currentUser.username || '';
+      document.getElementById('profPhone').value = currentUser.phone || '';
+      document.getElementById('profEmail').value = currentUser.email || '';
+      document.getElementById('profAddress').value = currentUser.address || '';
+      document.getElementById('profNewPass').value = '';
+      document.getElementById('profConfirmPass').value = '';
+
+      const preview = document.getElementById('profileAvatarPreview');
+      if (tempAvatarDataUrl) {
+        preview.innerHTML = `<img src="${tempAvatarDataUrl}" alt="Avatar" class="w-full h-full object-cover">`;
+      } else {
+        preview.innerHTML = `<i class="fa-solid fa-user"></i>`;
+      }
+
+      document.getElementById('profileModal').classList.remove('hidden');
+    }
+
+    function closeProfileModal() {
+      document.getElementById('profileModal').classList.add('hidden');
+    }
+
+    function previewProfileAvatar(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          tempAvatarDataUrl = e.target.result;
+          document.getElementById('profileAvatarPreview').innerHTML = `<img src="${tempAvatarDataUrl}" alt="Avatar" class="w-full h-full object-cover">`;
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    function saveProfileChanges() {
+      const name = document.getElementById('profName').value.trim();
+      const phone = document.getElementById('profPhone').value.trim();
+      const email = document.getElementById('profEmail').value.trim();
+      const address = document.getElementById('profAddress').value.trim();
+      const newPass = document.getElementById('profNewPass').value.trim();
+      const confirmPass = document.getElementById('profConfirmPass').value.trim();
+
+      if (!name || !phone || !email) {
+        showWelcomeToast('Campos Requeridos', 'Nombre, teléfono y correo son obligatorios.');
+        return;
+      }
+
+      if (newPass || confirmPass) {
+        if (newPass !== confirmPass) {
+          showWelcomeToast('Error de Contraseña', 'La nueva contraseña y su confirmación no coinciden.');
+          return;
+        }
+        currentUser.password = newPass;
+      }
+
+      currentUser.username = name;
+      currentUser.phone = phone;
+      currentUser.email = email;
+      currentUser.address = address;
+      currentUser.avatar = tempAvatarDataUrl;
+
+      updateUserUI();
+      closeProfileModal();
+      showWelcomeToast('Perfil Actualizado', 'Tus datos de perfil se han guardado correctamente.');
+    }
+
+    /* HISTORIAL DE COMPRAS */
+    function openPurchaseHistory() {
+      if (!currentUser) {
+        openOrderActionModal({
+          badge: 'Acceso Restringido',
+          title: 'Inicia Sesión para Ver tu Historial',
+          message: 'Debes estar logeado para acceder a tu historial de compras y comprobantes.',
+          icon: 'fa-lock',
+          iconTone: 'blue',
+          buttons: [
+            { label: 'Cerrar' },
+            { label: 'Iniciar Sesión', className: 'px-4 py-2.5 bg-[#0822A0] hover:bg-blue-600 text-white font-extrabold text-xs rounded-xl cursor-pointer transition-all', onClick: () => openAuthModal('login') }
+          ]
+        });
+        return;
+      }
+
+      document.getElementById('historyClientName').innerText = currentUser.username;
+      document.getElementById('historyClientEmail').innerText = currentUser.email;
+      document.getElementById('purchaseHistoryModal').classList.remove('hidden');
+    }
+
+    function closePurchaseHistory() {
+      document.getElementById('purchaseHistoryModal').classList.add('hidden');
+    }
+
+    function downloadInvoiceSimulated(orderCode) {
+      showWelcomeToast('Descargando PDF', `Generando comprobante PDF para la orden ${orderCode}...`);
     }
 
     const productosData = {
@@ -1351,6 +2619,266 @@
       document.getElementById('cartDrawer').classList.toggle('hidden');
     }
 
+    /* PASARELA DE PAGOS COMPLETA PARA COLOMBIA (MODO DÍA POR DEFECTO, CAMBIO A MODO NOCHE) */
+    let pgTotalAmount = 0;
+    let pgMinAmount = 0;
+    let selectedPaymentMethodKey = 'pse';
+    let currentPaymentOption = 'min50';
+    let pgDeliveryMode = 'domicilio';
+    let pgIsDayMode = true; // Inicia en Modo Día por defecto
+
+    function togglePaymentTheme() {
+      pgIsDayMode = !pgIsDayMode;
+      const modal = document.getElementById('paymentGatewayModal');
+      const icon = document.getElementById('pgThemeIcon');
+      const text = document.getElementById('pgThemeText');
+      const btn = document.getElementById('pgThemeToggleBtn');
+
+      if (pgIsDayMode) {
+        modal.classList.add('pg-day-mode');
+        icon.className = 'fa-solid fa-moon text-[#0822A0]';
+        text.innerText = 'Modo Noche';
+        btn.className = 'px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#0822A0] border border-blue-200 text-[11px] font-extrabold flex items-center gap-1.5 cursor-pointer transition-all';
+      } else {
+        modal.classList.remove('pg-day-mode');
+        icon.className = 'fa-solid fa-sun text-amber-400';
+        text.innerText = 'Modo Día';
+        btn.className = 'px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-brand-cyan border border-slate-700 text-[11px] font-extrabold flex items-center gap-1.5 cursor-pointer transition-all';
+      }
+    }
+
+    function setDeliveryMode(mode) {
+      pgDeliveryMode = mode;
+      const btnHome = document.getElementById('btnDeliveryHome');
+      const btnPickup = document.getElementById('btnDeliveryPickup');
+      const addrWrap = document.getElementById('pgAddressWrapper');
+      const pickupNotice = document.getElementById('pgPickupNotice');
+
+      if (mode === 'domicilio') {
+        btnHome.className = 'pg-btn-active-blue p-2.5 rounded-xl border border-blue-500 bg-blue-600/30 text-white flex items-center justify-center gap-2 cursor-pointer transition-all';
+        btnPickup.className = 'pg-btn-inactive p-2.5 rounded-xl border border-slate-700 bg-slate-950/60 text-slate-300 flex items-center justify-center gap-2 cursor-pointer transition-all';
+        addrWrap.classList.remove('hidden');
+        pickupNotice.classList.add('hidden');
+      } else {
+        btnPickup.className = 'pg-btn-active-blue p-2.5 rounded-xl border border-blue-500 bg-blue-600/30 text-white flex items-center justify-center gap-2 cursor-pointer transition-all';
+        btnHome.className = 'pg-btn-inactive p-2.5 rounded-xl border border-slate-700 bg-slate-950/60 text-slate-300 flex items-center justify-center gap-2 cursor-pointer transition-all';
+        addrWrap.classList.add('hidden');
+        pickupNotice.classList.remove('hidden');
+      }
+    }
+
+    function openPaymentGateway() {
+      const subtotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
+      if (subtotal <= 0) {
+        showWelcomeToast('Carrito Vacío', 'Añade primero una cotización para procesar el pedido.');
+        return;
+      }
+
+      if (!currentUser) {
+        toggleCartDrawer();
+        openOrderActionModal({
+          badge: 'Registro Requerido',
+          title: 'Debes Estar Registrado para Comprar',
+          message: 'Para procesar tu pedido y realizar el pago del anticipo en Industrias Acevedo, debes contar con una cuenta registrada e iniciar sesión.',
+          icon: 'fa-user-lock',
+          iconTone: 'amber',
+          buttons: [
+            { label: 'Cancelar' },
+            { label: 'Registrarme Ahora', className: 'px-4 py-2.5 bg-[#0822A0] hover:bg-blue-600 text-white font-extrabold text-xs rounded-xl cursor-pointer transition-all', onClick: () => openAuthModal('register') }
+          ]
+        });
+        return;
+      }
+
+      pgTotalAmount = Math.round(subtotal);
+      pgMinAmount = Math.ceil(pgTotalAmount * 0.5);
+
+      document.getElementById('pgTotalOperation').innerText = `$ ${pgTotalAmount.toLocaleString('es-CO')} COP`;
+      document.getElementById('pgMinAdvance').innerText = `$ ${pgMinAmount.toLocaleString('es-CO')} COP`;
+      document.getElementById('preset50Label').innerText = `$ ${pgMinAmount.toLocaleString('es-CO')} COP`;
+      document.getElementById('preset100Label').innerText = `$ ${pgTotalAmount.toLocaleString('es-CO')} COP`;
+
+      const amountInput = document.getElementById('pgCustomAmount');
+      amountInput.min = pgMinAmount;
+      amountInput.max = pgTotalAmount;
+
+      document.getElementById('pgClientName').value = currentUser.username || '';
+      document.getElementById('pgClientEmail').value = currentUser.email || '';
+      document.getElementById('pgClientPhone').value = currentUser.phone || '';
+      document.getElementById('pgClientAddress').value = currentUser.address || '';
+
+      document.getElementById('pgConfirmationBox').classList.add('hidden');
+      setPaymentOption('min50');
+      setDeliveryMode('domicilio');
+      selectPaymentMethod('pse', document.querySelector('.pg-method-btn'));
+
+      document.getElementById('paymentGatewayModal').classList.remove('hidden');
+    }
+
+    function closePaymentGateway() {
+      document.getElementById('paymentGatewayModal').classList.add('hidden');
+    }
+
+    function setPaymentOption(option) {
+      currentPaymentOption = option;
+      const amountInput = document.getElementById('pgCustomAmount');
+      const btn50 = document.getElementById('btnPayMin50');
+      const btn100 = document.getElementById('btnPayFull100');
+      const btnCustom = document.getElementById('btnPayCustom');
+
+      const inactiveClass = 'pg-btn-inactive p-3 rounded-xl border border-slate-700 bg-slate-950/60 hover:border-blue-400 text-slate-200 font-extrabold text-xs flex flex-col items-center gap-1 cursor-pointer transition-all';
+      btn50.className = inactiveClass;
+      btn100.className = inactiveClass;
+      btnCustom.className = inactiveClass;
+
+      if (option === 'min50') {
+        btn50.className = 'pg-btn-active-emerald p-3 rounded-xl border border-emerald-400 bg-emerald-500/20 text-white font-extrabold text-xs flex flex-col items-center gap-1 cursor-pointer transition-all';
+        amountInput.value = pgMinAmount;
+        amountInput.readOnly = true;
+      } else if (option === 'full100') {
+        btn100.className = 'pg-btn-active-blue p-3 rounded-xl border border-blue-400 bg-blue-600/30 text-white font-extrabold text-xs flex flex-col items-center gap-1 cursor-pointer transition-all';
+        amountInput.value = pgTotalAmount;
+        amountInput.readOnly = true;
+      } else {
+        btnCustom.className = 'pg-btn-active-blue p-3 rounded-xl border border-brand-cyan bg-cyan-500/20 text-white font-extrabold text-xs flex flex-col items-center gap-1 cursor-pointer transition-all';
+        amountInput.readOnly = false;
+        const suggested = Math.min(pgTotalAmount, Math.ceil(pgTotalAmount * 0.7));
+        amountInput.value = suggested;
+        amountInput.focus();
+      }
+
+      handleCustomPaymentInput();
+    }
+
+    function handleCustomPaymentInput() {
+      const entered = parseFloat(document.getElementById('pgCustomAmount').value) || 0;
+      const errorBox = document.getElementById('pgValidationError');
+      const errorText = document.getElementById('pgValidationErrorText');
+      const remainingEl = document.getElementById('pgRemainingBalance');
+      const selectedTodayEl = document.getElementById('pgSelectedToday');
+
+      selectedTodayEl.innerText = `$ ${Math.max(Math.round(entered), 0).toLocaleString('es-CO')} COP`;
+
+      if (entered < pgMinAmount) {
+        errorBox.classList.remove('hidden');
+        errorText.innerText = `El pago mínimo es del 50% ($ ${pgMinAmount.toLocaleString('es-CO')} COP). No se permiten abonos menores.`;
+        remainingEl.innerText = `$ ${pgTotalAmount.toLocaleString('es-CO')} COP`;
+        return false;
+      }
+
+      if (entered > pgTotalAmount) {
+        errorBox.classList.remove('hidden');
+        errorText.innerText = `El monto no puede superar el valor total de la operación ($ ${pgTotalAmount.toLocaleString('es-CO')} COP).`;
+        remainingEl.innerText = `$ 0 COP`;
+        return false;
+      }
+
+      errorBox.classList.add('hidden');
+      const saldo = Math.max(pgTotalAmount - entered, 0);
+      remainingEl.innerText = `$ ${Math.round(saldo).toLocaleString('es-CO')} COP`;
+      return true;
+    }
+
+    function selectPaymentMethod(methodKey, btnEl) {
+      selectedPaymentMethodKey = methodKey;
+      document.querySelectorAll('.pg-method-btn').forEach(btn => {
+        btn.classList.remove('pg-btn-active-blue', 'border-blue-500', 'bg-blue-600/30', 'text-white');
+        btn.classList.add('pg-btn-inactive', 'border-slate-700', 'bg-slate-950/60', 'text-slate-300');
+      });
+      if (btnEl) {
+        btnEl.classList.remove('pg-btn-inactive', 'border-slate-700', 'bg-slate-950/60', 'text-slate-300');
+        btnEl.classList.add('pg-btn-active-blue', 'border-blue-500', 'bg-blue-600/30', 'text-white');
+      }
+
+      document.getElementById('pgFieldsPSE').classList.toggle('hidden', methodKey !== 'pse');
+      document.getElementById('pgFieldsCard').classList.toggle('hidden', methodKey !== 'card');
+      document.getElementById('pgFieldsWallet').classList.toggle('hidden', methodKey !== 'wallet');
+      document.getElementById('pgFieldsCash').classList.toggle('hidden', methodKey !== 'cash');
+    }
+
+    function confirmPaymentGateway() {
+      if (!currentUser) {
+        closePaymentGateway();
+        openAuthModal('register');
+        return;
+      }
+
+      if (!handleCustomPaymentInput()) return;
+
+      const clientName = document.getElementById('pgClientName').value.trim();
+      const clientEmail = document.getElementById('pgClientEmail').value.trim();
+      const clientPhone = document.getElementById('pgClientPhone').value.trim();
+      const clientCity = document.getElementById('pgClientCity').value.trim();
+      const clientAddress = document.getElementById('pgClientAddress').value.trim();
+
+      if (!clientName || !clientEmail || !clientPhone || !clientCity) {
+        showWelcomeToast('Datos Incompletos', 'Complete todos los datos de facturación y contacto.');
+        return;
+      }
+
+      if (pgDeliveryMode === 'domicilio' && !clientAddress) {
+        showWelcomeToast('Dirección Obligatoria', 'Ingresa tu dirección o selecciona "Recoger en Taller".');
+        document.getElementById('pgClientAddress').focus();
+        return;
+      }
+
+      let methodDetail = '';
+      if (selectedPaymentMethodKey === 'pse') {
+        const bank = document.getElementById('pseBank').value;
+        const personType = document.getElementById('psePersonType').value;
+        const docType = document.getElementById('pseDocType').value;
+        const docNum = document.getElementById('pseDocNumber').value.trim();
+        if (!docNum) {
+          showWelcomeToast('Documento Requerido', 'Ingrese el número de documento para continuar con PSE.');
+          return;
+        }
+        methodDetail = `PSE — ${bank} (${personType}, ${docType} ${docNum})`;
+      } else if (selectedPaymentMethodKey === 'card') {
+        const cardNum = document.getElementById('cardNumber').value.trim();
+        const cardHolder = document.getElementById('cardHolder').value.trim();
+        const cardExpiry = document.getElementById('cardExpiry').value.trim();
+        const cardCvv = document.getElementById('cardCvv').value.trim();
+        const cuotas = document.getElementById('cardInstallments').value;
+        if (!cardNum || !cardHolder || !cardExpiry || !cardCvv) {
+          showWelcomeToast('Datos de Tarjeta', 'Complete todos los datos de la tarjeta.');
+          return;
+        }
+        const last4 = cardNum.replace(/\s+/g, '').slice(-4);
+        methodDetail = `Tarjeta terminada en **** ${last4} (${cuotas} cuota${cuotas > 1 ? 's' : ''})`;
+      } else if (selectedPaymentMethodKey === 'wallet') {
+        const provider = document.getElementById('walletProvider').value;
+        const walletPhone = document.getElementById('walletPhone').value.trim();
+        if (!walletPhone) {
+          showWelcomeToast('Celular Requerido', `Ingrese el celular registrado en ${provider}.`);
+          return;
+        }
+        methodDetail = `${provider} (+57 ${walletPhone})`;
+      } else if (selectedPaymentMethodKey === 'cash') {
+        const cashProvider = document.getElementById('cashProvider').value;
+        const pin = Math.floor(100000000 + Math.random() * 900000000);
+        methodDetail = `${cashProvider} — Código de pago: ${pin}`;
+      }
+
+      const paidAmount = Math.round(parseFloat(document.getElementById('pgCustomAmount').value) || 0);
+      const balance = Math.max(pgTotalAmount - paidAmount, 0);
+      const pct = ((paidAmount / pgTotalAmount) * 100).toFixed(1);
+      const refCode = `ACE-CO-${Math.floor(100000 + Math.random() * 900000)}`;
+      const deliverySummary = pgDeliveryMode === 'domicilio' ? `Envío a Domicilio: ${clientAddress}, ${clientCity}` : 'Recoger en Taller (Jericó, Antioquia)';
+
+      const confirmBox = document.getElementById('pgConfirmationBox');
+      confirmBox.classList.remove('hidden');
+      confirmBox.innerHTML = `
+        <div class="font-black flex items-center gap-1.5 text-sm">
+          <i class="fa-solid fa-circle-check"></i> Transacción Aprobada — Ref. ${refCode}
+        </div>
+        <div><strong>Cliente:</strong> ${clientName} (${clientEmail} | ${clientPhone})</div>
+        <div><strong>Entrega:</strong> ${deliverySummary}</div>
+        <div><strong>Método:</strong> ${methodDetail}</div>
+        <div><strong>Pago Realizado (${pct}%):</strong> $ ${paidAmount.toLocaleString('es-CO')} COP</div>
+        <div><strong>Saldo Contra-Entrega:</strong> $ ${balance.toLocaleString('es-CO')} COP</div>
+      `;
+    }
+
     const titleLeft = document.getElementById('title-left');
     const titleRight = document.getElementById('title-right');
     const subDesc = document.getElementById('sub-desc');
@@ -1400,7 +2928,6 @@
 
       if (scrollProgress >= 0.15 && scrollProgress < 0.55) {
         const catProgress = (scrollProgress - 0.15) / 0.40;
-        
         categoriesLayer.style.opacity = Math.min(catProgress * 5, 1);
         categoriesLayer.style.transform = `scale(${0.98 + (catProgress * 0.02)})`;
         categoriesLayer.style.pointerEvents = "auto";
@@ -1457,19 +2984,12 @@
 
     const aboutSection = document.getElementById('sobre-nosotros');
     const footerSection = document.getElementById('main-footer-section');
-    
-    const observerOptions = {
-      root: null,
-      threshold: 0.25
-    };
 
-    const sectionObserver = new IntersectionObserver((entries, observer) => {
+    const sectionObserver = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('active');
-        }
+        if (entry.isIntersecting) entry.target.classList.add('active');
       });
-    }, observerOptions);
+    }, { root: null, threshold: 0.25 });
 
     sectionObserver.observe(aboutSection);
     sectionObserver.observe(footerSection);
@@ -1497,22 +3017,318 @@
       });
     }
 
+    /* ESTADO Y LÓGICA DE RASTREO, EDICIÓN Y CANCELACIÓN DE PEDIDO */
+    let currentOrderStage = 'fabricacion'; // 'cotizacion' | 'fabricacion' | 'envio' | 'cancelado'
+    let currentOrderCode = 'ORD-2026-88';
+    let currentOrderDeliveryType = 'domicilio';
+    let currentOrderAddress = 'Carrera 5 # 6-40, Jericó, Antioquia';
+
+    function updateOrderAddressUI() {
+      const addrEl = document.getElementById('orderAddressDisplay');
+      if (currentOrderDeliveryType === 'taller') {
+        addrEl.innerHTML = `<i class="fa-solid fa-industry text-brand-cyan"></i> Entrega: Recoger en Taller (Jericó, Antioquia)`;
+      } else {
+        addrEl.innerHTML = `<i class="fa-solid fa-location-dot text-brand-cyan"></i> Entrega: ${currentOrderAddress}`;
+      }
+    }
+
+    function renderOrderView(stage) {
+      currentOrderStage = stage;
+      const alertBox = document.getElementById('orderCancelAlertBox');
+      const btnCancel = document.getElementById('btnCancelOrder');
+      const btnEdit = document.getElementById('btnEditOrder');
+      const timelineGrid = document.getElementById('orderTimelineGrid');
+
+      updateOrderAddressUI();
+
+      if (stage !== 'cancelado') {
+        alertBox.classList.add('hidden');
+        if (btnCancel) {
+          btnCancel.disabled = false;
+          btnCancel.innerText = 'Cancelar pedido';
+          btnCancel.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+        if (btnEdit) {
+          btnEdit.disabled = false;
+          btnEdit.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+      }
+
+      if (stage === 'cotizacion') {
+        document.getElementById('orderStageName').innerText = 'Fase 2: En Cotización';
+        document.getElementById('orderLogTitle').innerText = 'Cotización en Revisión por el Cliente';
+        document.getElementById('orderLogDate').innerText = 'Hoy - Pendiente de Aprobación';
+        document.getElementById('orderLogDesc').innerText = 'Tu solicitud está en etapa de cotización. Puedes editar o cancelar sin ningún costo.';
+        document.getElementById('orderPaidLabel').innerText = 'Anticipo Pagado (0%):';
+        document.getElementById('orderPaidAmount').innerText = '$ 0 COP';
+        document.getElementById('orderBalanceAmount').innerText = '$ 2.016.000 COP';
+
+        timelineGrid.innerHTML = `
+          <div class="flex sm:flex-col items-center sm:text-center gap-4 sm:gap-2 relative z-10">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-bold text-lg shadow-md shrink-0"><i class="fa-solid fa-check"></i></div>
+            <div class="sm:pt-1"><h4 class="text-xs font-extrabold text-slate-900">1. Solicitud</h4><p class="text-[11px] text-slate-500">Recibido en Sistema</p><span class="text-[10px] font-bold text-emerald-600 block mt-0.5">Completado</span></div>
+          </div>
+          <div class="flex sm:flex-col items-center sm:text-center gap-4 sm:gap-2 relative z-10">
+            <div class="w-12 h-12 rounded-2xl bg-[#0822A0] text-white flex items-center justify-center font-bold text-lg shadow-lg ring-4 ring-blue-100 shrink-0 animate-bounce"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+            <div class="sm:pt-1"><h4 class="text-xs font-extrabold text-[#0822A0]">2. Cotización</h4><p class="text-[11px] font-bold text-blue-900">Pendiente de Abono</p><span class="text-[10px] font-extrabold text-blue-600 block mt-0.5">En Proceso (Hoy)</span></div>
+          </div>
+          <div class="flex sm:flex-col items-center sm:text-center gap-4 sm:gap-2 relative z-10 opacity-50">
+            <div class="w-12 h-12 rounded-2xl bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-lg shrink-0"><i class="fa-solid fa-gears"></i></div>
+            <div class="sm:pt-1"><h4 class="text-xs font-extrabold text-slate-700">3. Fabricación</h4><p class="text-[11px] text-slate-500">Corte y Ensamble CNC</p><span class="text-[10px] font-bold text-slate-400 block mt-0.5">Pendiente</span></div>
+          </div>
+          <div class="flex sm:flex-col items-center sm:text-center gap-4 sm:gap-2 relative z-10 opacity-50">
+            <div class="w-12 h-12 rounded-2xl bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-lg shrink-0"><i class="fa-solid fa-truck-ramp-box"></i></div>
+            <div class="sm:pt-1"><h4 class="text-xs font-extrabold text-slate-700">4. Despacho</h4><p class="text-[11px] text-slate-500">Entrega en Sitio</p><span class="text-[10px] font-bold text-slate-400 block mt-0.5">Por Definir</span></div>
+          </div>
+        `;
+      } else if (stage === 'fabricacion') {
+        document.getElementById('orderStageName').innerText = 'Fase 3: En Fabricación CNC';
+        document.getElementById('orderLogTitle').innerText = 'Corte Plasma CNC y Preparación de Perfiles';
+        document.getElementById('orderLogDate').innerText = '21 Sep - 10:30 AM';
+        document.getElementById('orderLogDesc').innerText = 'Se han cortado los perfiles estructurales de hierro calibre 14. Aún puedes actualizar la dirección de entrega antes del despacho.';
+        document.getElementById('orderPaidLabel').innerText = 'Anticipo Pagado (50%):';
+        document.getElementById('orderPaidAmount').innerText = '$ 1.008.000 COP';
+        document.getElementById('orderBalanceAmount').innerText = '$ 1.008.000 COP';
+
+        timelineGrid.innerHTML = `
+          <div class="flex sm:flex-col items-center sm:text-center gap-4 sm:gap-2 relative z-10">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-bold text-lg shadow-md shrink-0"><i class="fa-solid fa-check"></i></div>
+            <div class="sm:pt-1"><h4 class="text-xs font-extrabold text-slate-900">1. Solicitud</h4><p class="text-[11px] text-slate-500">Recibido en Sistema</p><span class="text-[10px] font-bold text-emerald-600 block mt-0.5">Completado</span></div>
+          </div>
+          <div class="flex sm:flex-col items-center sm:text-center gap-4 sm:gap-2 relative z-10">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-bold text-lg shadow-md shrink-0"><i class="fa-solid fa-check"></i></div>
+            <div class="sm:pt-1"><h4 class="text-xs font-extrabold text-slate-900">2. Cotización</h4><p class="text-[11px] text-slate-500">Abono 50% Confirmado</p><span class="text-[10px] font-bold text-emerald-600 block mt-0.5">Completado</span></div>
+          </div>
+          <div class="flex sm:flex-col items-center sm:text-center gap-4 sm:gap-2 relative z-10">
+            <div class="w-12 h-12 rounded-2xl bg-[#0822A0] text-white flex items-center justify-center font-bold text-lg shadow-lg ring-4 ring-blue-100 shrink-0 animate-bounce"><i class="fa-solid fa-gears"></i></div>
+            <div class="sm:pt-1"><h4 class="text-xs font-extrabold text-[#0822A0]">3. Fabricación</h4><p class="text-[11px] font-bold text-blue-900">Corte y Ensamble CNC</p><span class="text-[10px] font-extrabold text-blue-600 block mt-0.5">En Proceso (Hoy)</span></div>
+          </div>
+          <div class="flex sm:flex-col items-center sm:text-center gap-4 sm:gap-2 relative z-10 opacity-50">
+            <div class="w-12 h-12 rounded-2xl bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-lg shrink-0"><i class="fa-solid fa-truck-ramp-box"></i></div>
+            <div class="sm:pt-1"><h4 class="text-xs font-extrabold text-slate-700">4. Despacho</h4><p class="text-[11px] text-slate-500">Entrega en Sitio</p><span class="text-[10px] font-bold text-slate-400 block mt-0.5">Estimado: 24 Sep</span></div>
+          </div>
+        `;
+      } else if (stage === 'envio') {
+        document.getElementById('orderStageName').innerText = 'Fase 4: En Proceso de Envío';
+        document.getElementById('orderLogTitle').innerText = 'Estructura Despachada en Ruta';
+        document.getElementById('orderLogDate').innerText = '24 Sep - 08:15 AM';
+        document.getElementById('orderLogDesc').innerText = 'Tu pedido ya salió de fabricación y se encuentra en transporte hacia el destino registrado. No es posible modificar la dirección de envío.';
+        document.getElementById('orderPaidLabel').innerText = 'Anticipo Pagado (50%):';
+        document.getElementById('orderPaidAmount').innerText = '$ 1.008.000 COP';
+        document.getElementById('orderBalanceAmount').innerText = '$ 1.008.000 COP';
+
+        timelineGrid.innerHTML = `
+          <div class="flex sm:flex-col items-center sm:text-center gap-4 sm:gap-2 relative z-10">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-bold text-lg shadow-md shrink-0"><i class="fa-solid fa-check"></i></div>
+            <div class="sm:pt-1"><h4 class="text-xs font-extrabold text-slate-900">1. Solicitud</h4><p class="text-[11px] text-slate-500">Recibido en Sistema</p><span class="text-[10px] font-bold text-emerald-600 block mt-0.5">Completado</span></div>
+          </div>
+          <div class="flex sm:flex-col items-center sm:text-center gap-4 sm:gap-2 relative z-10">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-bold text-lg shadow-md shrink-0"><i class="fa-solid fa-check"></i></div>
+            <div class="sm:pt-1"><h4 class="text-xs font-extrabold text-slate-900">2. Cotización</h4><p class="text-[11px] text-slate-500">Abono Confirmado</p><span class="text-[10px] font-bold text-emerald-600 block mt-0.5">Completado</span></div>
+          </div>
+          <div class="flex sm:flex-col items-center sm:text-center gap-4 sm:gap-2 relative z-10">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center font-bold text-lg shadow-md shrink-0"><i class="fa-solid fa-check"></i></div>
+            <div class="sm:pt-1"><h4 class="text-xs font-extrabold text-slate-900">3. Fabricación</h4><p class="text-[11px] text-slate-500">Finalizada en Taller</p><span class="text-[10px] font-bold text-emerald-600 block mt-0.5">Completado</span></div>
+          </div>
+          <div class="flex sm:flex-col items-center sm:text-center gap-4 sm:gap-2 relative z-10">
+            <div class="w-12 h-12 rounded-2xl bg-[#0822A0] text-white flex items-center justify-center font-bold text-lg shadow-lg ring-4 ring-blue-100 shrink-0 animate-bounce"><i class="fa-solid fa-truck-fast"></i></div>
+            <div class="sm:pt-1"><h4 class="text-xs font-extrabold text-[#0822A0]">4. Despacho</h4><p class="text-[11px] font-bold text-blue-900">En Proceso de Envío</p><span class="text-[10px] font-extrabold text-blue-600 block mt-0.5">En Ruta (Hoy)</span></div>
+          </div>
+        `;
+      }
+    }
+
+    function activarRastreoPedido() {
+      if (!isUnlocked) unlockScreen();
+      document.getElementById('cancelOrderContainer').classList.remove('hidden');
+      document.getElementById('orderCard').classList.remove('hidden');
+    }
+
+    function ejecutarCancelacionOrden() {
+      const alertBox = document.getElementById('orderCancelAlertBox');
+      const btnCancel = document.getElementById('btnCancelOrder');
+      const btnEdit = document.getElementById('btnEditOrder');
+
+      if (currentOrderStage === 'cotizacion') {
+        alertBox.className = 'mx-6 sm:mx-10 mt-6 rounded-2xl p-4 text-xs font-bold border bg-emerald-50 text-emerald-800 border-emerald-300';
+        alertBox.innerText = `Pedido ${currentOrderCode} cancelado sin problema (se encontraba en etapa de Cotización).`;
+      } else {
+        alertBox.className = 'mx-6 sm:mx-10 mt-6 rounded-2xl p-4 text-xs font-bold border bg-red-50 text-red-800 border-red-300';
+        alertBox.innerText = `Pedido ${currentOrderCode} cancelado. No aplica devolución del 50% por materiales al encontrarse en etapa avanzada.`;
+      }
+      alertBox.classList.remove('hidden');
+
+      currentOrderStage = 'cancelado';
+      document.getElementById('orderStageName').innerText = 'Cancelado';
+      if (btnCancel) {
+        btnCancel.disabled = true;
+        btnCancel.innerText = 'Pedido cancelado';
+        btnCancel.classList.add('opacity-50', 'cursor-not-allowed');
+      }
+      if (btnEdit) {
+        btnEdit.disabled = true;
+        btnEdit.classList.add('opacity-50', 'cursor-not-allowed');
+      }
+      showWelcomeToast('Orden Cancelada', `El pedido ${currentOrderCode} ha sido cancelado.`);
+    }
+
+    /* CANCELAR PEDIDO CON MODAL CORPORATIVO PROFESIONAL */
+    function cancelarPedidoActual() {
+      if (!currentUser) {
+        openOrderActionModal({
+          badge: 'Autenticación Requerida',
+          title: 'Inicia Sesión para Cancelar',
+          message: 'Por seguridad, debes iniciar sesión en tu cuenta antes de solicitar la cancelación de una orden.',
+          icon: 'fa-user-shield',
+          iconTone: 'amber',
+          buttons: [
+            { label: 'Cerrar' },
+            { label: 'Iniciar Sesión', className: 'px-4 py-2.5 bg-[#0822A0] hover:bg-blue-600 text-white font-extrabold text-xs rounded-xl cursor-pointer transition-all', onClick: () => openAuthModal('login') }
+          ]
+        });
+        return;
+      }
+
+      if (currentOrderStage === 'cancelado') return;
+
+      let stageText = '';
+      let warningText = '';
+
+      if (currentOrderStage === 'cotizacion') {
+        stageText = `El pedido <strong>${currentOrderCode}</strong> se encuentra actualmente en etapa de <strong>Cotización</strong>. ¿Está seguro de que desea cancelar esta orden?`;
+      } else if (currentOrderStage === 'fabricacion') {
+        stageText = `El pedido <strong>${currentOrderCode}</strong> se encuentra en etapa de <strong>Fabricación CNC</strong>. ¿Está seguro de que desea continuar con la cancelación?`;
+        warningText = 'Consecuencia: Dado que el producto ya está en fabricación, no se hará devolución del 50% que equivale a los materiales.';
+      } else if (currentOrderStage === 'envio') {
+        stageText = `El pedido <strong>${currentOrderCode}</strong> ya salió de fabricación y se encuentra en <strong>Proceso de Envío</strong>. ¿Está seguro de que desea cancelar esta orden?`;
+        warningText = 'Consecuencia: No se hará devolución del 50% de materiales ni de los costos logísticos ya generados.';
+      }
+
+      openOrderActionModal({
+        badge: 'Confirmación de Cancelación',
+        title: `Cancelar Orden ${currentOrderCode}`,
+        message: stageText,
+        warning: warningText,
+        icon: 'fa-ban',
+        iconTone: 'red',
+        buttons: [
+          { label: 'Volver' },
+          {
+            label: 'Sí, Cancelar Pedido',
+            className: 'px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs rounded-xl shadow-lg cursor-pointer transition-all',
+            onClick: ejecutarCancelacionOrden
+          }
+        ]
+      });
+    }
+
+    /* EDITAR COMPRA CON MODAL CORPORATIVO PROFESIONAL */
+    function openEditOrderModal() {
+      if (!currentUser) {
+        openOrderActionModal({
+          badge: 'Autenticación Requerida',
+          title: 'Inicia Sesión para Editar',
+          message: 'Debes iniciar sesión en tu cuenta para modificar la dirección o detalles de tu pedido.',
+          icon: 'fa-user-shield',
+          iconTone: 'amber',
+          buttons: [
+            { label: 'Cerrar' },
+            { label: 'Iniciar Sesión', className: 'px-4 py-2.5 bg-[#0822A0] hover:bg-blue-600 text-white font-extrabold text-xs rounded-xl cursor-pointer transition-all', onClick: () => openAuthModal('login') }
+          ]
+        });
+        return;
+      }
+
+      if (currentOrderStage === 'cancelado') {
+        openOrderActionModal({
+          badge: 'Orden Cancelada',
+          title: 'Edición No Disponible',
+          message: `La orden <strong>${currentOrderCode}</strong> ya fue cancelada y no admite modificaciones.`,
+          icon: 'fa-circle-xmark',
+          iconTone: 'red',
+          buttons: [{ label: 'Entendido', className: 'px-4 py-2.5 bg-[#0822A0] hover:bg-blue-600 text-white font-extrabold text-xs rounded-xl cursor-pointer' }]
+        });
+        return;
+      }
+
+      if (currentOrderStage === 'envio') {
+        openOrderActionModal({
+          badge: 'Despacho en Curso',
+          title: 'No Es Posible Modificar el Envío',
+          message: `La orden <strong>${currentOrderCode}</strong> ya salió de fabricación y se encuentra en <strong>Proceso de Envío</strong>.`,
+          warning: 'Por políticas logísticas, una vez despachado el pedido no se permite modificar la dirección de envío ni los datos de la compra.',
+          icon: 'fa-truck-fast',
+          iconTone: 'amber',
+          buttons: [{ label: 'Entendido', className: 'px-4 py-2.5 bg-[#0822A0] hover:bg-blue-600 text-white font-extrabold text-xs rounded-xl cursor-pointer' }]
+        });
+        return;
+      }
+
+      document.getElementById('editOrderTitle').innerText = `Editar Orden ${currentOrderCode}`;
+      document.getElementById('editOrderDeliveryType').value = currentOrderDeliveryType;
+      document.getElementById('editOrderAddressInput').value = currentOrderAddress;
+      toggleEditOrderAddress();
+      document.getElementById('editOrderModal').classList.remove('hidden');
+    }
+
+    function closeEditOrderModal() {
+      document.getElementById('editOrderModal').classList.add('hidden');
+    }
+
+    function toggleEditOrderAddress() {
+      const type = document.getElementById('editOrderDeliveryType').value;
+      document.getElementById('editOrderAddressWrapper').classList.toggle('hidden', type === 'taller');
+    }
+
+    function saveOrderEdits() {
+      const type = document.getElementById('editOrderDeliveryType').value;
+      const newAddr = document.getElementById('editOrderAddressInput').value.trim();
+
+      if (type === 'domicilio' && !newAddr) {
+        showWelcomeToast('Dirección Requerida', 'Ingresa una dirección de envío válida o selecciona Recoger en Taller.');
+        return;
+      }
+
+      currentOrderDeliveryType = type;
+      if (type === 'domicilio') currentOrderAddress = newAddr;
+
+      updateOrderAddressUI();
+      closeEditOrderModal();
+
+      const alertBox = document.getElementById('orderCancelAlertBox');
+      alertBox.className = 'mx-6 sm:mx-10 mt-6 rounded-2xl p-4 text-xs font-bold border bg-blue-50 text-blue-900 border-blue-300';
+      alertBox.innerText = `Pedido ${currentOrderCode} actualizado correctamente.`;
+      alertBox.classList.remove('hidden');
+      showWelcomeToast('Pedido Actualizado', `Los datos de la orden ${currentOrderCode} han sido guardados.`);
+    }
+
     function buscarOrden() {
       const code = document.getElementById('orderInput').value.trim().toUpperCase();
       if (!code) return;
       
       const card = document.getElementById('orderCard');
+      card.classList.remove('hidden');
+      document.getElementById('cancelOrderContainer').classList.remove('hidden');
       card.classList.add('opacity-50', 'scale-98');
       
       setTimeout(() => {
-        if(code === 'ORD-2026-88') {
+        currentOrderCode = code;
+        if (code === 'ORD-2026-88') {
           document.getElementById('orderTitle').innerText = 'ORD-2026-88 — Portón Finca Campestre';
-          document.getElementById('orderSpec').innerHTML = '<i class="fa-solid fa-layer-group text-brand-cyan"></i> Hierro Heavy + Madera de Teca &nbsp;|&nbsp; 7.20 m² (2.4m x 3.0m)';
-          document.getElementById('orderStageName').innerText = 'Fase 3: En Fabricación CNC';
+          document.getElementById('orderSpec').innerHTML = '<i class="fa-solid fa-layer-group text-brand-cyan"></i> Hierro Heavy + Madera de Teca  |  7.20 m² (2.4m x 3.0m)';
+          if (currentUser && currentUser.isDemoCotizacion) {
+            renderOrderView('cotizacion');
+          } else {
+            renderOrderView('fabricacion');
+          }
+        } else if (code === 'ORD-2026-90') {
+          document.getElementById('orderTitle').innerText = 'ORD-2026-90 — Ventanería Aluminio Serie 7000';
+          document.getElementById('orderSpec').innerHTML = '<i class="fa-solid fa-layer-group text-brand-cyan"></i> Aluminio Serie 7000  |  Despachado a Domicilio';
+          renderOrderView('envio');
         } else {
           document.getElementById('orderTitle').innerText = `${code} — Estructura Personalizada Acevedo`;
-          document.getElementById('orderSpec').innerHTML = '<i class="fa-solid fa-layer-group text-brand-cyan"></i> Vidrio Templado & Aluminio &nbsp;|&nbsp; En Proceso de Taller';
-          document.getElementById('orderStageName').innerText = 'Fase 2: Cotizado & Validado';
+          document.getElementById('orderSpec').innerHTML = '<i class="fa-solid fa-layer-group text-brand-cyan"></i> Vidrio Templado & Aluminio  |  En Etapa de Cotización';
+          renderOrderView('cotizacion');
         }
         card.classList.remove('opacity-50', 'scale-98');
       }, 300);
@@ -1522,4 +3338,3 @@
   </script>
 </body>
 </html>
-```[cite: 1]

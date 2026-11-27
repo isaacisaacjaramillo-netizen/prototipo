@@ -36,6 +36,8 @@
     <!-- Three.js y OrbitControls desde CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- html2canvas para exportar factura como imagen -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -121,7 +123,7 @@
 </head>
 <body class="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-royal selection:text-white transition-colors duration-300" onclick="closeFloatingInfoOnClickOutside(event)">
 
-    <!-- Modal Login de Control de Acceso por Roles -->
+    <!-- Modal Login de Control de Acceso por Roles (Con protección fuerza bruta RF12) -->
     <div id="loginModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-md hidden">
         <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md p-8 shadow-2xl text-center space-y-6">
             <div class="w-16 h-16 rounded-2xl bg-brand-royal/10 border border-brand-royal/20 mx-auto flex items-center justify-center text-brand-royal dark:text-brand-cyan text-2xl">
@@ -137,14 +139,20 @@
                     <select id="userRoleSelect" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 rounded-xl text-xs font-semibold">
                         <option value="admin">Administrador Maestro (Acceso Total)</option>
                         <option value="cerrajero">Cerrajero Operativo (Sólo Consulta de Caja y Pedidos)</option>
+                        <option value="operario">Operario (Taller y Construcción)</option>
+                        <option value="instalador">Instalador (Obra y Evidencias)</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold mb-1">Contraseña</label>
-                    <input type="password" value="123456" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 rounded-xl text-xs" placeholder="••••••••">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-xs font-bold">Contraseña</label>
+                        <button type="button" onclick="recoverPasswordToken()" class="text-[11px] text-brand-royal dark:text-brand-cyan hover:underline font-semibold">¿Olvidaste tu clave?</button>
+                    </div>
+                    <input type="password" id="loginPasswordInput" value="123456" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 rounded-xl text-xs" placeholder="••••••••">
+                    <p id="loginAttemptsMsg" class="text-[11px] text-red-500 font-semibold mt-1 hidden"></p>
                 </div>
             </div>
-            <button onclick="loginUser()" class="w-full bg-brand-royal hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs transition-colors shadow-lg">Entrar al Sistema</button>
+            <button onclick="loginUser()" id="loginSubmitBtn" class="w-full bg-brand-royal hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs transition-colors shadow-lg">Entrar al Sistema</button>
         </div>
     </div>
 
@@ -180,14 +188,105 @@
         </div>
     </div>
 
+    <!-- MODAL PREVISUALIZACIÓN FACTURA ORDEN DE COMPRA PARA EXPORTAR COMO IMAGEN -->
+    <div id="modalInvoicePreview" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm hidden p-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-2xl p-6 shadow-2xl max-h-[92vh] overflow-y-auto custom-scrollbar space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <i class="fa-solid fa-file-invoice text-brand-royal dark:text-brand-cyan"></i> Comprobante de Orden de Compra (Formato Factura)
+                </h3>
+                <button onclick="closeInvoiceModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Contenedor renderizable como imagen -->
+            <div id="invoice-capture-area" class="bg-white text-slate-900 p-8 rounded-xl border border-slate-300 shadow-sm space-y-6">
+                <div class="flex justify-between items-start border-b-2 border-slate-900 pb-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-brand-cobalt text-white flex items-center justify-center">
+                                <i class="fa-solid fa-key text-sm"></i>
+                            </div>
+                            <h2 class="text-lg font-extrabold tracking-tight text-slate-900 uppercase">Cerrajería Maestra Pro</h2>
+                        </div>
+                        <p class="text-xs text-slate-600 mt-1">NIT: 10403020-1 • Jericó, Antioquia, Colombia</p>
+                        <p class="text-xs text-slate-600">Tel: +57 (604) 852 3010 • compras@cerrajeriapro.com</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-block px-3 py-1 bg-slate-900 text-white text-xs font-bold uppercase tracking-wider rounded">Orden de Compra</span>
+                        <p id="inv-num" class="text-base font-extrabold text-brand-cobalt mt-1">OC-0001</p>
+                        <p id="inv-status-badge" class="text-[11px] font-bold uppercase mt-0.5 text-amber-600">Estado: En proceso</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200 text-xs">
+                    <div>
+                        <p class="text-[10px] font-bold uppercase text-slate-400">Proveedor Destinatario</p>
+                        <p id="inv-provider-name" class="font-bold text-sm text-slate-900 mt-0.5">Nombre Proveedor</p>
+                        <p id="inv-provider-contact" class="text-slate-600 mt-0.5">Contacto / Teléfono</p>
+                    </div>
+                    <div class="text-right space-y-1">
+                        <div>
+                            <span class="text-slate-500 font-semibold">Fecha de Emisión:</span>
+                            <span id="inv-date-issue" class="font-bold text-slate-900 ml-1">2026-00-00</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 font-semibold">Fecha Esperada de Entrega:</span>
+                            <span id="inv-date-expected" class="font-bold text-slate-900 ml-1">2026-00-00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-900 text-white uppercase text-[10px] tracking-wider">
+                                <th class="py-2.5 px-3 rounded-tl-lg">#</th>
+                                <th class="py-2.5 px-3">Categoría</th>
+                                <th class="py-2.5 px-3">Producto / Especificación</th>
+                                <th class="py-2.5 px-3 text-center">Cant.</th>
+                                <th class="py-2.5 px-3 text-right">V. Unitario</th>
+                                <th class="py-2.5 px-3 text-right rounded-tr-lg">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inv-items-body" class="divide-y divide-slate-200 border-b border-slate-300">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="flex justify-between items-end pt-2">
+                    <div class="text-[11px] text-slate-500 max-w-xs space-y-1">
+                        <p class="font-bold text-slate-700">Observaciones para el Proveedor:</p>
+                        <p>Por favor confirmar recepción de esta orden y adjuntar remisión o factura electrónica al momento del despacho.</p>
+                    </div>
+                    <div class="bg-slate-900 text-white px-5 py-3 rounded-xl text-right">
+                        <p class="text-[10px] uppercase tracking-wider text-slate-300">Total Orden de Compra</p>
+                        <p id="inv-total" class="text-xl font-extrabold text-brand-cyan">$0.00</p>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-200 pt-3 flex justify-between text-[10px] text-slate-400">
+                    <span>Generado por Sistema Administrativo Cerrajería Pro</span>
+                    <span>Documento válido para solicitud de despacho</span>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-2">
+                <button onclick="closeInvoiceModal()" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-colors">Cerrar</button>
+                <button onclick="downloadPurchaseOrderImage()" class="px-5 py-2.5 bg-brand-emerald hover:opacity-90 text-white rounded-xl text-xs font-bold transition-colors shadow-md flex items-center gap-2">
+                    <i class="fa-solid fa-image"></i> Descargar Imagen Factura (PNG)
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL INTEGRADO: ALUSTRUST 5D ENGINE (SEBAS2) -->
     <div id="modal3D5D" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md hidden">
         <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-[96vw] h-[94vh] shadow-2xl flex flex-col relative overflow-hidden text-slate-100">
             
-            <!-- Lienzo WebGL Container 3D/5D -->
             <div id="webgl-container-5d" class="absolute inset-0 z-10 w-full h-full"></div>
 
-            <!-- UI Overlay Header Superior -->
             <header class="absolute top-4 left-4 z-20 pointer-events-auto flex items-center space-x-3">
                 <button id="btn-toggle-sidebar" title="Ocultar / Mostrar Panel" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-slate-300 hover:text-cyan-400 hover:border-cyan-500/40 transition">
                     <i class="fa-solid fa-bars-staggered"></i>
@@ -204,7 +303,6 @@
                 </div>
             </header>
 
-            <!-- Top Floating Toolbar (Quick Toggles) & Close Modal -->
             <div class="absolute top-4 right-4 z-20 pointer-events-auto flex space-x-2">
                 <button id="btn-wireframe" title="Modo Wireframe" class="glass-panel w-10 h-10 rounded-xl flex items-center justify-center text-slate-300 hover:text-cyan-400 hover:border-cyan-500/40 transition">
                     <i class="fa-solid fa-vector-square"></i>
@@ -220,9 +318,7 @@
                 </button>
             </div>
 
-            <!-- Sidebar Control Dashboard (Sebas2) -->
             <aside id="sidebar-panel-5d" class="absolute left-4 top-20 bottom-4 w-96 z-20 pointer-events-auto glass-panel rounded-2xl flex flex-col overflow-hidden">
-                <!-- Tabs Header -->
                 <div class="flex border-b border-slate-700/50 bg-slate-900/50 p-1.5 gap-1 shrink-0">
                     <button id="tab-btn-plan" class="tab-btn flex-1 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 transition flex items-center justify-center gap-1.5" onclick="switchTab5D('plan')">
                         <i class="fa-solid fa-file-import"></i> Plano
@@ -238,17 +334,13 @@
                     </button>
                 </div>
 
-                <!-- Scrollable Tab Contents -->
                 <div class="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar">
-
-                    <!-- TAB 0: PLANO 2D -->
                     <div id="tab-plan" class="tab-content-5d hidden space-y-5">
                         <div>
                             <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-2 flex items-center gap-2">
                                 <i class="fa-solid fa-cloud-arrow-up"></i> Cargar Plano 2D de Referencia
                             </h3>
                             <p class="text-xs text-slate-400 mb-4">Sube un archivo de imagen (PNG/JPG) del plano para proyectarlo en el suelo como guía 3D.</p>
-                            
                             <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-700 hover:border-cyan-500/50 rounded-xl cursor-pointer bg-slate-900/50 transition">
                                 <div class="flex flex-col items-center justify-center pt-5 pb-6">
                                     <i class="fa-solid fa-image text-2xl text-cyan-400 mb-2"></i>
@@ -258,7 +350,6 @@
                                 <input type="file" id="input-plan-file" class="hidden" accept="image/*" onchange="handlePlanUpload(event)">
                             </label>
                         </div>
-
                         <div class="pt-4 border-t border-slate-700/50 space-y-4">
                             <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-2 flex items-center gap-2">
                                 <i class="fa-solid fa-sliders"></i> Ajustes del Plano 2D
@@ -273,7 +364,6 @@
                         </div>
                     </div>
 
-                    <!-- TAB 1: 3D GEOMETRÍA & MATERIALES -->
                     <div id="tab-geom" class="tab-content-5d space-y-5">
                         <div>
                             <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-3 flex items-center gap-2">
@@ -318,7 +408,6 @@
                             </div>
                         </div>
 
-                        <!-- Perfiles de Aluminio -->
                         <div class="pt-4 border-t border-slate-700/50">
                             <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-3 flex items-center gap-2">
                                 <i class="fa-solid fa-shapes"></i> Perfilería de Aluminio (Alloy 6063-T6)
@@ -344,16 +433,15 @@
                                         <span id="val-alu-finish-name" class="font-mono text-cyan-400">Anodizado Plata</span>
                                     </div>
                                     <div class="flex gap-2 pt-1">
-                                        <button onclick="setAluFinish(0xd1d5db, 0.85, 0.25, 'Anodizado Plata')" class="w-7 h-7 rounded-full bg-slate-300 border-2 border-cyan-400 focus:outline-none" title="Anodizado Natural"></button>
-                                        <button onclick="setAluFinish(0x1e293b, 0.7, 0.4, 'Negro Mate Electroestático')" class="w-7 h-7 rounded-full bg-slate-800 border-2 border-transparent hover:border-slate-400 focus:outline-none" title="Negro Mate"></button>
-                                        <button onclick="setAluFinish(0xb45309, 0.8, 0.35, 'Bronce Arquitectónico')" class="w-7 h-7 rounded-full bg-amber-700 border-2 border-transparent hover:border-slate-400 focus:outline-none" title="Bronce Anodizado"></button>
-                                        <button onclick="setAluFinish(0xf8fafc, 0.4, 0.5, 'Blanco Lacado RAL 9016')" class="w-7 h-7 rounded-full bg-white border-2 border-transparent hover:border-slate-400 focus:outline-none" title="Blanco RAL 9016"></button>
+                                        <button onclick="setAluFinish(0xd1d5db, 0.85, 0.25, 'Anodizado Plata')" class="w-7 h-7 rounded-full bg-slate-300 border-2 border-cyan-400 focus:outline-none"></button>
+                                        <button onclick="setAluFinish(0x1e293b, 0.7, 0.4, 'Negro Mate Electroestático')" class="w-7 h-7 rounded-full bg-slate-800 border-2 border-transparent hover:border-slate-400 focus:outline-none"></button>
+                                        <button onclick="setAluFinish(0xb45309, 0.8, 0.35, 'Bronce Arquitectónico')" class="w-7 h-7 rounded-full bg-amber-700 border-2 border-transparent hover:border-slate-400 focus:outline-none"></button>
+                                        <button onclick="setAluFinish(0xf8fafc, 0.4, 0.5, 'Blanco Lacado RAL 9016')" class="w-7 h-7 rounded-full bg-white border-2 border-transparent hover:border-slate-400 focus:outline-none"></button>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Propiedades del Vidrio DGU -->
                         <div class="pt-4 border-t border-slate-700/50">
                             <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-3 flex items-center gap-2">
                                 <i class="fa-solid fa-glasses"></i> Panel de Vidrio DGU / Acristalamiento
@@ -379,24 +467,21 @@
                                         <span id="val-glass-tint-name" class="font-mono text-cyan-400">Neutro Incoloro</span>
                                     </div>
                                     <div class="flex gap-2 pt-1">
-                                        <button onclick="setGlassTint(0xffffff, 'Neutro Incoloro')" class="w-7 h-7 rounded-full bg-slate-100 border-2 border-cyan-400 focus:outline-none" title="Incoloro"></button>
-                                        <button onclick="setGlassTint(0x93c5fd, 'Azul Control Solar')" class="w-7 h-7 rounded-full bg-blue-300 border-2 border-transparent hover:border-slate-400 focus:outline-none" title="Azul Solar"></button>
-                                        <button onclick="setGlassTint(0xa7f3d0, 'Verde Esmeralda')" class="w-7 h-7 rounded-full bg-emerald-200 border-2 border-transparent hover:border-slate-400 focus:outline-none" title="Verde"></button>
-                                        <button onclick="setGlassTint(0xfde047, 'Bronce Solar')" class="w-7 h-7 rounded-full bg-amber-200 border-2 border-transparent hover:border-slate-400 focus:outline-none" title="Bronce"></button>
+                                        <button onclick="setGlassTint(0xffffff, 'Neutro Incoloro')" class="w-7 h-7 rounded-full bg-slate-100 border-2 border-cyan-400 focus:outline-none"></button>
+                                        <button onclick="setGlassTint(0x93c5fd, 'Azul Control Solar')" class="w-7 h-7 rounded-full bg-blue-300 border-2 border-transparent hover:border-slate-400 focus:outline-none"></button>
+                                        <button onclick="setGlassTint(0xa7f3d0, 'Verde Esmeralda')" class="w-7 h-7 rounded-full bg-emerald-200 border-2 border-transparent hover:border-slate-400 focus:outline-none"></button>
+                                        <button onclick="setGlassTint(0xfde047, 'Bronce Solar')" class="w-7 h-7 rounded-full bg-amber-200 border-2 border-transparent hover:border-slate-400 focus:outline-none"></button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- TAB 2: 4D CRONOGRAMA & FASES -->
                     <div id="tab-phase" class="tab-content-5d hidden space-y-5">
                         <div>
                             <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-2 flex items-center gap-2">
                                 <i class="fa-solid fa-clock"></i> Secuencia Constructiva (4D)
                             </h3>
-                            <p class="text-xs text-slate-400 mb-4">Simulación paso a paso de la instalación en obra.</p>
-
                             <div class="space-y-3 mb-6">
                                 <div class="flex justify-between text-xs text-slate-300">
                                     <span>Fase Solicitada:</span>
@@ -404,45 +489,37 @@
                                 </div>
                                 <input type="range" id="input-phase" min="1" max="3" step="1" value="3" class="w-full">
                             </div>
-
                             <div class="space-y-3">
                                 <div id="phase-card-1" class="phase-step active p-3 rounded-xl border border-slate-700 bg-slate-800/40 flex items-start gap-3">
                                     <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">1</div>
                                     <div>
                                         <h4 class="text-xs font-bold text-slate-200">Platinas de Anclaje de Acero</h4>
                                         <p class="text-[11px] text-slate-400 mt-0.5">Fijación de consolas metálicas regulables a forjados.</p>
-                                        <span class="inline-block mt-2 text-[10px] bg-slate-700/60 text-slate-300 px-2 py-0.5 rounded font-mono">Semana 1</span>
                                     </div>
                                 </div>
-
                                 <div id="phase-card-2" class="phase-step active p-3 rounded-xl border border-slate-700 bg-slate-800/40 flex items-start gap-3">
                                     <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">2</div>
                                     <div>
                                         <h4 class="text-xs font-bold text-slate-200">Subestructura de Aluminio</h4>
                                         <p class="text-[11px] text-slate-400 mt-0.5">Montaje de bastidor tubular de aluminio extruido 6063-T6.</p>
-                                        <span class="inline-block mt-2 text-[10px] bg-slate-700/60 text-slate-300 px-2 py-0.5 rounded font-mono">Semana 2</span>
                                     </div>
                                 </div>
-
                                 <div id="phase-card-3" class="phase-step active p-3 rounded-xl border border-slate-700 bg-slate-800/40 flex items-start gap-3">
                                     <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">3</div>
                                     <div>
                                         <h4 class="text-xs font-bold text-slate-200">Acristalamiento y Sellado</h4>
                                         <p class="text-[11px] text-slate-400 mt-0.5">Colocación de vidrios DGU y sellado perimetral EPDM.</p>
-                                        <span class="inline-block mt-2 text-[10px] bg-slate-700/60 text-slate-300 px-2 py-0.5 rounded font-mono">Semana 3 - 4</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- TAB 3: 5D MÉTRICAS & COSTOS -->
                     <div id="tab-metrics" class="tab-content-5d hidden space-y-5">
                         <div>
                             <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-3 flex items-center gap-2">
                                 <i class="fa-solid fa-calculator"></i> Presupuesto y Análisis Físico 5D
                             </h3>
-                            
                             <div class="grid grid-cols-1 gap-3">
                                 <div class="metric-card p-4 rounded-xl">
                                     <div class="flex justify-between items-center text-slate-400 text-xs">
@@ -455,7 +532,6 @@
                                         <span id="metric-cost-m2">$0/m²</span>
                                     </div>
                                 </div>
-
                                 <div class="metric-card p-4 rounded-xl">
                                     <div class="flex justify-between items-center text-slate-400 text-xs">
                                         <span>Masa Total de la Estructura</span>
@@ -467,7 +543,6 @@
                                         <span>Aluminio: <b id="sub-weight-alu" class="text-slate-200">0 kg</b></span>
                                     </div>
                                 </div>
-
                                 <div class="metric-card p-4 rounded-xl">
                                     <div class="flex justify-between items-center text-slate-400 text-xs">
                                         <span>Longitud Perfiles Aluminio</span>
@@ -478,7 +553,6 @@
                                         Vol. Aluminio (Alloy 6063): <span id="metric-alu-vol" class="text-slate-200 font-mono">0.00 m³</span>
                                     </div>
                                 </div>
-
                                 <div class="metric-card p-4 rounded-xl">
                                     <div class="flex justify-between items-center text-slate-400 text-xs">
                                         <span>Superficie Vidriada Eficiente</span>
@@ -491,20 +565,9 @@
                                 </div>
                             </div>
                         </div>
-
-                        <div class="pt-4 border-t border-slate-700/50">
-                            <h4 class="text-xs font-bold text-slate-300 mb-2">Tarifas Base de Mercado</h4>
-                            <div class="text-[11px] text-slate-400 space-y-1 font-mono">
-                                <div class="flex justify-between"><span>Aluminio Extruido:</span><span>$7.80 / kg</span></div>
-                                <div class="flex justify-between"><span>Vidrio Laminado DGU:</span><span>$110.00 / m²</span></div>
-                                <div class="flex justify-between"><span>Anclajes de Acero:</span><span>$120.00 / unidad</span></div>
-                            </div>
-                        </div>
                     </div>
-
                 </div>
 
-                <!-- Sidebar Footer Action Buttons -->
                 <div class="p-4 bg-slate-900/80 border-t border-slate-700/50 flex gap-2 shrink-0">
                     <button onclick="exportIRJSON()" class="flex-1 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/50">
                         <i class="fa-solid fa-download"></i> Exportar IR (JSON)
@@ -516,19 +579,17 @@
                 </div>
             </aside>
 
-            <!-- Notification Toast 5D -->
             <div id="toast-5d" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 glass-panel px-4 py-3 rounded-xl border border-cyan-500/40 text-xs text-slate-200 flex items-center gap-3">
                 <i id="toast-icon-5d" class="fa-solid fa-circle-check text-cyan-400 text-base"></i>
                 <span id="toast-msg-5d">Notificación del sistema</span>
             </div>
-
         </div>
     </div>
 
     <!-- Vista de Impresión -->
     <div id="printable-receipt" class="hidden p-6 text-black bg-white space-y-4 text-xs font-mono">
         <div class="text-center border-b pb-2">
-            <h2 class="text-base font-bold uppercase">Cerrajería Pro Admin</h2>
+            <h2 class="text-base font-bold uppercase">Cerrajería Pro Admin - Industrias Acevedo</h2>
             <p>NIT / RUT: 10403020-1 • Jericó, Antioquia</p>
             <p>Comprobante de Caja & Reporte Térmico</p>
         </div>
@@ -542,7 +603,7 @@
     <!-- Dashboard Principal -->
     <div class="flex h-screen overflow-hidden">
         
-        <!-- SIDEBAR -->
+        <!-- SIDEBAR (CONSERVADA EXACTA) -->
         <aside id="sidebar" class="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 z-30 fixed lg:relative inset-y-0 left-0 -translate-x-full lg:translate-x-0 shadow-sm">
             <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -615,7 +676,7 @@
                         <p id="userNameDisplay" class="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">Admin Maestro</p>
                         <p id="userRoleDisplay" class="text-[10px] text-brand-emerald font-semibold">Administrador</p>
                     </div>
-                    <button onclick="openLoginModal()" class="text-slate-400 hover:text-red-500 transition-colors" title="Cambiar Usuario">
+                    <button onclick="openLoginModal()" class="text-slate-400 hover:text-red-500 transition-colors" title="Salir / Cambiar Rol">
                         <i class="fa-solid fa-right-from-bracket"></i>
                     </button>
                 </div>
@@ -657,7 +718,7 @@
                             </div>
                             <div class="p-2 bg-red-50 dark:bg-red-950/30 rounded-xl border border-red-200 dark:border-red-900/50">
                                 <p class="font-bold text-red-600 dark:text-red-400">Llave Virgen Yale 5 pin (INS-042)</p>
-                                <p class="text-slate-500 dark:text-slate-400 text-[11px]">Stock actual en taller: 3 unidades</p>
+                                <p class="text-slate-500 dark:text-slate-400 text-[11px]">Stock actual en taller: 3 unidades (Mínimo: 10)</p>
                             </div>
                         </div>
                     </div>
@@ -790,7 +851,7 @@
                     </div>
                 </section>
 
-                <!-- INVENTARIO -->
+                <!-- INVENTARIO (CON SEMÁFOROS RFCS14 Y AJUSTE POR AUDITORÍA RFCS32) -->
                 <section id="tab-inventario" class="tab-content hidden space-y-6">
                     <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3">
                         <div class="flex gap-6">
@@ -801,13 +862,17 @@
                     </div>
 
                     <div id="subtab-productos-view" class="space-y-3">
-                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm cursor-pointer hover:border-brand-royal transition-colors" onclick="triggerFloatingInfo('inventario', this, event)" data-tipoitem="Producto Terminado" data-codigo="CER-001" data-nombre="Cerradura de Seguridad Alta" data-precio="45.00" data-stock="14">
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm cursor-pointer hover:border-brand-royal transition-colors" onclick="triggerFloatingInfo('inventario', this, event)" data-tipoitem="Producto Terminado" data-codigo="CER-001" data-nombre="Cerradura de Seguridad Alta" data-precio="45.00" data-stock="14" data-minimo="5">
                             <div>
-                                <span class="text-xs font-mono text-slate-500">SKU: CER-001 • [Producto Terminado]</span>
-                                <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100">Cerradura de Seguridad Alta ($45.00)</h4>
-                                <p class="text-xs text-brand-emerald font-bold">Stock actual: 14 unidades</p>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-mono text-slate-500">SKU: CER-001 • [Producto Terminado]</span>
+                                    <span class="px-2 py-0.5 bg-brand-emerald/10 text-brand-emerald text-[10px] font-bold rounded-full">● Stock Óptimo (Mín: 5)</span>
+                                </div>
+                                <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">Cerradura de Seguridad Alta ($45.00)</h4>
+                                <p class="text-xs text-brand-emerald font-bold stock-label">Stock actual: 14 unidades</p>
                             </div>
                             <div class="flex gap-2">
+                                <button onclick="openInventoryAuditAdjust(this, event)" class="px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-lg text-xs font-bold" title="Ajuste Manual por Auditoría (RFCS32)"><i class="fa-solid fa-scale-balanced mr-1"></i>Ajustar</button>
                                 <button onclick="openAdvancedCrud('inventario', 'editar', this)" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
                                 <button onclick="deleteItem(this, 'Producto de inventario eliminado')" class="p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
                             </div>
@@ -815,13 +880,17 @@
                     </div>
 
                     <div id="subtab-stock-view" class="hidden space-y-3">
-                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm cursor-pointer hover:border-brand-royal transition-colors" onclick="triggerFloatingInfo('inventario', this, event)" data-tipoitem="Materia Prima" data-codigo="INS-042" data-nombre="Llave Virgen Yale 5 pin" data-precio="12.00" data-stock="3">
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm cursor-pointer hover:border-brand-royal transition-colors" onclick="triggerFloatingInfo('inventario', this, event)" data-tipoitem="Materia Prima" data-codigo="INS-042" data-nombre="Llave Virgen Yale 5 pin" data-precio="12.00" data-stock="3" data-minimo="10">
                             <div>
-                                <span class="text-xs font-mono text-slate-500">Código: INS-042 • [Materia Prima]</span>
-                                <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100">Llave Virgen Yale 5 pin</h4>
-                                <p class="text-xs text-red-500 font-bold">Stock Taller: 3 unidades (Nivel Crítico)</p>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-mono text-slate-500">Código: INS-042 • [Materia Prima]</span>
+                                    <span class="px-2 py-0.5 bg-red-500/10 text-red-500 text-[10px] font-bold rounded-full">● Stock Crítico (Mín: 10)</span>
+                                </div>
+                                <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">Llave Virgen Yale 5 pin</h4>
+                                <p class="text-xs text-red-500 font-bold stock-label">Stock Taller: 3 unidades (Nivel Crítico)</p>
                             </div>
                             <div class="flex gap-2">
+                                <button onclick="openInventoryAuditAdjust(this, event)" class="px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-lg text-xs font-bold" title="Ajuste Manual por Auditoría (RFCS32)"><i class="fa-solid fa-scale-balanced mr-1"></i>Ajustar</button>
                                 <button onclick="openAdvancedCrud('inventario', 'editar', this)" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
                                 <button onclick="deleteItem(this, 'Insumo de taller eliminado')" class="p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
                             </div>
@@ -868,16 +937,168 @@
                         </div>
                     </div>
 
-                    <div id="subtab-proveedores" class="hidden space-y-3">
-                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm cursor-pointer hover:border-brand-royal transition-colors" onclick="triggerFloatingInfo('usuario', this, event)" data-tipousuario="Proveedor / Logística" data-nombre="Aceros Suroeste" data-correo="contacto@acerossuroeste.com" data-telefono="+57 310 999 8877">
-                            <div>
-                                <span class="px-2 py-0.5 bg-amber-500/10 text-amber-500 text-[10px] font-bold rounded">Proveedor Activo</span>
-                                <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">Aceros Suroeste (Proveedor de Hierro)</h4>
-                                <p class="text-xs text-slate-500">Contacto: Luisa Gómez • +57 310 999 8877</p>
+                    <div id="subtab-proveedores" class="hidden space-y-4">
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden transition-colors" data-tipousuario="Proveedor / Logística" data-nombre="Aceros Suroeste" data-correo="contacto@acerossuroeste.com" data-telefono="+57 310 999 8877">
+                            <div class="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 cursor-pointer hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors" onclick="triggerFloatingInfo('usuario', this.closest('.searchable-item'), event)">
+                                <div>
+                                    <span class="px-2 py-0.5 bg-amber-500/10 text-amber-500 text-[10px] font-bold rounded">Proveedor Activo</span>
+                                    <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">Aceros Suroeste (Proveedor de Hierro)</h4>
+                                    <p class="text-xs text-slate-500">Contacto: Luisa Gómez • +57 310 999 8877 • contacto@acerossuroeste.com</p>
+                                </div>
+                                <div class="flex items-center gap-2 self-end sm:self-center">
+                                    <button onclick="togglePurchaseOrderAccordion('prov-1', event)" class="px-3 py-2 bg-brand-royal/10 hover:bg-brand-royal/20 text-brand-royal dark:text-brand-cyan border border-brand-royal/20 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors">
+                                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                                        <span>Órdenes de Compra</span>
+                                        <i id="icon-accordion-prov-1" class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200"></i>
+                                    </button>
+                                    <button onclick="openAdvancedCrud('usuario', 'editar', this)" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                                    <button onclick="deleteItem(this, 'Proveedor eliminado')" class="p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                                </div>
                             </div>
-                            <div class="flex gap-2">
-                                <button onclick="openAdvancedCrud('usuario', 'editar', this)" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
-                                <button onclick="deleteItem(this, 'Proveedor eliminado')" class="p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+
+                            <div id="accordion-prov-1" class="hidden border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60 p-5 space-y-5" onclick="event.stopPropagation()">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+                                    <div>
+                                        <h5 class="text-xs font-extrabold uppercase tracking-wider text-brand-cobalt dark:text-brand-cyan flex items-center gap-2">
+                                            <i class="fa-solid fa-cart-flatbed"></i> Registrar Nueva Orden de Compra - Aceros Suroeste
+                                        </h5>
+                                        <p class="text-[11px] text-slate-500">Complete los datos de la orden, seleccione materiales por categoría y genere la factura en imagen.</p>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+                                    <div>
+                                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Número de Orden</label>
+                                        <input type="text" id="po-num-prov-1" value="OC-2026-001" placeholder="Ej. OC-2026-001" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl font-mono font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand-royal">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Fecha de Emisión</label>
+                                        <input type="date" id="po-issue-prov-1" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand-royal">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Fecha Esperada</label>
+                                        <input type="date" id="po-expected-prov-1" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand-royal">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Estado de Orden</label>
+                                        <select id="po-status-prov-1" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand-royal">
+                                            <option value="En proceso" selected>En proceso</option>
+                                            <option value="Aprobado">Aprobado</option>
+                                            <option value="Entregado">Entregado</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Total Orden ($)</label>
+                                        <input type="text" id="po-total-prov-1" value="$0.00" readonly class="w-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl font-mono font-extrabold text-brand-emerald focus:outline-none">
+                                    </div>
+                                </div>
+
+                                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                            <i class="fa-solid fa-layer-group text-brand-royal dark:text-brand-cyan"></i> Productos a Ordenar
+                                        </span>
+                                        <button type="button" onclick="addPurchaseOrderItemRow('prov-1')" class="px-3 py-1.5 bg-brand-royal/10 hover:bg-brand-royal/20 text-brand-royal dark:text-brand-cyan rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-colors">
+                                            <i class="fa-solid fa-plus"></i> Agregar otro producto
+                                        </button>
+                                    </div>
+                                    <div id="po-items-container-prov-1" class="space-y-2.5"></div>
+                                </div>
+
+                                <div class="flex flex-wrap justify-end gap-3 pt-1">
+                                    <button type="button" onclick="saveAndPreviewPurchaseOrder('prov-1', 'Aceros Suroeste', 'Luisa Gómez • +57 310 999 8877')" class="px-4 py-2.5 bg-brand-royal hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-2 transition-colors">
+                                        <i class="fa-solid fa-file-invoice"></i> Registrar Orden y Generar Factura Imagen
+                                    </button>
+                                </div>
+
+                                <div class="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
+                                    <h6 class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Órdenes Registradas a este Proveedor</h6>
+                                    <div id="po-history-prov-1" class="space-y-2 text-xs">
+                                        <p class="text-[11px] text-slate-400 italic" id="po-empty-msg-prov-1">Aún no se han registrado órdenes de compra en esta sesión.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden transition-colors" data-tipousuario="Proveedor / Logística" data-nombre="Aluminios y Vidrios del Valle" data-correo="ventas@aluvidriosvalle.com" data-telefono="+57 314 555 4422">
+                            <div class="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 cursor-pointer hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors" onclick="triggerFloatingInfo('usuario', this.closest('.searchable-item'), event)">
+                                <div>
+                                    <span class="px-2 py-0.5 bg-amber-500/10 text-amber-500 text-[10px] font-bold rounded">Proveedor Activo</span>
+                                    <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">Aluminios y Vidrios del Valle (Aluminio & Vidrio)</h4>
+                                    <p class="text-xs text-slate-500">Contacto: Andrés Restrepo • +57 314 555 4422 • ventas@aluvidriosvalle.com</p>
+                                </div>
+                                <div class="flex items-center gap-2 self-end sm:self-center">
+                                    <button onclick="togglePurchaseOrderAccordion('prov-2', event)" class="px-3 py-2 bg-brand-royal/10 hover:bg-brand-royal/20 text-brand-royal dark:text-brand-cyan border border-brand-royal/20 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors">
+                                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                                        <span>Órdenes de Compra</span>
+                                        <i id="icon-accordion-prov-2" class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200"></i>
+                                    </button>
+                                    <button onclick="openAdvancedCrud('usuario', 'editar', this)" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                                    <button onclick="deleteItem(this, 'Proveedor eliminado')" class="p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                            </div>
+
+                            <div id="accordion-prov-2" class="hidden border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60 p-5 space-y-5" onclick="event.stopPropagation()">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+                                    <div>
+                                        <h5 class="text-xs font-extrabold uppercase tracking-wider text-brand-cobalt dark:text-brand-cyan flex items-center gap-2">
+                                            <i class="fa-solid fa-cart-flatbed"></i> Registrar Nueva Orden de Compra - Aluminios y Vidrios del Valle
+                                        </h5>
+                                        <p class="text-[11px] text-slate-500">Complete los datos de la orden, seleccione materiales por categoría y genere la factura en imagen.</p>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+                                    <div>
+                                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Número de Orden</label>
+                                        <input type="text" id="po-num-prov-2" value="OC-2026-002" placeholder="Ej. OC-2026-002" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl font-mono font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand-royal">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Fecha de Emisión</label>
+                                        <input type="date" id="po-issue-prov-2" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand-royal">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Fecha Esperada</label>
+                                        <input type="date" id="po-expected-prov-2" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand-royal">
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Estado de Orden</label>
+                                        <select id="po-status-prov-2" class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand-royal">
+                                            <option value="En proceso" selected>En proceso</option>
+                                            <option value="Aprobado">Aprobado</option>
+                                            <option value="Entregado">Entregado</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Total Orden ($)</label>
+                                        <input type="text" id="po-total-prov-2" value="$0.00" readonly class="w-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 p-2.5 rounded-xl font-mono font-extrabold text-brand-emerald focus:outline-none">
+                                    </div>
+                                </div>
+
+                                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                            <i class="fa-solid fa-layer-group text-brand-royal dark:text-brand-cyan"></i> Productos a Ordenar
+                                        </span>
+                                        <button type="button" onclick="addPurchaseOrderItemRow('prov-2')" class="px-3 py-1.5 bg-brand-royal/10 hover:bg-brand-royal/20 text-brand-royal dark:text-brand-cyan rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-colors">
+                                            <i class="fa-solid fa-plus"></i> Agregar otro producto
+                                        </button>
+                                    </div>
+                                    <div id="po-items-container-prov-2" class="space-y-2.5"></div>
+                                </div>
+
+                                <div class="flex flex-wrap justify-end gap-3 pt-1">
+                                    <button type="button" onclick="saveAndPreviewPurchaseOrder('prov-2', 'Aluminios y Vidrios del Valle', 'Andrés Restrepo • +57 314 555 4422')" class="px-4 py-2.5 bg-brand-royal hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center gap-2 transition-colors">
+                                        <i class="fa-solid fa-file-invoice"></i> Registrar Orden y Generar Factura Imagen
+                                    </button>
+                                </div>
+
+                                <div class="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
+                                    <h6 class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Órdenes Registradas a este Proveedor</h6>
+                                    <div id="po-history-prov-2" class="space-y-2 text-xs">
+                                        <p class="text-[11px] text-slate-400 italic" id="po-empty-msg-prov-2">Aún no se han registrado órdenes de compra en esta sesión.</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -931,35 +1152,48 @@
                     </div>
                 </section>
 
-                <!-- CATÁLOGO GENERAL -->
+                <!-- CATÁLOGO GENERAL (CON ACTUALIZACIÓN EN LOTE RF10 Y DESACTIVACIÓN RFCS18) -->
                 <section id="tab-catalogo" class="tab-content hidden space-y-6">
-                    <div class="flex justify-between items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm gap-3">
                         <div>
                             <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Catálogo General Unificado</h3>
-                            <p class="text-xs text-slate-500">Todos los productos y sus respectivos descuentos en un solo lugar</p>
+                            <p class="text-xs text-slate-500">Gestione precios individuales, actualización masiva en lote por inflación (RF10) o estado activo/inactivo</p>
                         </div>
-                        <button onclick="openAdvancedCrud('catalogo', 'crear')" class="bg-brand-royal text-white px-4 py-2 rounded-xl text-xs font-bold">+ Nuevo Ítem Catálogo</button>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="openBatchPriceModal()" class="admin-only-action bg-amber-500 hover:bg-amber-600 text-slate-950 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                                <i class="fa-solid fa-arrow-trend-up"></i> Ajuste Masivo (%)
+                            </button>
+                            <button onclick="openAdvancedCrud('catalogo', 'crear')" class="bg-brand-royal text-white px-4 py-2 rounded-xl text-xs font-bold">+ Nuevo Ítem Catálogo</button>
+                        </div>
                     </div>
 
                     <div id="catalogo-list" class="space-y-3">
-                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm cursor-pointer hover:border-brand-royal transition-colors border-l-4 border-l-red-500" onclick="triggerFloatingInfo('catalogo', this, event)" data-nombrecat="Cerradura Tubular Residencial" data-preciocat="35.00" data-descuento="15% OFF (Oferta Temporal) - Precio anterior: $41.00">
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm cursor-pointer hover:border-brand-royal transition-colors border-l-4 border-l-red-500" onclick="triggerFloatingInfo('catalogo', this, event)" data-nombrecat="Cerradura Tubular Residencial" data-preciocat="35.00" data-descuento="15% OFF (Oferta Temporal) - Precio anterior: $41.00" data-activo="true">
                             <div>
-                                <span class="px-2 py-0.5 bg-red-100 text-red-600 text-[10px] font-bold rounded">15% OFF (Oferta Temporal)</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2 py-0.5 bg-red-100 text-red-600 text-[10px] font-bold rounded">15% OFF (Oferta Temporal)</span>
+                                    <span class="cat-status-badge px-2 py-0.5 bg-brand-emerald/10 text-brand-emerald text-[10px] font-bold rounded">Activo</span>
+                                </div>
                                 <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">Cerradura Tubular Residencial</h4>
-                                <p class="text-xs text-slate-500">Oferta: $35.00 <span class="line-through">$41.00</span></p>
+                                <p class="text-xs text-slate-500 cat-price-text">Oferta: $35.00 <span class="line-through">$41.00</span></p>
                             </div>
                             <div class="flex gap-2">
+                                <button onclick="toggleCatalogItemActive(this, event)" class="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-semibold" title="Activar / Desactivar sin borrar historial (RFCS18)"><i class="fa-solid fa-power-off"></i></button>
                                 <button onclick="openAdvancedCrud('catalogo', 'editar', this)" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
                                 <button onclick="deleteItem(this, 'Oferta de catálogo eliminada')" class="p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </div>
 
-                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm cursor-pointer hover:border-brand-royal transition-colors" onclick="triggerFloatingInfo('catalogo', this, event)" data-nombrecat="Cerradura Estándar de Embutir" data-preciocat="40.00" data-descuento="">
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm cursor-pointer hover:border-brand-royal transition-colors" onclick="triggerFloatingInfo('catalogo', this, event)" data-nombrecat="Cerradura Estándar de Embutir" data-preciocat="40.00" data-descuento="" data-activo="true">
                             <div>
-                                <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100">Cerradura Estándar de Embutir</h4>
-                                <p class="text-xs text-slate-500">Alta durabilidad para puertas de madera. • Precio: $40.00 COP</p>
+                                <div class="flex items-center gap-2">
+                                    <span class="cat-status-badge px-2 py-0.5 bg-brand-emerald/10 text-brand-emerald text-[10px] font-bold rounded">Activo</span>
+                                </div>
+                                <h4 class="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">Cerradura Estándar de Embutir</h4>
+                                <p class="text-xs text-slate-500 cat-price-text">Alta durabilidad para puertas de madera. • Precio: $40.00 COP</p>
                             </div>
                             <div class="flex gap-2">
+                                <button onclick="toggleCatalogItemActive(this, event)" class="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-semibold" title="Activar / Desactivar sin borrar historial (RFCS18)"><i class="fa-solid fa-power-off"></i></button>
                                 <button onclick="openAdvancedCrud('catalogo', 'editar', this)" class="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
                                 <button onclick="deleteItem(this, 'Ítem de catálogo eliminado')" class="p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
                             </div>
@@ -967,48 +1201,95 @@
                     </div>
                 </section>
 
-                <!-- PEDIDOS Y SERVICIOS -->
+                <!-- PEDIDOS Y SERVICIOS (BANDEJA SEMAFORIZADA, BLOQUEO ANTICIPO 50%, CADUCIDAD 15 DÍAS, NOTAS INTERNAS) -->
                 <section id="tab-pedidos" class="tab-content hidden space-y-6">
                     <div class="flex justify-between items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
                         <div>
-                            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Pedidos, Cotizaciones y Servicios a Domicilio</h3>
-                            <p class="text-xs text-slate-500">Haga clic sobre el recuadro para lectura rápida o en el cubo 3D para abrir el AluStruct 5D Engine</p>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Bandeja Semaforizada de Cotizaciones, Pedidos y Servicios</h3>
+                            <p class="text-xs text-slate-500">Regla RFRN02: Requiere anticipo del 50% confirmado para pasar a taller • Validez de propuesta: 15 días calendario</p>
                         </div>
                         <button onclick="openAdvancedCrud('pedido', 'crear')" class="admin-only-action bg-brand-royal text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm">+ Nueva Cotización / Servicio</button>
                     </div>
 
-                    <div id="pedido-list" class="space-y-3">
-                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center shadow-sm gap-4 cursor-pointer hover:border-brand-royal transition-colors" data-numpedido="COT-302" data-clientepedido="Carlos Mendoza" data-detallespedido="Estructura de Aluminio y Vidrio DGU" data-valorpedido="350.00" data-estado="En taller" data-tecnico="Juan Morales">
-                            
-                            <!-- MINIATURA QUE ABRE EL CONFIGURADOR 3D/5D DE SEBAS2 -->
-                            <div onclick="openModal3DFromService(event)" class="w-24 h-24 rounded-xl bg-slate-950 border border-slate-700 flex flex-col items-center justify-center shrink-0 relative group overflow-hidden shadow-inner cursor-pointer" title="Haga clic para abrir el Estudio AluStruct 5D Engine">
-                                <i class="fa-solid fa-cube text-2xl text-cyan-400 group-hover:scale-110 transition-transform"></i>
-                                <span class="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Ver 5D Engine</span>
-                                <div class="absolute inset-0 bg-cyan-500/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <span class="bg-cyan-500 text-slate-950 text-[9px] px-2 py-1 rounded-md font-bold shadow">Abrir</span>
+                    <div id="pedido-list" class="space-y-4">
+                        <!-- Cotización #COT-302 (Con 50% Abonado -> Liberada para Taller) -->
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 border-l-4 border-l-red-500 p-4 rounded-2xl shadow-sm space-y-3 cursor-pointer hover:border-brand-royal transition-colors" data-numpedido="COT-302" data-clientepedido="Carlos Mendoza" data-telefono="573124567890" data-detallespedido="Estructura de Aluminio y Vidrio DGU" data-valorpedido="350.00" data-abonado="175.00" data-estado="En taller" data-tecnico="Juan Morales" data-prioridad="Alta" data-diasrestantes="12" data-notainterna="Cliente solicitó vidrio templado incoloro. Anticipo del 50% verificado por transferencia.">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div onclick="openModal3DFromService(event)" class="w-24 h-24 rounded-xl bg-slate-950 border border-slate-700 flex flex-col items-center justify-center shrink-0 relative group overflow-hidden shadow-inner cursor-pointer" title="Abrir AluStruct 5D Engine">
+                                    <i class="fa-solid fa-cube text-2xl text-cyan-400 group-hover:scale-110 transition-transform"></i>
+                                    <span class="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Ver 5D Engine</span>
                                 </div>
-                            </div>
 
-                            <div class="space-y-1 flex-1" onclick="triggerFloatingInfo('pedido', this, event)">
-                                <div class="flex items-center gap-2">
-                                    <h4 class="text-sm font-bold text-brand-royal dark:text-brand-cyan">Cotización #COT-302 - Carlos Mendoza</h4>
-                                    <select onchange="updateJobStatus(this, 'COT-302')" onclick="event.stopPropagation()" class="text-[10px] font-bold px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-amber-500 focus:outline-none">
-                                        <option value="Pendiente">Pendiente</option>
-                                        <option value="En taller" selected>En taller</option>
-                                        <option value="En camino">En camino</option>
-                                        <option value="Finalizado">Finalizado</option>
-                                    </select>
+                                <div class="space-y-1 flex-1" onclick="triggerFloatingInfo('pedido', this.closest('.searchable-item'), event)">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="px-2 py-0.5 bg-red-500/10 text-red-500 text-[10px] font-bold rounded">● Prioridad Alta</span>
+                                        <h4 class="text-sm font-bold text-brand-royal dark:text-brand-cyan">Cotización #COT-302 - Carlos Mendoza</h4>
+                                        <select onchange="updateJobStatus(this, 'COT-302')" onclick="event.stopPropagation()" class="text-[10px] font-bold px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-amber-500 focus:outline-none">
+                                            <option value="Pendiente">Pendiente</option>
+                                            <option value="En taller" selected>En taller</option>
+                                            <option value="En camino">En camino</option>
+                                            <option value="Finalizado">Finalizado</option>
+                                        </select>
+                                        <span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-mono rounded"><i class="fa-regular fa-clock mr-1"></i>Vigencia: 12 días</span>
+                                    </div>
+                                    <p class="text-xs text-slate-600 dark:text-slate-300">Estructura de Aluminio y Vidrio DGU • Total: <b>$350.00 USD</b></p>
+                                    <div class="flex flex-wrap items-center gap-3 text-[11px] pt-1">
+                                        <span class="abono-badge px-2 py-0.5 bg-brand-emerald/10 text-brand-emerald font-bold rounded">
+                                            <i class="fa-solid fa-circle-check mr-1"></i>Anticipo 50% Pagado ($175.00)
+                                        </span>
+                                        <span class="inline-flex items-center gap-1 font-semibold text-brand-cobalt dark:text-brand-cyan">
+                                            <i class="fa-solid fa-user-gear"></i> Téc: Juan Morales
+                                        </span>
+                                    </div>
                                 </div>
-                                <p class="text-xs text-slate-600 dark:text-slate-300">Estructura de Aluminio y Vidrio DGU • Valor: $350.00 USD</p>
-                                <div class="flex items-center gap-3 text-[11px] text-slate-500 pt-1">
-                                    <span class="inline-flex items-center gap-1 font-semibold text-brand-cobalt dark:text-brand-cyan">
-                                        <i class="fa-solid fa-user-gear"></i> Téc. Asignado: Juan Morales
-                                    </span>
+
+                                <div class="flex flex-wrap gap-1.5 self-end sm:self-center" onclick="event.stopPropagation()">
+                                    <button onclick="sendWhatsAppQuote(this)" class="p-2 bg-brand-emerald/10 hover:bg-brand-emerald/20 text-brand-emerald rounded-lg text-xs" title="Enviar Propuesta por WhatsApp (RNF12)"><i class="fa-brands fa-whatsapp"></i></button>
+                                    <button onclick="openInternalNotesModal(this)" class="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-xs" title="Notas Internas Ocultas (RFCS29)"><i class="fa-solid fa-note-sticky"></i></button>
+                                    <button onclick="applyLateCancellationPenalty(this)" class="admin-only-action p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg text-xs" title="Cancelación Tardía / Retener 100% Abono (RFRN03)"><i class="fa-solid fa-ban"></i></button>
+                                    <button onclick="openAdvancedCrud('pedido', 'editar', this)" class="admin-only-action p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                                    <button onclick="deleteItem(this, 'Cotización eliminada')" class="admin-only-action p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
                                 </div>
                             </div>
-                            <div class="flex gap-2 self-end sm:self-center">
-                                <button onclick="openAdvancedCrud('pedido', 'editar', this)" class="admin-only-action p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
-                                <button onclick="deleteItem(this, 'Cotización eliminada')" class="admin-only-action p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+
+                        <!-- Cotización #COT-309 (SIN Anticipo del 50% -> Bloqueada para Taller por RFRN02) -->
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 border-l-4 border-l-amber-500 p-4 rounded-2xl shadow-sm space-y-3 cursor-pointer hover:border-brand-royal transition-colors" data-numpedido="COT-309" data-clientepedido="Roberto Alzate" data-telefono="573105551122" data-detallespedido="Portón Corredizo en Hierro Forjado 3.5m x 2.6m" data-valorpedido="600.00" data-abonado="0.00" data-estado="Pendiente" data-tecnico="Por asignar" data-prioridad="Media" data-diasrestantes="14" data-notainterna="En espera de transferencia del 50% ($300.00) para liberar corte en taller.">
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div onclick="openModal3DFromService(event)" class="w-24 h-24 rounded-xl bg-slate-950 border border-slate-700 flex flex-col items-center justify-center shrink-0 relative group overflow-hidden shadow-inner cursor-pointer" title="Abrir AluStruct 5D Engine">
+                                    <i class="fa-solid fa-cube text-2xl text-cyan-400 group-hover:scale-110 transition-transform"></i>
+                                    <span class="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Ver 5D Engine</span>
+                                </div>
+
+                                <div class="space-y-1 flex-1" onclick="triggerFloatingInfo('pedido', this.closest('.searchable-item'), event)">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="px-2 py-0.5 bg-amber-500/10 text-amber-500 text-[10px] font-bold rounded">● Prioridad Media</span>
+                                        <h4 class="text-sm font-bold text-brand-royal dark:text-brand-cyan">Cotización #COT-309 - Roberto Alzate</h4>
+                                        <select onchange="updateJobStatus(this, 'COT-309')" onclick="event.stopPropagation()" class="text-[10px] font-bold px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-amber-500 focus:outline-none">
+                                            <option value="Pendiente" selected>Pendiente</option>
+                                            <option value="En taller">En taller</option>
+                                            <option value="En camino">En camino</option>
+                                            <option value="Finalizado">Finalizado</option>
+                                        </select>
+                                        <span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-mono rounded"><i class="fa-regular fa-clock mr-1"></i>Vigencia: 14 días</span>
+                                    </div>
+                                    <p class="text-xs text-slate-600 dark:text-slate-300">Portón Corredizo en Hierro Forjado 3.5m x 2.6m • Total: <b>$600.00 USD</b></p>
+                                    <div class="flex flex-wrap items-center gap-3 text-[11px] pt-1">
+                                        <span class="abono-badge px-2 py-0.5 bg-red-500/10 text-red-500 font-bold rounded">
+                                            <i class="fa-solid fa-lock mr-1"></i>Bloqueado: Falta Anticipo 50% ($300.00)
+                                        </span>
+                                        <button type="button" onclick="registerFiftyPercentDeposit(this, event)" class="admin-only-action px-2.5 py-0.5 bg-brand-emerald hover:opacity-90 text-white font-bold rounded shadow-sm">
+                                            + Confirmar Abono 50%
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-wrap gap-1.5 self-end sm:self-center" onclick="event.stopPropagation()">
+                                    <button onclick="sendWhatsAppQuote(this)" class="p-2 bg-brand-emerald/10 hover:bg-brand-emerald/20 text-brand-emerald rounded-lg text-xs" title="Enviar Propuesta por WhatsApp (RNF12)"><i class="fa-brands fa-whatsapp"></i></button>
+                                    <button onclick="openInternalNotesModal(this)" class="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-xs" title="Notas Internas Ocultas (RFCS29)"><i class="fa-solid fa-note-sticky"></i></button>
+                                    <button onclick="openAdvancedCrud('pedido', 'editar', this)" class="admin-only-action p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                                    <button onclick="deleteItem(this, 'Cotización eliminada')" class="admin-only-action p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1017,15 +1298,15 @@
                 <!-- AUDITORÍA -->
                 <section id="tab-auditoria" class="tab-content hidden space-y-6">
                     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
-                        <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Historial de Cambios y Auditoría Interna</h3>
-                        <p class="text-xs text-slate-500">Registro en tiempo real de operaciones realizadas según rol</p>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Historial de Cambios y Auditoría Interna (Audit Trail)</h3>
+                        <p class="text-xs text-slate-500">Registro inmutable en tiempo real de operaciones realizadas según rol</p>
                     </div>
                     <div id="audit-log-container" class="space-y-3">
-                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm text-xs cursor-pointer hover:border-brand-royal transition-colors" onclick="triggerFloatingInfo('auditoria', this, event)" data-usuario="Admin Maestro" data-accion="Inicio de sesión y carga inicial del sistema." data-fecha="2026-10-16 12:20" data-estado="Exitoso">
+                        <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-sm text-xs cursor-pointer hover:border-brand-royal transition-colors" onclick="triggerFloatingInfo('auditoria', this, event)" data-usuario="Admin Maestro" data-accion="Inicio de sesión y carga inicial del sistema." data-fecha="2026-11-26 21:20" data-estado="Exitoso">
                             <div>
                                 <span class="px-2 py-0.5 bg-brand-royal/10 text-brand-royal font-bold rounded">Admin Maestro</span>
                                 <p class="font-bold text-slate-900 dark:text-slate-100 mt-1">Inicio de sesión y carga inicial del sistema.</p>
-                                <p class="text-[11px] text-slate-400">Fecha: 2026-10-16 12:20</p>
+                                <p class="text-[11px] text-slate-400">Fecha: 2026-11-26 21:20</p>
                             </div>
                             <span class="text-brand-emerald font-bold">Exitoso</span>
                         </div>
@@ -1036,7 +1317,7 @@
         </main>
     </div>
 
-    <!-- SCRIPT CONTROLADOR ADMINISTRATIVO Y MOTOR 3D/5D DE SEBAS2 -->
+    <!-- SCRIPT CONTROLADOR ADMINISTRATIVO Y MOTOR 3D/5D -->
     <script>
         let currentCrudType = '';
         let currentEditElement = null;
@@ -1044,8 +1325,9 @@
         let doughnutChartInstance = null;
         let currentUserRole = 'admin';
         let activeComprasSubTab = 'compras';
+        let failedLoginAttempts = 0;
 
-        // Constantes del Motor 5D (Sebas2)
+        // Constantes del Motor 5D
         const DENSITY_ALUMINIUM = 2700;
         const DENSITY_GLASS = 2500;
         const UNIT_COST_ALU_KG = 7.80;
@@ -1054,39 +1336,533 @@
         const LABOR_INSTALLATION_FACTOR = 1.30;
 
         const state5D = {
-            width: 4.5,
-            height: 3.6,
-            depth: 3.0,
-            divisionsX: 3,
-            divisionsY: 2,
-            profileWidthMm: 80,
-            profileDepthMm: 120,
-            aluColor: 0xd1d5db,
-            aluMetalness: 0.85,
-            aluRoughness: 0.25,
-            aluFinishName: 'Anodizado Plata',
-            glassThicknessMm: 14,
-            transmission: 0.92,
-            roughness: 0.05,
-            ior: 1.52,
-            glassColor: 0xffffff,
-            glassTintName: 'Neutro Incoloro',
-            currentPhase: 3,
-            showWireframe: false,
-            showGrid: true,
-            planOpacity: 0.70
+            width: 4.5, height: 3.6, depth: 3.0,
+            divisionsX: 3, divisionsY: 2,
+            profileWidthMm: 80, profileDepthMm: 120,
+            aluColor: 0xd1d5db, aluMetalness: 0.85, aluRoughness: 0.25, aluFinishName: 'Anodizado Plata',
+            glassThicknessMm: 14, transmission: 0.92, roughness: 0.05, ior: 1.52,
+            glassColor: 0xffffff, glassTintName: 'Neutro Incoloro',
+            currentPhase: 3, showWireframe: false, showGrid: true, planOpacity: 0.70
         };
 
         let scene5D, camera5D, renderer5D, controls5D, animationFrame5D;
-        let mainStructureGroup5D;
-        let glassMaterial5D, aluMaterial5D, anchorMaterial5D, wireframeMaterial5D;
-        let gridHelper5D, ambientLight5D, dirLight5D, pointLight5D;
-        let planMesh5D, planMaterial5D;
+        let mainStructureGroup5D, glassMaterial5D, aluMaterial5D, anchorMaterial5D, wireframeMaterial5D;
+        let gridHelper5D, ambientLight5D, dirLight5D, pointLight5D, planMesh5D, planMaterial5D;
 
         document.addEventListener("DOMContentLoaded", function() {
             initCharts();
             applyRolePermissions('admin');
+            initPurchaseOrderForms();
         });
+
+        /* =========================================================
+           REGLAS DE NEGOCIO DEL DAS (RFRN02, RFRN03, RF10, RFCS18, RFCS29, RFCS32, RNF12)
+           ========================================================= */
+        function registerFiftyPercentDeposit(btn, event) {
+            if (event) event.stopPropagation();
+            const card = btn.closest('.searchable-item');
+            if (!card) return;
+
+            const total = parseFloat(card.dataset.valorpedido) || 0;
+            const half = (total * 0.5).toFixed(2);
+            card.dataset.abonado = half;
+
+            const badge = card.querySelector('.abono-badge');
+            if (badge) {
+                badge.className = 'abono-badge px-2 py-0.5 bg-brand-emerald/10 text-brand-emerald font-bold rounded';
+                badge.innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i>Anticipo 50% Pagado ($${half})`;
+            }
+            btn.remove();
+
+            logAudit(`Anticipo obligatorio del 50% ($${half}) confirmado en #${card.dataset.numpedido}. Orden liberada para taller (RFRN02).`);
+            showToast(`Anticipo del 50% ($${half}) registrado. Ahora puede cambiar el estado a "En taller".`);
+        }
+
+        function updateJobStatus(select, cotId) {
+            if (event) event.stopPropagation();
+            const newStatus = select.value;
+            const card = select.closest('.searchable-item');
+
+            // RFRN02: Bloqueo por falta de anticipo del 50%
+            if (card && (newStatus === 'En taller' || newStatus === 'En camino' || newStatus === 'Finalizado')) {
+                const total = parseFloat(card.dataset.valorpedido) || 0;
+                const abonado = parseFloat(card.dataset.abonado) || 0;
+                if (abonado < total * 0.5) {
+                    select.value = card.dataset.estado || 'Pendiente';
+                    showToast(`BLOQUEO RFRN02: No se puede pasar #${cotId} a "${newStatus}" sin confirmar primero el anticipo obligatorio del 50% ($${(total * 0.5).toFixed(2)}).`);
+                    return;
+                }
+            }
+
+            if (card) card.dataset.estado = newStatus;
+            logAudit(`Actualización de estado en pedido #${cotId} a: ${newStatus}`);
+            showToast(`Estado de ${cotId} actualizado a "${newStatus}" correctamente.`);
+        }
+
+        function applyLateCancellationPenalty(btn) {
+            const card = btn.closest('.searchable-item');
+            if (!card) return;
+            const num = card.dataset.numpedido;
+            const abonado = parseFloat(card.dataset.abonado) || 0;
+
+            if (confirm(`Regla RFRN03: ¿Confirmar cancelación tardía de #${num}? Si ya inició corte/soldadura se retiene el 100% del anticipo ($${abonado.toFixed(2)}).`)) {
+                card.dataset.estado = 'Cancelado (Abono Retenido)';
+                const badge = card.querySelector('.abono-badge');
+                if (badge) {
+                    badge.className = 'abono-badge px-2 py-0.5 bg-red-500/10 text-red-500 font-bold rounded';
+                    badge.innerHTML = `<i class="fa-solid fa-ban mr-1"></i>Cancelado • Abono Retenido 100% ($${abonado.toFixed(2)})`;
+                }
+                logAudit(`Penalización RFRN03 aplicada en #${num}: Retención del 100% del abono ($${abonado.toFixed(2)}).`);
+                showToast(`Cancelación registrada con retención financiera del 100% ($${abonado.toFixed(2)}).`);
+            }
+        }
+
+        function sendWhatsAppQuote(btn) {
+            const card = btn.closest('.searchable-item');
+            if (!card) return;
+            const d = card.dataset;
+            const msg = `Hola ${d.clientepedido}, le enviamos la propuesta económica #${d.numpedido} de Industrias Acevedo por "${d.detallespedido}". Valor total: $${d.valorpedido} USD (Anticipo 50%: $${(parseFloat(d.valorpedido) * 0.5).toFixed(2)}). Validez de esta cotización: ${d.diasrestantes || 15} días calendario.`;
+            const phone = d.telefono || '573000000000';
+            logAudit(`Envío de propuesta económica #${d.numpedido} vía API WhatsApp a ${d.clientepedido} (RNF12).`);
+            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+
+        function openInternalNotesModal(btn) {
+            const card = btn.closest('.searchable-item');
+            if (!card) return;
+            const num = card.dataset.numpedido;
+            const currentNote = card.dataset.notainterna || '';
+
+            document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-note-sticky text-amber-500"></i> Notas Internas Ocultas #${num}`;
+            document.getElementById('modalBody').innerHTML = `
+                <div class="space-y-2 text-xs">
+                    <p class="text-slate-500">Estas observaciones son estrictamente internas para el equipo del taller y administración (nunca las ve el cliente).</p>
+                    <textarea id="internal-note-textarea" rows="4" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 rounded-xl text-xs">${currentNote}</textarea>
+                </div>`;
+            document.getElementById('modalFooter').innerHTML = `
+                <button onclick="closeModal()" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold">Cancelar</button>
+                <button onclick="saveInternalNote('${num}')" class="px-4 py-2 bg-brand-royal text-white rounded-xl text-xs font-bold">Guardar Nota Interna</button>`;
+            document.getElementById('appModal').classList.remove('hidden');
+        }
+
+        function saveInternalNote(num) {
+            const card = document.querySelector(`#pedido-list .searchable-item[data-numpedido="${num}"]`);
+            const text = document.getElementById('internal-note-textarea').value.trim();
+            if (card) card.dataset.notainterna = text;
+            logAudit(`Actualización de nota interna oculta en pedido #${num} (RFCS29).`);
+            closeModal();
+            showToast(`Nota interna guardada en #${num}.`);
+        }
+
+        /* =========================================================
+           ACTUALIZACIÓN EN LOTE (RF10) Y DESACTIVACIÓN CATÁLOGO (RFCS18)
+           ========================================================= */
+        function openBatchPriceModal() {
+            document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-arrow-trend-up text-amber-500"></i> Actualización Masiva de Precios en Lote (RF10)`;
+            document.getElementById('modalBody').innerHTML = `
+                <div class="space-y-3 text-xs">
+                    <p class="text-slate-500">Aplique un ajuste porcentual simultáneo a todos los productos activos del catálogo ante variaciones del costo de materia prima.</p>
+                    <div>
+                        <label class="block font-bold mb-1">Porcentaje de Incremento / Ajuste (%)</label>
+                        <input type="number" id="batch-pct-input" value="5" step="0.5" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl font-mono font-bold">
+                    </div>
+                </div>`;
+            document.getElementById('modalFooter').innerHTML = `
+                <button onclick="closeModal()" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold">Cancelar</button>
+                <button onclick="applyBatchPriceUpdate()" class="px-4 py-2 bg-amber-500 text-slate-950 rounded-xl text-xs font-bold">Aplicar a Todo el Catálogo</button>`;
+            document.getElementById('appModal').classList.remove('hidden');
+        }
+
+        function applyBatchPriceUpdate() {
+            const pct = parseFloat(document.getElementById('batch-pct-input').value) || 0;
+            if (pct === 0) { closeModal(); return; }
+
+            const items = document.querySelectorAll('#catalogo-list .searchable-item');
+            items.forEach(item => {
+                if (item.dataset.activo !== 'false') {
+                    const oldPrice = parseFloat(item.dataset.preciocat) || 0;
+                    const newPrice = (oldPrice * (1 + pct / 100)).toFixed(2);
+                    item.dataset.preciocat = newPrice;
+                    const priceEl = item.querySelector('.cat-price-text');
+                    if (priceEl) priceEl.innerHTML = `Precio actualizado (+${pct}%): <b>$${newPrice} COP</b>`;
+                }
+            });
+
+            logAudit(`Actualización masiva en lote del ${pct}% aplicada al catálogo comercial (RF10).`);
+            closeModal();
+            showToast(`Precios del catálogo recalculados con un ajuste del ${pct}%.`);
+        }
+
+        function toggleCatalogItemActive(btn, event) {
+            if (event) event.stopPropagation();
+            const card = btn.closest('.searchable-item');
+            if (!card) return;
+            const isActive = card.dataset.activo !== 'false';
+            const badge = card.querySelector('.cat-status-badge');
+
+            if (isActive) {
+                card.dataset.activo = 'false';
+                card.classList.add('opacity-60');
+                if (badge) {
+                    badge.className = 'cat-status-badge px-2 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-500 text-[10px] font-bold rounded';
+                    badge.innerText = 'Desactivado (Historial Conservado)';
+                }
+                logAudit(`Producto "${card.dataset.nombrecat}" desactivado en catálogo conservando historial (RFCS18).`);
+            } else {
+                card.dataset.activo = 'true';
+                card.classList.remove('opacity-60');
+                if (badge) {
+                    badge.className = 'cat-status-badge px-2 py-0.5 bg-brand-emerald/10 text-brand-emerald text-[10px] font-bold rounded';
+                    badge.innerText = 'Activo';
+                }
+                logAudit(`Producto "${card.dataset.nombrecat}" reactivado en catálogo.`);
+            }
+        }
+
+        /* =========================================================
+           AJUSTE MANUAL DE INVENTARIO POR AUDITORÍA (RFCS32)
+           ========================================================= */
+        let currentAuditStockCard = null;
+        function openInventoryAuditAdjust(btn, event) {
+            if (event) event.stopPropagation();
+            const card = btn.closest('.searchable-item');
+            if (!card) return;
+            currentAuditStockCard = card;
+
+            document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-scale-balanced text-amber-500"></i> Ajuste Manual de Inventario por Auditoría (RFCS32)`;
+            document.getElementById('modalBody').innerHTML = `
+                <div class="space-y-3 text-xs">
+                    <p><strong>Ítem:</strong> ${card.dataset.nombre} (${card.dataset.codigo})</p>
+                    <p><strong>Stock registrado en sistema:</strong> ${card.dataset.stock} unidades</p>
+                    <div>
+                        <label class="block font-bold mb-1">Nuevo Stock Físico Real</label>
+                        <input type="number" id="audit-new-stock" min="0" value="${card.dataset.stock}" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl font-mono font-bold">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">Justificación Obligatoria (Conteo físico / Daño / Merma)</label>
+                        <input type="text" id="audit-reason-input" placeholder="Ej. Conteo físico mensual en estantería B" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl">
+                    </div>
+                </div>`;
+            document.getElementById('modalFooter').innerHTML = `
+                <button onclick="closeModal()" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold">Cancelar</button>
+                <button onclick="saveInventoryAuditAdjust()" class="px-4 py-2 bg-brand-royal text-white rounded-xl text-xs font-bold">Registrar Ajuste en Bitácora</button>`;
+            document.getElementById('appModal').classList.remove('hidden');
+        }
+
+        function saveInventoryAuditAdjust() {
+            if (!currentAuditStockCard) return;
+            const newStock = parseInt(document.getElementById('audit-new-stock').value, 10);
+            const reason = document.getElementById('audit-reason-input').value.trim();
+
+            if (isNaN(newStock) || newStock < 0) {
+                alert('El stock no puede ser negativo (RFRN18).');
+                return;
+            }
+            if (!reason) {
+                alert('Debe ingresar una justificación obligatoria para la auditoría.');
+                return;
+            }
+
+            const oldStock = currentAuditStockCard.dataset.stock;
+            currentAuditStockCard.dataset.stock = newStock;
+            const label = currentAuditStockCard.querySelector('.stock-label');
+            if (label) label.innerText = `Stock actual: ${newStock} unidades (Ajustado por auditoría)`;
+
+            logAudit(`Ajuste de inventario RFCS32 en ${currentAuditStockCard.dataset.codigo}: de ${oldStock} a ${newStock} und. Motivo: "${reason}"`);
+            currentAuditStockCard = null;
+            closeModal();
+            showToast(`Stock actualizado a ${newStock} unidades y registrado en auditoría.`);
+        }
+
+        /* =========================================================
+           MÓDULO DE ÓRDENES DE COMPRA POR PROVEEDOR (VIDRIO, ALUMINIO, HIERRO)
+           ========================================================= */
+        const CATALOGO_PROVEEDORES = {
+            vidrio: [
+                { nombre: "Vidrio Templado 6mm Incoloro (m²)", precio: 45.00 },
+                { nombre: "Vidrio Templado 8mm Control Solar (m²)", precio: 62.00 },
+                { nombre: "Vidrio Laminado DGU 14mm (m²)", precio: 110.00 },
+                { nombre: "Vidrio Esmerilado 5mm (m²)", precio: 38.00 },
+                { nombre: "Espejo Plata 4mm Biselado (m²)", precio: 32.00 }
+            ],
+            aluminio: [
+                { nombre: "Perfil Tubular Aluminio 6063-T6 80x120mm (6m)", precio: 54.00 },
+                { nombre: "Perfil Corredera Serie 5020 Anodizado (6m)", precio: 36.50 },
+                { nombre: "Perfil Fijo Alfajía Negro Mate (6m)", precio: 41.00 },
+                { nombre: "Ángulo Estructural Aluminio 2x2 pulg (6m)", precio: 24.00 },
+                { nombre: "Junquillo y Pisavidrio Aluminio Blanco (6m)", precio: 14.50 }
+            ],
+            hierro: [
+                { nombre: "Perfil Rectangular Hierro 2x1 Cal. 16 (6m)", precio: 28.00 },
+                { nombre: "Platina de Anclaje Acero 1/4 pulg (Unidad)", precio: 18.50 },
+                { nombre: "Varilla Cuadrada Maciza 1/2 pulg (6m)", precio: 16.00 },
+                { nombre: "Lámina Cold Rolled Calibre 18 (1.22x2.44m)", precio: 48.00 },
+                { nombre: "Tubo Estructural Redondo 2 pulg Cal. 14 (6m)", precio: 33.00 }
+            ]
+        };
+
+        const purchaseOrdersStore = {};
+
+        function initPurchaseOrderForms() {
+            const today = new Date().toISOString().split('T')[0];
+            const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+            ['prov-1', 'prov-2'].forEach(provId => {
+                const issueEl = document.getElementById(`po-issue-${provId}`);
+                const expEl = document.getElementById(`po-expected-${provId}`);
+                if (issueEl) issueEl.value = today;
+                if (expEl) expEl.value = nextWeek;
+                addPurchaseOrderItemRow(provId);
+            });
+        }
+
+        function togglePurchaseOrderAccordion(provId, event) {
+            if (event) event.stopPropagation();
+            const panel = document.getElementById(`accordion-${provId}`);
+            const icon = document.getElementById(`icon-accordion-${provId}`);
+            if (!panel) return;
+            const isHidden = panel.classList.contains('hidden');
+            panel.classList.toggle('hidden');
+            if (icon) icon.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+
+        function addPurchaseOrderItemRow(provId) {
+            const container = document.getElementById(`po-items-container-${provId}`);
+            if (!container) return;
+
+            const rowId = 'row-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+            const rowDiv = document.createElement('div');
+            rowDiv.id = rowId;
+            rowDiv.className = "po-item-row grid grid-cols-1 sm:grid-cols-12 gap-2 items-center bg-slate-50 dark:bg-slate-950/70 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs";
+            rowDiv.innerHTML = `
+                <div class="sm:col-span-3">
+                    <label class="block text-[10px] font-bold text-slate-400 mb-0.5">Categoría</label>
+                    <select onchange="onPoCategoryChange('${provId}', '${rowId}', this.value)" class="po-cat w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-lg font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand-royal">
+                        <option value="">-- Seleccione --</option>
+                        <option value="vidrio">Vidrio</option>
+                        <option value="aluminio">Aluminio</option>
+                        <option value="hierro">Hierro</option>
+                    </select>
+                </div>
+                <div class="sm:col-span-4">
+                    <label class="block text-[10px] font-bold text-slate-400 mb-0.5">Producto según categoría</label>
+                    <select onchange="onPoProductChange('${provId}', '${rowId}', this)" disabled class="po-prod w-full bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 p-2 rounded-lg text-slate-700 dark:text-slate-200 disabled:opacity-60 focus:outline-none focus:border-brand-royal">
+                        <option value="">Seleccione categoría primero</option>
+                    </select>
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-[10px] font-bold text-slate-400 mb-0.5">Cantidad</label>
+                    <input type="number" min="1" value="1" oninput="recalculatePurchaseOrderTotal('${provId}')" class="po-qty w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-lg text-center font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand-royal">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-[10px] font-bold text-slate-400 mb-0.5">V. Unitario ($)</label>
+                    <input type="number" step="0.01" min="0" value="0.00" oninput="recalculatePurchaseOrderTotal('${provId}')" class="po-price w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-lg text-right font-mono text-slate-800 dark:text-slate-100 focus:outline-none focus:border-brand-royal">
+                </div>
+                <div class="sm:col-span-1 flex justify-end sm:pt-4">
+                    <button type="button" onclick="removePurchaseOrderItemRow('${provId}', '${rowId}')" class="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title="Quitar producto">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            `;
+            container.appendChild(rowDiv);
+        }
+
+        function removePurchaseOrderItemRow(provId, rowId) {
+            const container = document.getElementById(`po-items-container-${provId}`);
+            const row = document.getElementById(rowId);
+            if (!container || !row) return;
+            if (container.querySelectorAll('.po-item-row').length <= 1) {
+                showToast('La orden de compra debe contener al menos una línea de producto.');
+                return;
+            }
+            row.remove();
+            recalculatePurchaseOrderTotal(provId);
+        }
+
+        function onPoCategoryChange(provId, rowId, category) {
+            const row = document.getElementById(rowId);
+            if (!row) return;
+            const prodSelect = row.querySelector('.po-prod');
+            const priceInput = row.querySelector('.po-price');
+
+            if (!category || !CATALOGO_PROVEEDORES[category]) {
+                prodSelect.innerHTML = `<option value="">Seleccione categoría primero</option>`;
+                prodSelect.disabled = true;
+                prodSelect.classList.add('bg-slate-100', 'dark:bg-slate-800/60');
+                prodSelect.classList.remove('bg-white', 'dark:bg-slate-900');
+                priceInput.value = '0.00';
+                recalculatePurchaseOrderTotal(provId);
+                return;
+            }
+
+            const options = CATALOGO_PROVEEDORES[category];
+            let html = `<option value="">-- Elija producto de ${category.toUpperCase()} --</option>`;
+            options.forEach(item => {
+                html += `<option value="${item.nombre}" data-price="${item.precio}">${item.nombre} ($${item.precio.toFixed(2)})</option>`;
+            });
+
+            prodSelect.innerHTML = html;
+            prodSelect.disabled = false;
+            prodSelect.classList.remove('bg-slate-100', 'dark:bg-slate-800/60');
+            prodSelect.classList.add('bg-white', 'dark:bg-slate-900');
+            priceInput.value = '0.00';
+            recalculatePurchaseOrderTotal(provId);
+        }
+
+        function onPoProductChange(provId, rowId, selectEl) {
+            const row = document.getElementById(rowId);
+            if (!row) return;
+            const priceInput = row.querySelector('.po-price');
+            const selectedOption = selectEl.options[selectEl.selectedIndex];
+            const unitPrice = selectedOption && selectedOption.dataset.price ? parseFloat(selectedOption.dataset.price) : 0;
+            priceInput.value = unitPrice.toFixed(2);
+            recalculatePurchaseOrderTotal(provId);
+        }
+
+        function recalculatePurchaseOrderTotal(provId) {
+            const container = document.getElementById(`po-items-container-${provId}`);
+            const totalInput = document.getElementById(`po-total-${provId}`);
+            if (!container || !totalInput) return;
+
+            let total = 0;
+            container.querySelectorAll('.po-item-row').forEach(row => {
+                const qty = parseFloat(row.querySelector('.po-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.po-price').value) || 0;
+                total += qty * price;
+            });
+
+            totalInput.value = `$${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+
+        function saveAndPreviewPurchaseOrder(provId, providerName, providerContact) {
+            const orderNum = document.getElementById(`po-num-${provId}`).value.trim() || `OC-${Date.now()}`;
+            const issueDate = document.getElementById(`po-issue-${provId}`).value || new Date().toISOString().split('T')[0];
+            const expectedDate = document.getElementById(`po-expected-${provId}`).value || issueDate;
+            const status = document.getElementById(`po-status-${provId}`).value;
+            const container = document.getElementById(`po-items-container-${provId}`);
+
+            const items = [];
+            let total = 0;
+
+            container.querySelectorAll('.po-item-row').forEach(row => {
+                const cat = row.querySelector('.po-cat').value;
+                const prod = row.querySelector('.po-prod').value;
+                const qty = parseFloat(row.querySelector('.po-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.po-price').value) || 0;
+                if (cat && prod && qty > 0) {
+                    const subtotal = qty * price;
+                    total += subtotal;
+                    items.push({
+                        category: cat.charAt(0).toUpperCase() + cat.slice(1),
+                        product: prod,
+                        qty: qty,
+                        unitPrice: price,
+                        subtotal: subtotal
+                    });
+                }
+            });
+
+            if (items.length === 0) {
+                showToast('Seleccione al menos una categoría y un producto válido antes de generar la orden.');
+                return;
+            }
+
+            const orderData = {
+                id: 'po-' + Date.now(),
+                orderNum, providerName, providerContact,
+                issueDate, expectedDate, status, items, total
+            };
+
+            purchaseOrdersStore[orderData.id] = orderData;
+
+            const historyContainer = document.getElementById(`po-history-${provId}`);
+            const emptyMsg = document.getElementById(`po-empty-msg-${provId}`);
+            if (emptyMsg) emptyMsg.remove();
+
+            const statusColors = {
+                'En proceso': 'bg-amber-500/10 text-amber-500',
+                'Aprobado': 'bg-blue-500/10 text-blue-500',
+                'Entregado': 'bg-brand-emerald/10 text-brand-emerald'
+            };
+
+            const cardHtml = `
+                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-mono font-bold text-brand-royal dark:text-brand-cyan">${orderData.orderNum}</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${statusColors[orderData.status] || 'bg-slate-200 text-slate-700'}">${orderData.status}</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Emisión: ${orderData.issueDate} • Esperada: ${orderData.expectedDate} • ${orderData.items.length} producto(s)</p>
+                    </div>
+                    <div class="flex items-center gap-3 self-end sm:self-center">
+                        <span class="font-mono font-extrabold text-brand-emerald">$${orderData.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <button type="button" onclick="openInvoicePreview('${orderData.id}')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-colors">
+                            <i class="fa-solid fa-image"></i> Ver / Exportar Factura
+                        </button>
+                    </div>
+                </div>
+            `;
+            const temp = document.createElement('div');
+            temp.innerHTML = cardHtml;
+            historyContainer.insertBefore(temp.firstElementChild, historyContainer.firstChild);
+
+            logAudit(`Orden de compra ${orderData.orderNum} registrada para proveedor ${providerName} ($${orderData.total.toFixed(2)})`);
+            openInvoicePreview(orderData.id);
+        }
+
+        function openInvoicePreview(orderId) {
+            const order = purchaseOrdersStore[orderId];
+            if (!order) return;
+
+            document.getElementById('inv-num').innerText = order.orderNum;
+            document.getElementById('inv-status-badge').innerText = `Estado: ${order.status}`;
+            document.getElementById('inv-provider-name').innerText = order.providerName;
+            document.getElementById('inv-provider-contact').innerText = order.providerContact;
+            document.getElementById('inv-date-issue').innerText = order.issueDate;
+            document.getElementById('inv-date-expected').innerText = order.expectedDate;
+            document.getElementById('inv-total').innerText = `$${order.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+            const tbody = document.getElementById('inv-items-body');
+            tbody.innerHTML = order.items.map((item, index) => `
+                <tr>
+                    <td class="py-2.5 px-3 font-mono text-slate-500">${index + 1}</td>
+                    <td class="py-2.5 px-3 font-bold text-slate-700">${item.category}</td>
+                    <td class="py-2.5 px-3 text-slate-800">${item.product}</td>
+                    <td class="py-2.5 px-3 text-center font-semibold">${item.qty}</td>
+                    <td class="py-2.5 px-3 text-right font-mono">$${item.unitPrice.toFixed(2)}</td>
+                    <td class="py-2.5 px-3 text-right font-mono font-bold text-slate-900">$${item.subtotal.toFixed(2)}</td>
+                </tr>
+            `).join('');
+
+            document.getElementById('modalInvoicePreview').classList.remove('hidden');
+        }
+
+        function closeInvoiceModal() {
+            document.getElementById('modalInvoicePreview').classList.add('hidden');
+        }
+
+        function downloadPurchaseOrderImage() {
+            const captureEl = document.getElementById('invoice-capture-area');
+            const orderNum = document.getElementById('inv-num').innerText || 'Orden_Compra';
+            if (!captureEl || typeof html2canvas === 'undefined') {
+                showToast('No se pudo inicializar el generador de imagen.');
+                return;
+            }
+
+            html2canvas(captureEl, {
+                scale: 2,
+                backgroundColor: '#ffffff',
+                useCORS: true
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `Factura_${orderNum}.png`;
+                link.href = canvas.toDataURL('image/png');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                logAudit(`Exportación de imagen tipo factura para orden ${orderNum}`);
+            });
+        }
 
         function triggerFloatingInfo(type, el, event) {
             if (event) event.stopPropagation();
@@ -1104,14 +1880,16 @@
 
             if (type === 'pedido') {
                 title = `Cotización #${d.numpedido || 'N/A'}`;
-                tag = 'Servicio Técnico';
+                tag = `Prioridad ${d.prioridad || 'Media'}`;
                 html = `
                     <div class="space-y-1.5">
                         <p><strong class="text-slate-700 dark:text-slate-200">Cliente:</strong> ${d.clientepedido || 'Sin especificar'}</p>
                         <p><strong class="text-slate-700 dark:text-slate-200">Técnico:</strong> ${d.tecnico || 'No asignado'}</p>
                         <p><strong class="text-slate-700 dark:text-slate-200">Descripción:</strong> ${d.detallespedido || 'Sin detalles'}</p>
+                        <p><strong class="text-slate-700 dark:text-slate-200">Vigencia Cotización:</strong> ${d.diasrestantes || '15'} días restantes</p>
+                        <p><strong class="text-slate-700 dark:text-slate-200">Anticipo Pagado:</strong> $${d.abonado || '0.00'} / $${d.valorpedido || '0.00'} USD</p>
                         <p><strong class="text-slate-700 dark:text-slate-200">Estado:</strong> <span class="font-bold text-amber-500">${d.estado || 'Pendiente'}</span></p>
-                        <p class="text-sm font-bold text-brand-royal dark:text-brand-cyan pt-1">Valor: $${d.valorpedido || '0.00'} USD</p>
+                        ${d.notainterna ? `<p class="p-2 bg-amber-500/10 rounded-lg text-[11px] text-amber-600 dark:text-amber-300"><strong>Nota Interna:</strong> ${d.notainterna}</p>` : ''}
                     </div>`;
             } else if (type === 'caja') {
                 title = `Movimiento ${d.comprobante || ''}`;
@@ -1130,6 +1908,7 @@
                         <p><strong class="text-slate-700 dark:text-slate-200">Código / SKU:</strong> ${d.codigo || 'N/A'}</p>
                         <p><strong class="text-slate-700 dark:text-slate-200">Precio Unitario:</strong> $${d.precio || '0.00'}</p>
                         <p><strong class="text-slate-700 dark:text-slate-200">Stock Disponible:</strong> <span class="font-bold text-brand-emerald">${d.stock || '0'} unidades</span></p>
+                        <p><strong class="text-slate-700 dark:text-slate-200">Umbral Stock Mínimo:</strong> ${d.minimo || '5'} unidades</p>
                     </div>`;
             } else if (type === 'usuario') {
                 title = d.nombre || 'Registro de Usuario';
@@ -1205,14 +1984,11 @@
             let top = rect.top + window.scrollY;
             let left = rect.left + rect.width + 10;
 
-            if (left + 320 > window.innerWidth) {
-                left = rect.left - 330;
-            }
+            if (left + 320 > window.innerWidth) left = rect.left - 330;
             if (left < 10) left = 20;
 
             card.style.top = `${Math.min(top, window.innerHeight - 300)}px`;
             card.style.left = `${left}px`;
-            
             card.classList.remove('hidden');
         }
 
@@ -1227,8 +2003,43 @@
             }
         }
 
+        function recoverPasswordToken() {
+            logAudit('Solicitud de token temporal para recuperación autónoma de contraseña (RFCS30).');
+            alert('Se ha enviado un enlace con token de recuperación temporal al correo corporativo registrado.');
+        }
+
         function loginUser() {
             const role = document.getElementById('userRoleSelect').value;
+            const pwd = document.getElementById('loginPasswordInput').value;
+            const attemptsMsg = document.getElementById('loginAttemptsMsg');
+
+            // RF12: Bloqueo automático tras 5 intentos fallidos
+            if (!pwd || pwd.trim().length < 4) {
+                failedLoginAttempts++;
+                attemptsMsg.classList.remove('hidden');
+                if (failedLoginAttempts >= 5) {
+                    attemptsMsg.innerText = 'Cuenta bloqueada temporalmente por 5 intentos fallidos (RF12).';
+                    document.getElementById('loginSubmitBtn').disabled = true;
+                    document.getElementById('loginSubmitBtn').classList.add('opacity-50');
+                    logAudit('ALERTA SEGURIDAD (RF12): Bloqueo por 5 intentos fallidos de acceso.');
+                } else {
+                    attemptsMsg.innerText = `Contraseña incorrecta. Intento ${failedLoginAttempts} de 5.`;
+                }
+                return;
+            }
+
+            failedLoginAttempts = 0;
+            attemptsMsg.classList.add('hidden');
+
+            if (role === 'operario') {
+                window.location.href = 'Operario.html';
+                return;
+            }
+            if (role === 'instalador') {
+                window.location.href = 'Instalador.html';
+                return;
+            }
+
             currentUserRole = role;
             applyRolePermissions(role);
             closeLoginModal();
@@ -1246,11 +2057,8 @@
                 document.getElementById('userBadge').innerText = 'JM';
 
                 adminElements.forEach(el => {
-                    if (!el.classList.contains('role-cerrajero')) {
-                        el.classList.add('hidden');
-                    }
+                    if (!el.classList.contains('role-cerrajero')) el.classList.add('hidden');
                 });
-
                 adminActions.forEach(el => el.classList.add('hidden'));
                 switchTab('caja');
             } else {
@@ -1293,14 +2101,12 @@
         }
 
         /* =========================================================
-           MOTOR ALUSTRUST 5D ENGINE (SEBAS2) DENTRO DEL MODAL
+           MOTOR ALUSTRUST 5D ENGINE DENTRO DEL MODAL
            ========================================================= */
         function openModal3DFromService(event) {
             if (event) event.stopPropagation();
             document.getElementById('modal3D5D').classList.remove('hidden');
-            setTimeout(() => {
-                initEngine5D();
-            }, 100);
+            setTimeout(() => { initEngine5D(); }, 100);
             logAudit('Apertura del Configurador AluStruct 5D Engine desde cotización.');
         }
 
@@ -1316,7 +2122,6 @@
         function initEngine5D() {
             const container = document.getElementById('webgl-container-5d');
             if (!container) return;
-            
             if (renderer5D) {
                 cancelAnimationFrame(animationFrame5D);
                 renderer5D.dispose();
@@ -1360,13 +2165,11 @@
             function animate() {
                 animationFrame5D = requestAnimationFrame(animate);
                 controls5D.update();
-
                 const time = Date.now() * 0.0008;
                 if (pointLight5D) {
                     pointLight5D.position.x = Math.sin(time) * 9;
                     pointLight5D.position.z = Math.cos(time) * 9;
                 }
-
                 renderer5D.render(scene5D, camera5D);
             }
             animate();
@@ -1381,14 +2184,11 @@
             dirLight5D.castShadow = true;
             dirLight5D.shadow.mapSize.width = 2048;
             dirLight5D.shadow.mapSize.height = 2048;
-            dirLight5D.shadow.camera.near = 0.5;
-            dirLight5D.shadow.camera.far = 45;
             const d = 10;
             dirLight5D.shadow.camera.left = -d;
             dirLight5D.shadow.camera.right = d;
             dirLight5D.shadow.camera.top = d;
             dirLight5D.shadow.camera.bottom = -d;
-            dirLight5D.shadow.bias = -0.0004;
             scene5D.add(dirLight5D);
 
             pointLight5D = new THREE.PointLight(0x38bdf8, 1.0, 18);
@@ -1397,26 +2197,14 @@
         }
 
         function setupEnvironment5D() {
-            const floorGeo = new THREE.PlaneGeometry(60, 60);
-            const floorMat = new THREE.MeshStandardMaterial({
-                color: 0x090f1f,
-                roughness: 0.9,
-                metalness: 0.1
-            });
-            const floor = new THREE.Mesh(floorGeo, floorMat);
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshStandardMaterial({ color: 0x090f1f, roughness: 0.9, metalness: 0.1 }));
             floor.rotation.x = -Math.PI / 2;
             floor.position.y = -0.02;
             floor.receiveShadow = true;
             scene5D.add(floor);
 
-            const planGeo = new THREE.PlaneGeometry(12, 12);
-            planMaterial5D = new THREE.MeshBasicMaterial({
-                color: 0xffffff,
-                side: THREE.DoubleSide,
-                transparent: true,
-                opacity: state5D.planOpacity
-            });
-            planMesh5D = new THREE.Mesh(planGeo, planMaterial5D);
+            planMaterial5D = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: state5D.planOpacity });
+            planMesh5D = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), planMaterial5D);
             planMesh5D.rotation.x = -Math.PI / 2;
             planMesh5D.position.y = -0.01;
             planMesh5D.visible = false;
@@ -1430,18 +2218,13 @@
         function handlePlanUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = function(e) {
-                const loader = new THREE.TextureLoader();
-                loader.load(e.target.result, (texture) => {
+                new THREE.TextureLoader().load(e.target.result, (texture) => {
                     planMaterial5D.map = texture;
                     planMaterial5D.needsUpdate = true;
-
-                    const aspect = texture.image.width / texture.image.height;
-                    planMesh5D.scale.set(aspect, 1, 1);
+                    planMesh5D.scale.set(texture.image.width / texture.image.height, 1, 1);
                     planMesh5D.visible = true;
-
                     showToast5D("Plano 2D proyectado correctamente en el entorno 3D");
                 });
             };
@@ -1450,173 +2233,99 @@
 
         function initMaterials5D() {
             glassMaterial5D = new THREE.MeshPhysicalMaterial({
-                color: state5D.glassColor,
-                metalness: 0.0,
-                roughness: state5D.roughness,
-                transmission: state5D.transmission,
-                thickness: state5D.glassThicknessMm / 1000.0,
-                ior: state5D.ior,
-                transparent: true,
-                opacity: 1.0,
-                side: THREE.DoubleSide,
-                depthWrite: false,
-                reflectivity: 0.95
+                color: state5D.glassColor, metalness: 0.0, roughness: state5D.roughness,
+                transmission: state5D.transmission, thickness: state5D.glassThicknessMm / 1000.0,
+                ior: state5D.ior, transparent: true, opacity: 1.0, side: THREE.DoubleSide, depthWrite: false
             });
-
-            aluMaterial5D = new THREE.MeshStandardMaterial({
-                color: state5D.aluColor,
-                metalness: state5D.aluMetalness,
-                roughness: state5D.aluRoughness
-            });
-
-            anchorMaterial5D = new THREE.MeshStandardMaterial({
-                color: 0x475569,
-                metalness: 0.9,
-                roughness: 0.3
-            });
-
-            wireframeMaterial5D = new THREE.MeshBasicMaterial({
-                color: 0x38bdf8,
-                wireframe: true
-            });
+            aluMaterial5D = new THREE.MeshStandardMaterial({ color: state5D.aluColor, metalness: state5D.aluMetalness, roughness: state5D.aluRoughness });
+            anchorMaterial5D = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.9, roughness: 0.3 });
+            wireframeMaterial5D = new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true });
         }
 
         function buildStructure5D() {
             clearGroup5D(mainStructureGroup5D);
-
-            const W = state5D.width;
-            const H = state5D.height;
-            const D = state5D.depth;
-            const profW = state5D.profileWidthMm / 1000.0;
-            const profD = state5D.profileDepthMm / 1000.0;
+            const W = state5D.width, H = state5D.height, D = state5D.depth;
+            const profW = state5D.profileWidthMm / 1000.0, profD = state5D.profileDepthMm / 1000.0;
             const glassThickM = state5D.glassThicknessMm / 1000.0;
-            const divsX = state5D.divisionsX;
-            const divsY = state5D.divisionsY;
-
-            const halfW = W / 2;
-            const halfD = D / 2;
+            const divsX = state5D.divisionsX, divsY = state5D.divisionsY;
+            const halfW = W / 2, halfD = D / 2;
 
             if (state5D.currentPhase >= 1) {
                 const plateSize = profD * 2.0;
-                const plateHeight = 0.03;
-                const plateGeo = new THREE.BoxGeometry(plateSize, plateHeight, plateSize);
-
-                const anchorLocations = [];
+                const plateGeo = new THREE.BoxGeometry(plateSize, 0.03, plateSize);
                 const stepX = W / divsX;
-
                 for (let i = 0; i <= divsX; i++) {
                     const posX = -halfW + i * stepX;
-                    anchorLocations.push([posX, plateHeight / 2, halfD]);
-                    anchorLocations.push([posX, plateHeight / 2, -halfD]);
+                    [halfD, -halfD].forEach(z => {
+                        const anchor = new THREE.Mesh(plateGeo, anchorMaterial5D);
+                        anchor.position.set(posX, 0.015, z);
+                        mainStructureGroup5D.add(anchor);
+                    });
                 }
-
-                anchorLocations.forEach(pos => {
-                    const anchor = new THREE.Mesh(plateGeo, anchorMaterial5D);
-                    anchor.position.set(...pos);
-                    anchor.castShadow = true;
-                    anchor.receiveShadow = true;
-                    mainStructureGroup5D.add(anchor);
-                });
             }
 
             if (state5D.currentPhase >= 2) {
                 const aluMatToUse = state5D.showWireframe ? wireframeMaterial5D : aluMaterial5D;
-                const stepX = W / divsX;
-                const stepY = H / divsY;
-
+                const stepX = W / divsX, stepY = H / divsY;
                 const mullionGeo = new THREE.BoxGeometry(profW, H, profD);
                 for (let i = 0; i <= divsX; i++) {
                     const posX = -halfW + i * stepX;
-                    const mFront = new THREE.Mesh(mullionGeo, aluMatToUse);
-                    mFront.position.set(posX, H / 2, halfD);
-                    mFront.castShadow = true;
-                    mainStructureGroup5D.add(mFront);
-
-                    const mBack = new THREE.Mesh(mullionGeo, aluMatToUse);
-                    mBack.position.set(posX, H / 2, -halfD);
-                    mBack.castShadow = true;
-                    mainStructureGroup5D.add(mBack);
+                    [halfD, -halfD].forEach(z => {
+                        const m = new THREE.Mesh(mullionGeo, aluMatToUse);
+                        m.position.set(posX, H / 2, z);
+                        mainStructureGroup5D.add(m);
+                    });
                 }
-
-                const transomW = stepX - profW;
-                const transomXGeo = new THREE.BoxGeometry(transomW, profW, profD);
+                const transomGeo = new THREE.BoxGeometry(stepX - profW, profW, profD);
                 for (let i = 0; i < divsX; i++) {
                     const posX = -halfW + (i + 0.5) * stepX;
                     for (let j = 0; j <= divsY; j++) {
                         const posY = j * stepY + (j === 0 ? profW / 2 : (j === divsY ? -profW / 2 : 0));
-                        const tFront = new THREE.Mesh(transomXGeo, aluMatToUse);
-                        tFront.position.set(posX, posY, halfD);
-                        tFront.castShadow = true;
-                        mainStructureGroup5D.add(tFront);
-
-                        const tBack = new THREE.Mesh(transomXGeo, aluMatToUse);
-                        tBack.position.set(posX, posY, -halfD);
-                        tBack.castShadow = true;
-                        mainStructureGroup5D.add(tBack);
+                        [halfD, -halfD].forEach(z => {
+                            const t = new THREE.Mesh(transomGeo, aluMatToUse);
+                            t.position.set(posX, posY, z);
+                            mainStructureGroup5D.add(t);
+                        });
                     }
                 }
-
                 const beamZGeo = new THREE.BoxGeometry(profW, profW, D - profD);
                 for (let i = 0; i <= divsX; i++) {
                     const posX = -halfW + i * stepX;
-                    const bZTop = new THREE.Mesh(beamZGeo, aluMatToUse);
-                    bZTop.position.set(posX, H, 0);
-                    bZTop.castShadow = true;
-                    mainStructureGroup5D.add(bZTop);
-
-                    const bZBot = new THREE.Mesh(beamZGeo, aluMatToUse);
-                    bZBot.position.set(posX, profW / 2, 0);
-                    bZBot.castShadow = true;
-                    mainStructureGroup5D.add(bZBot);
+                    [H, profW / 2].forEach(y => {
+                        const b = new THREE.Mesh(beamZGeo, aluMatToUse);
+                        b.position.set(posX, y, 0);
+                        mainStructureGroup5D.add(b);
+                    });
                 }
             }
 
             if (state5D.currentPhase >= 3) {
                 const glassMatToUse = state5D.showWireframe ? wireframeMaterial5D : glassMaterial5D;
-                const stepX = W / divsX;
-                const stepY = H / divsY;
-
-                const glassPanelW = stepX - profW;
-                const glassPanelH = stepY - profW;
-
+                const stepX = W / divsX, stepY = H / divsY;
+                const glassPanelW = stepX - profW, glassPanelH = stepY - profW;
                 const glassPanelGeo = new THREE.BoxGeometry(glassPanelW, glassPanelH, glassThickM);
-
                 for (let i = 0; i < divsX; i++) {
                     const posX = -halfW + (i + 0.5) * stepX;
                     for (let j = 0; j < divsY; j++) {
                         const posY = (j + 0.5) * stepY;
-                        const gFront = new THREE.Mesh(glassPanelGeo, glassMatToUse);
-                        gFront.position.set(posX, posY, halfD);
-                        gFront.castShadow = true;
-                        mainStructureGroup5D.add(gFront);
-
-                        const gBack = new THREE.Mesh(glassPanelGeo, glassMatToUse);
-                        gBack.position.set(posX, posY, -halfD);
-                        gBack.castShadow = true;
-                        mainStructureGroup5D.add(gBack);
+                        [halfD, -halfD].forEach(z => {
+                            const g = new THREE.Mesh(glassPanelGeo, glassMatToUse);
+                            g.position.set(posX, posY, z);
+                            mainStructureGroup5D.add(g);
+                        });
                     }
                 }
-
-                const sidePanelW = D - profD;
-                const glassSideGeo = new THREE.BoxGeometry(glassThickM, H - profW, sidePanelW);
-
-                const gLeft = new THREE.Mesh(glassSideGeo, glassMatToUse);
-                gLeft.position.set(-halfW, H / 2, 0);
-                gLeft.castShadow = true;
-                mainStructureGroup5D.add(gLeft);
-
-                const gRight = new THREE.Mesh(glassSideGeo, glassMatToUse);
-                gRight.position.set(halfW, H / 2, 0);
-                gRight.castShadow = true;
-                mainStructureGroup5D.add(gRight);
-
+                const glassSideGeo = new THREE.BoxGeometry(glassThickM, H - profW, D - profD);
+                [-halfW, halfW].forEach(x => {
+                    const gs = new THREE.Mesh(glassSideGeo, glassMatToUse);
+                    gs.position.set(x, H / 2, 0);
+                    mainStructureGroup5D.add(gs);
+                });
                 const roofGlassGeo = new THREE.BoxGeometry(glassPanelW, glassThickM, D - profD);
                 for (let i = 0; i < divsX; i++) {
-                    const posX = -halfW + (i + 0.5) * stepX;
-                    const gRoof = new THREE.Mesh(roofGlassGeo, glassMatToUse);
-                    gRoof.position.set(posX, H + profW / 2, 0);
-                    gRoof.castShadow = true;
-                    mainStructureGroup5D.add(gRoof);
+                    const gr = new THREE.Mesh(roofGlassGeo, glassMatToUse);
+                    gr.position.set(-halfW + (i + 0.5) * stepX, H + profW / 2, 0);
+                    mainStructureGroup5D.add(gr);
                 }
             }
 
@@ -1625,69 +2334,31 @@
         }
 
         function calculateMetrics5D() {
-            let totalGlassArea = 0;
-            let totalGlassVolume = 0;
-            let totalAluLength = 0;
-            let totalAluVolume = 0;
-            let anchorCount = 0;
-
-            const W = state5D.width;
-            const H = state5D.height;
-            const D = state5D.depth;
-            const profW = state5D.profileWidthMm / 1000.0;
-            const profD = state5D.profileDepthMm / 1000.0;
+            let totalGlassArea = 0, totalGlassVolume = 0, totalAluLength = 0, totalAluVolume = 0, anchorCount = 0;
+            const W = state5D.width, H = state5D.height, D = state5D.depth;
+            const profW = state5D.profileWidthMm / 1000.0, profD = state5D.profileDepthMm / 1000.0;
             const glassThickM = state5D.glassThicknessMm / 1000.0;
-            const divsX = state5D.divisionsX;
-            const divsY = state5D.divisionsY;
+            const divsX = state5D.divisionsX, divsY = state5D.divisionsY;
 
-            if (state5D.currentPhase >= 1) {
-                anchorCount = (divsX + 1) * 2;
-            }
-
+            if (state5D.currentPhase >= 1) anchorCount = (divsX + 1) * 2;
             if (state5D.currentPhase >= 2) {
-                const mullionCount = (divsX + 1) * 2;
-                const mullionsLen = mullionCount * H;
-
                 const stepX = W / divsX;
-                const singleTransomW = stepX - profW;
-                const transomsCount = divsX * (divsY + 1) * 2;
-                const transomsLen = transomsCount * singleTransomW;
-
-                const tieBeamsCount = (divsX + 1) * 2;
-                const tieBeamsLen = tieBeamsCount * D;
-
-                totalAluLength = mullionsLen + transomsLen + tieBeamsLen;
-                
+                totalAluLength = ((divsX + 1) * 2 * H) + (divsX * (divsY + 1) * 2 * (stepX - profW)) + ((divsX + 1) * 2 * D);
                 const wallThickM = 0.003;
                 const crossSectionArea = (profW * profD) - ((profW - 2 * wallThickM) * (profD - 2 * wallThickM));
                 totalAluVolume = totalAluLength * crossSectionArea;
             }
-
             if (state5D.currentPhase >= 3) {
-                const stepX = W / divsX;
-                const stepY = H / divsY;
-                const glassW = stepX - profW;
-                const glassH = stepY - profW;
-                const sideW = D - profD;
-
-                const frontBackArea = (glassW * glassH) * (divsX * divsY * 2);
-                const sidesArea = (sideW * H) * 2;
-                const roofArea = (glassW * sideW) * divsX;
-
-                totalGlassArea = frontBackArea + sidesArea + roofArea;
+                const stepX = W / divsX, stepY = H / divsY;
+                const glassW = stepX - profW, glassH = stepY - profW, sideW = D - profD;
+                totalGlassArea = ((glassW * glassH) * (divsX * divsY * 2)) + ((sideW * H) * 2) + ((glassW * sideW) * divsX);
                 totalGlassVolume = totalGlassArea * glassThickM;
             }
 
             const weightAlu = totalAluVolume * DENSITY_ALUMINIUM;
             const weightGlass = totalGlassVolume * DENSITY_GLASS;
             const totalWeight = weightAlu + weightGlass;
-
-            const costAnchors = anchorCount * UNIT_COST_ANCHOR_UNIT;
-            const costAlu = weightAlu * UNIT_COST_ALU_KG;
-            const costGlass = totalGlassArea * UNIT_COST_GLASS_SQM * (state5D.glassThicknessMm / 14.0);
-            
-            const subtotalMaterial = costAnchors + costAlu + costGlass;
-            const totalCost5D = subtotalMaterial * LABOR_INSTALLATION_FACTOR;
+            const totalCost5D = ((anchorCount * UNIT_COST_ANCHOR_UNIT) + (weightAlu * UNIT_COST_ALU_KG) + (totalGlassArea * UNIT_COST_GLASS_SQM * (state5D.glassThicknessMm / 14.0))) * LABOR_INSTALLATION_FACTOR;
 
             document.getElementById('metric-cost').innerText = `$${totalCost5D.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             document.getElementById('metric-cost-m2').innerText = totalGlassArea > 0 ? `$${(totalCost5D / totalGlassArea).toFixed(2)}/m²` : '$0/m²';
@@ -1711,7 +2382,6 @@
 
         function setGlassTint(colorHex, name) {
             state5D.glassColor = colorHex;
-            state5D.glassTintName = name;
             document.getElementById('val-glass-tint-name').innerText = name;
             updateGlassMaterial5D();
             showToast5D(`Tinte de vidrio: ${name}`);
@@ -1721,198 +2391,78 @@
             state5D.aluColor = colorHex;
             state5D.aluMetalness = metalness;
             state5D.aluRoughness = roughness;
-            state5D.aluFinishName = name;
             document.getElementById('val-alu-finish-name').innerText = name;
-            
             aluMaterial5D.color.setHex(colorHex);
             aluMaterial5D.metalness = metalness;
             aluMaterial5D.roughness = roughness;
             aluMaterial5D.needsUpdate = true;
-            
             showToast5D(`Acabado de Aluminio: ${name}`);
         }
 
-        function generateIRJSON() {
-            return {
+        function exportIRJSON() {
+            const data = {
                 project: "Estructura Arquitectónica Aluminio & Vidrio 5D",
                 timestamp: new Date().toISOString(),
-                version: "1.0.0",
-                dimensions_3d: {
-                    width_m: state5D.width,
-                    height_m: state5D.height,
-                    depth_m: state5D.depth,
-                    divisions_x: state5D.divisionsX,
-                    divisions_y: state5D.divisionsY,
-                    profile_width_mm: state5D.profileWidthMm,
-                    profile_depth_mm: state5D.profileDepthMm
-                },
-                aluminium_properties: {
-                    finish_name: state5D.aluFinishName,
-                    color_hex: `#${state5D.aluColor.toString(16).padStart(6, '0')}`,
-                    metalness: state5D.aluMetalness,
-                    roughness: state5D.aluRoughness
-                },
-                glass_properties: {
-                    thickness_mm: state5D.glassThicknessMm,
-                    transmission: state5D.transmission,
-                    roughness: state5D.roughness,
-                    ior: state5D.ior,
-                    color_hex: `#${state5D.glassColor.toString(16).padStart(6, '0')}`
-                },
-                phase_4d: {
-                    current_phase: state5D.currentPhase,
-                    phase_description: getPhaseName5D(state5D.currentPhase)
-                },
-                metrics_5d: {
-                    total_cost_usd: parseFloat(document.getElementById('metric-cost').innerText.replace(/[^0-9.-]+/g, "")),
-                    total_weight_kg: parseFloat(document.getElementById('metric-weight').innerText.replace(/[^0-9.-]+/g, "")),
-                    aluminium_length_m: parseFloat(document.getElementById('metric-alu-len').innerText.replace(/[^0-9.-]+/g, "")),
-                    glass_area_sqm: parseFloat(document.getElementById('metric-glass-area').innerText.replace(/[^0-9.-]+/g, ""))
-                }
+                dimensions_3d: { width_m: state5D.width, height_m: state5D.height, depth_m: state5D.depth, divisions_x: state5D.divisionsX, divisions_y: state5D.divisionsY }
             };
-        }
-
-        function exportIRJSON() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(generateIRJSON(), null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `AluStruct_5D_${Date.now()}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+            const a = document.createElement('a');
+            a.setAttribute("href", dataStr);
+            a.setAttribute("download", `AluStruct_5D_${Date.now()}.json`);
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
             showToast5D("Estado IR 5D exportado correctamente (JSON)");
         }
 
-        function triggerImportJSON() {
-            document.getElementById('input-import-json').click();
-        }
+        function triggerImportJSON() { document.getElementById('input-import-json').click(); }
 
         function importIRJSON(event) {
             const file = event.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
                     const json = JSON.parse(e.target.result);
-                    
                     if (json.dimensions_3d) {
                         state5D.width = json.dimensions_3d.width_m || state5D.width;
                         state5D.height = json.dimensions_3d.height_m || state5D.height;
                         state5D.depth = json.dimensions_3d.depth_m || state5D.depth;
                         state5D.divisionsX = json.dimensions_3d.divisions_x || state5D.divisionsX;
                         state5D.divisionsY = json.dimensions_3d.divisions_y || state5D.divisionsY;
-                        state5D.profileWidthMm = json.dimensions_3d.profile_width_mm || state5D.profileWidthMm;
-                        state5D.profileDepthMm = json.dimensions_3d.profile_depth_mm || state5D.profileDepthMm;
-
-                        document.getElementById('input-width').value = state5D.width;
-                        document.getElementById('val-width').innerText = `${state5D.width.toFixed(1)} m`;
-                        document.getElementById('input-height').value = state5D.height;
-                        document.getElementById('val-height').innerText = `${state5D.height.toFixed(1)} m`;
-                        document.getElementById('input-depth').value = state5D.depth;
-                        document.getElementById('val-depth').innerText = `${state5D.depth.toFixed(1)} m`;
-                        document.getElementById('input-divisions-x').value = state5D.divisionsX;
-                        document.getElementById('val-divisions-x').innerText = state5D.divisionsX;
-                        document.getElementById('input-divisions-y').value = state5D.divisionsY;
-                        document.getElementById('val-divisions-y').innerText = state5D.divisionsY;
-                        document.getElementById('input-profile-width').value = state5D.profileWidthMm;
-                        document.getElementById('val-profile-width').innerText = `${state5D.profileWidthMm} mm`;
-                        document.getElementById('input-profile-depth').value = state5D.profileDepthMm;
-                        document.getElementById('val-profile-depth').innerText = `${state5D.profileDepthMm} mm`;
                     }
-
-                    if (json.glass_properties) {
-                        state5D.glassThicknessMm = json.glass_properties.thickness_mm || state5D.glassThicknessMm;
-                        state5D.transmission = json.glass_properties.transmission ?? state5D.transmission;
-                        state5D.roughness = json.glass_properties.roughness ?? state5D.roughness;
-                        state5D.ior = json.glass_properties.ior ?? state5D.ior;
-                        
-                        document.getElementById('input-glass-thick').value = state5D.glassThicknessMm;
-                        document.getElementById('val-glass-thick').innerText = `${state5D.glassThicknessMm} mm`;
-                        document.getElementById('input-transmission').value = state5D.transmission;
-                        document.getElementById('val-transmission').innerText = state5D.transmission;
-
-                        updateGlassMaterial5D();
-                    }
-
-                    if (json.phase_4d) {
-                        setPhase5D(json.phase_4d.current_phase || 3);
-                    }
-
                     buildStructure5D();
                     showToast5D("Archivo IR importado correctamente");
-                } catch (err) {
-                    showToast5D("Error al procesar el archivo JSON", true);
-                    console.error(err);
-                }
+                } catch (err) { showToast5D("Error al procesar el archivo JSON", true); }
             };
             reader.readAsText(file);
         }
 
         function setupUIEventListeners5D() {
-            bindRangeInput5D('input-width', 'val-width', 'm', (val) => { state5D.width = val; buildStructure5D(); });
-            bindRangeInput5D('input-height', 'val-height', 'm', (val) => { state5D.height = val; buildStructure5D(); });
-            bindRangeInput5D('input-depth', 'val-depth', 'm', (val) => { state5D.depth = val; buildStructure5D(); });
-            bindRangeInput5D('input-divisions-x', 'val-divisions-x', '', (val) => { state5D.divisionsX = val; buildStructure5D(); });
-            bindRangeInput5D('input-divisions-y', 'val-divisions-y', '', (val) => { state5D.divisionsY = val; buildStructure5D(); });
-            bindRangeInput5D('input-profile-width', 'val-profile-width', 'mm', (val) => { state5D.profileWidthMm = val; buildStructure5D(); });
-            bindRangeInput5D('input-profile-depth', 'val-profile-depth', 'mm', (val) => { state5D.profileDepthMm = val; buildStructure5D(); });
-
-            bindRangeInput5D('input-glass-thick', 'val-glass-thick', 'mm', (val) => { state5D.glassThicknessMm = val; updateGlassMaterial5D(); calculateMetrics5D(); buildStructure5D(); });
-            bindRangeInput5D('input-transmission', 'val-transmission', '', (val) => { state5D.transmission = val; updateGlassMaterial5D(); });
-            bindRangeInput5D('input-plan-opacity', 'val-plan-opacity', '', (val) => { state5D.planOpacity = val; planMaterial5D.opacity = val; });
+            bindRangeInput5D('input-width', 'val-width', 'm', val => { state5D.width = val; buildStructure5D(); });
+            bindRangeInput5D('input-height', 'val-height', 'm', val => { state5D.height = val; buildStructure5D(); });
+            bindRangeInput5D('input-depth', 'val-depth', 'm', val => { state5D.depth = val; buildStructure5D(); });
+            bindRangeInput5D('input-divisions-x', 'val-divisions-x', '', val => { state5D.divisionsX = val; buildStructure5D(); });
+            bindRangeInput5D('input-divisions-y', 'val-divisions-y', '', val => { state5D.divisionsY = val; buildStructure5D(); });
+            bindRangeInput5D('input-profile-width', 'val-profile-width', 'mm', val => { state5D.profileWidthMm = val; buildStructure5D(); });
+            bindRangeInput5D('input-profile-depth', 'val-profile-depth', 'mm', val => { state5D.profileDepthMm = val; buildStructure5D(); });
+            bindRangeInput5D('input-glass-thick', 'val-glass-thick', 'mm', val => { state5D.glassThicknessMm = val; updateGlassMaterial5D(); calculateMetrics5D(); buildStructure5D(); });
+            bindRangeInput5D('input-transmission', 'val-transmission', '', val => { state5D.transmission = val; updateGlassMaterial5D(); });
+            bindRangeInput5D('input-plan-opacity', 'val-plan-opacity', '', val => { state5D.planOpacity = val; planMaterial5D.opacity = val; });
 
             const phaseInput = document.getElementById('input-phase');
-            if (phaseInput) {
-                phaseInput.addEventListener('input', (e) => {
-                    setPhase5D(parseInt(e.target.value));
-                });
-            }
+            if (phaseInput) phaseInput.addEventListener('input', e => setPhase5D(parseInt(e.target.value)));
 
-            const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
-            const sidebarPanel = document.getElementById('sidebar-panel-5d');
-            if (btnToggleSidebar && sidebarPanel) {
-                btnToggleSidebar.addEventListener('click', () => {
-                    sidebarPanel.classList.toggle('collapsed');
-                    const isCollapsed = sidebarPanel.classList.contains('collapsed');
-                    btnToggleSidebar.classList.toggle('text-cyan-400', isCollapsed);
-                });
-            }
-
-            const btnWireframe = document.getElementById('btn-wireframe');
-            if (btnWireframe) {
-                btnWireframe.addEventListener('click', () => {
-                    state5D.showWireframe = !state5D.showWireframe;
-                    btnWireframe.classList.toggle('text-cyan-400', state5D.showWireframe);
-                    buildStructure5D();
-                    showToast5D(`Modo Wireframe: ${state5D.showWireframe ? 'Activado' : 'Desactivado'}`);
-                });
-            }
-
-            const btnGrid = document.getElementById('btn-grid');
-            if (btnGrid) {
-                btnGrid.addEventListener('click', () => {
-                    state5D.showGrid = !state5D.showGrid;
-                    gridHelper5D.visible = state5D.showGrid;
-                    btnGrid.classList.toggle('text-cyan-400', state5D.showGrid);
-                });
-            }
-
-            const btnResetCam = document.getElementById('btn-reset-cam');
-            if (btnResetCam) {
-                btnResetCam.addEventListener('click', () => {
-                    camera5D.position.set(8, 5.5, 9);
-                    controls5D.target.set(0, state5D.height / 2, 0);
-                    controls5D.update();
-                });
-            }
+            document.getElementById('btn-toggle-sidebar').onclick = () => document.getElementById('sidebar-panel-5d').classList.toggle('collapsed');
+            document.getElementById('btn-wireframe').onclick = () => { state5D.showWireframe = !state5D.showWireframe; buildStructure5D(); };
+            document.getElementById('btn-grid').onclick = () => { state5D.showGrid = !state5D.showGrid; gridHelper5D.visible = state5D.showGrid; };
+            document.getElementById('btn-reset-cam').onclick = () => { camera5D.position.set(8, 5.5, 9); controls5D.target.set(0, state5D.height / 2, 0); controls5D.update(); };
         }
 
         function bindRangeInput5D(inputId, valId, unit, callback) {
-            const input = document.getElementById(inputId);
-            const valLabel = document.getElementById(valId);
+            const input = document.getElementById(inputId), valLabel = document.getElementById(valId);
             if (!input || !valLabel) return;
-            input.addEventListener('input', (e) => {
+            input.addEventListener('input', e => {
                 const val = parseFloat(e.target.value);
                 valLabel.innerText = unit ? `${val} ${unit}` : val;
                 callback(val);
@@ -1922,48 +2472,17 @@
         function setPhase5D(phaseNum) {
             state5D.currentPhase = phaseNum;
             document.getElementById('input-phase').value = phaseNum;
-            document.getElementById('val-phase-num').innerText = getPhaseName5D(phaseNum);
-
-            for (let i = 1; i <= 3; i++) {
-                const card = document.getElementById(`phase-card-${i}`);
-                if (card) {
-                    if (i <= phaseNum) {
-                        card.classList.add('active');
-                    } else {
-                        card.classList.remove('active');
-                    }
-                }
-            }
-
+            const names = { 1: "Fase 1 - Anclajes de Base", 2: "Fase 2 - Subestructura de Aluminio", 3: "Fase 3 - Acristalamiento y Sellado" };
+            document.getElementById('val-phase-num').innerText = names[phaseNum] || "";
+            for (let i = 1; i <= 3; i++) document.getElementById(`phase-card-${i}`)?.classList.toggle('active', i <= phaseNum);
             buildStructure5D();
         }
 
-        function getPhaseName5D(phase) {
-            switch(phase) {
-                case 1: return "Fase 1 - Anclajes de Base";
-                case 2: return "Fase 2 - Subestructura de Aluminio";
-                case 3: return "Fase 3 - Acristalamiento y Sellado";
-                default: return "";
-            }
-        }
-
         function switchTab5D(tabKey) {
-            document.querySelectorAll('#sidebar-panel-5d .tab-btn').forEach(btn => {
-                btn.classList.remove('text-cyan-400', 'bg-slate-800/80');
-                btn.classList.add('text-slate-400');
-            });
-            document.querySelectorAll('#sidebar-panel-5d .tab-content-5d').forEach(content => {
-                content.classList.add('hidden');
-            });
-
-            const activeBtn = document.getElementById(`tab-btn-${tabKey}`);
-            const activeContent = document.getElementById(`tab-${tabKey}`);
-
-            if (activeBtn) {
-                activeBtn.classList.add('text-cyan-400', 'bg-slate-800/80');
-                activeBtn.classList.remove('text-slate-400');
-            }
-            if (activeContent) activeContent.classList.remove('hidden');
+            document.querySelectorAll('#sidebar-panel-5d .tab-btn').forEach(btn => { btn.classList.remove('text-cyan-400', 'bg-slate-800/80'); btn.classList.add('text-slate-400'); });
+            document.querySelectorAll('#sidebar-panel-5d .tab-content-5d').forEach(content => content.classList.add('hidden'));
+            document.getElementById(`tab-btn-${tabKey}`)?.classList.add('text-cyan-400', 'bg-slate-800/80');
+            document.getElementById(`tab-${tabKey}`)?.classList.remove('hidden');
         }
 
         function clearGroup5D(group) {
@@ -1976,20 +2495,10 @@
 
         function showToast5D(msg, isError = false) {
             const toast = document.getElementById('toast-5d');
-            const toastMsg = document.getElementById('toast-msg-5d');
-            const toastIcon = document.getElementById('toast-icon-5d');
-            if (!toast || !toastMsg || !toastIcon) return;
-
-            toastMsg.innerText = msg;
-            toastIcon.className = isError 
-                ? "fa-solid fa-circle-exclamation text-rose-400 text-base" 
-                : "fa-solid fa-circle-check text-cyan-400 text-base";
-
+            document.getElementById('toast-msg-5d').innerText = msg;
+            document.getElementById('toast-icon-5d').className = isError ? "fa-solid fa-circle-exclamation text-rose-400 text-base" : "fa-solid fa-circle-check text-cyan-400 text-base";
             toast.classList.remove('translate-y-20', 'opacity-0');
-            
-            setTimeout(() => {
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 3000);
+            setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3000);
         }
 
         /* =========================================================
@@ -1997,10 +2506,9 @@
            ========================================================= */
         function printCashReport() {
             const content = document.getElementById('printable-content');
-            const now = new Date().toLocaleString();
             content.innerHTML = `
                 <p><strong>REPORTE GENERAL DE CIERRE DE CAJA</strong></p>
-                <p>Fecha y Hora: ${now}</p>
+                <p>Fecha y Hora: ${new Date().toLocaleString()}</p>
                 <p>Atendido por: ${document.getElementById('userNameDisplay').innerText}</p>
                 <hr class="my-2">
                 <p>Total Ingresos en Efectivo: $250.00 COP</p>
@@ -2014,12 +2522,10 @@
         function printSingleReceipt(btn) {
             if (event) event.stopPropagation();
             const item = btn.closest('.searchable-item');
-            const content = document.getElementById('printable-content');
-            const now = new Date().toLocaleString();
-            content.innerHTML = `
+            document.getElementById('printable-content').innerHTML = `
                 <p><strong>COMPROBANTE DE PAGO / RECIBO</strong></p>
                 <p>Recibo No: ${item.dataset.comprobante}</p>
-                <p>Fecha: ${now}</p>
+                <p>Fecha: ${new Date().toLocaleString()}</p>
                 <p>Concepto: ${item.dataset.concepto}</p>
                 <p>Método: ${item.dataset.metodo}</p>
                 <hr class="my-2">
@@ -2027,13 +2533,6 @@
             `;
             logAudit('Impresión de recibo térmico: ' + item.dataset.comprobante);
             window.print();
-        }
-
-        function updateJobStatus(select, cotId) {
-            if (event) event.stopPropagation();
-            const newStatus = select.value;
-            logAudit(`Actualización de estado en pedido #${cotId} a: ${newStatus}`);
-            showToast(`Estado de ${cotId} actualizado a "${newStatus}" correctamente.`);
         }
 
         function switchTab(tabId) {
@@ -2046,21 +2545,19 @@
 
             document.getElementById('tab-' + tabId).classList.remove('hidden');
             const activeBtn = document.getElementById('btn-' + tabId);
-            if(activeBtn) {
-                activeBtn.classList.add('bg-brand-royal/10', 'dark:bg-brand-royal/20', 'text-brand-cobalt', 'dark:text-brand-cyan', 'border', 'border-brand-royal/20', 'dark:border-brand-royal/30');
-            }
+            if(activeBtn) activeBtn.classList.add('bg-brand-royal/10', 'dark:bg-brand-royal/20', 'text-brand-cobalt', 'dark:text-brand-cyan', 'border', 'border-brand-royal/20', 'dark:border-brand-royal/30');
 
             const titles = {
                 'finanzas': ['Finanzas e Ingresos', 'Resumen general de balance, ganancias y servicios técnicos'],
                 'caja': ['Control de Caja Diaria', 'Apertura de caja, efectivo base y cuadre por métodos de pago'],
                 'compras': ['Compras y Gastos', 'Registro separado de compras de inventario y gastos operativos'],
-                'inventario': ['Inventario de Productos y Stock', 'Control separado de productos terminados y materia prima'],
-                'usuarios': ['Usuarios y Permisos', 'Control de clientes, roles y asignación de empleados'],
+                'inventario': ['Inventario de Productos y Stock', 'Control con semáforos de escasez y ajustes manuales por auditoría'],
+                'usuarios': ['Usuarios y Permisos', 'Control de clientes, roles y órdenes de compra a proveedores'],
                 'comisiones': ['Comisiones', 'Auditoría de desarrollo y pagos por tareas'],
                 'garantias': ['Garantías y Solicitudes', 'Seguimiento de revisiones y solicitudes de usuarios'],
-                'catalogo': ['Catálogo General Unificado', 'Listado completo de productos comerciales y ofertas especiales'],
-                'pedidos': ['Pedidos, Servicios y Estados', 'Gestión de trabajos con asignación técnica y estados en vivo (Haga clic en la tarjeta para lectura o en el cubo 3D para AluStruct 5D Engine)'],
-                'auditoria': ['Auditoría e Historial', 'Registro detallado de cambios y operaciones del sistema']
+                'catalogo': ['Catálogo General Unificado', 'Listado de productos, ajuste masivo por inflación y activación'],
+                'pedidos': ['Bandeja Semaforizada de Pedidos y Cotizaciones', 'Control de anticipo obligatorio del 50%, caducidad a 15 días y notas internas'],
+                'auditoria': ['Auditoría e Historial', 'Registro detallado e inmutable de cambios y operaciones del sistema']
             };
 
             document.getElementById('current-title').innerText = titles[tabId][0];
@@ -2089,32 +2586,25 @@
         }
 
         function openActiveCompraTabCrud() {
-            if (activeComprasSubTab === 'compras') {
-                openAdvancedCrud('compra', 'crear');
-            } else {
-                openAdvancedCrud('gasto', 'crear');
-            }
+            if (activeComprasSubTab === 'compras') openAdvancedCrud('compra', 'crear');
+            else openAdvancedCrud('gasto', 'crear');
         }
 
         function switchFinancePeriod(period) {
             ['dia', 'semana', 'mes', 'anio'].forEach(p => {
-                const btn = document.getElementById('period-' + p);
-                btn.className = (p === period) ? "px-3 py-1.5 rounded-lg bg-brand-royal text-white shadow-sm transition-colors" : "px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 transition-colors";
+                document.getElementById('period-' + p).className = (p === period) ? "px-3 py-1.5 rounded-lg bg-brand-royal text-white shadow-sm transition-colors" : "px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 transition-colors";
             });
-
             const data = {
                 'dia': ['Ingresos Totales (Día)', '$720.00', '$490.00', '$85.00', '6 Trabajos'],
                 'semana': ['Ingresos Totales (Semana)', '$4,850.00', '$3,120.00', '$480.00', '34 Trabajos'],
                 'mes': ['Ingresos Totales (Mes)', '$19,400.00', '$12,500.00', '$1,920.00', '142 Trabajos'],
                 'anio': ['Ingresos Totales (Año)', '$232,800.00', '$150,000.00', '$23,000.00', '1,680 Trabajos']
             };
-
             document.getElementById('fin-label-1').innerText = data[period][0];
             document.getElementById('fin-val-1').innerText = data[period][1];
             document.getElementById('fin-val-2').innerText = data[period][2];
             document.getElementById('fin-val-3').innerText = data[period][3];
             document.getElementById('fin-val-4').innerText = data[period][4];
-            
             logAudit('Filtro financiero ajustado a: ' + period.toUpperCase());
         }
 
@@ -2136,7 +2626,6 @@
             document.getElementById('subtab-clientes').classList.add('hidden');
             document.getElementById('subtab-roles').classList.add('hidden');
             document.getElementById('subtab-proveedores').classList.add('hidden');
-
             document.getElementById('subtab-clientes-btn').className = "text-sm font-semibold border-b-2 border-transparent text-slate-500 pb-1 whitespace-nowrap";
             document.getElementById('subtab-roles-btn').className = "text-sm font-semibold border-b-2 border-transparent text-slate-500 pb-1 whitespace-nowrap";
             document.getElementById('subtab-proveedores-btn').className = "text-sm font-semibold border-b-2 border-transparent text-slate-500 pb-1 whitespace-nowrap";
@@ -2157,16 +2646,11 @@
         function toggleStockAlerts() { document.getElementById('stock-alerts-dropdown').classList.toggle('hidden'); }
 
         function toggleDarkMode() {
-            const html = document.documentElement;
-            const themeIcon = document.getElementById('theme-icon');
+            const html = document.documentElement, themeIcon = document.getElementById('theme-icon');
             if (html.classList.contains('dark')) {
-                html.classList.remove('dark');
-                html.classList.add('light');
-                themeIcon.className = 'fa-solid fa-moon text-sm';
+                html.classList.remove('dark'); html.classList.add('light'); themeIcon.className = 'fa-solid fa-moon text-sm';
             } else {
-                html.classList.remove('light');
-                html.classList.add('dark');
-                themeIcon.className = 'fa-solid fa-sun text-sm';
+                html.classList.remove('light'); html.classList.add('dark'); themeIcon.className = 'fa-solid fa-sun text-sm';
             }
         }
 
@@ -2178,24 +2662,15 @@
         }
 
         function exportFinancesToExcel() {
-            const periodoLabel = document.getElementById('fin-label-1').innerText;
-            const ingresos = document.getElementById('fin-val-1').innerText;
-            const ganancias = document.getElementById('fin-val-2').innerText;
-            const gastos = document.getElementById('fin-val-3').innerText;
-            const servicios = document.getElementById('fin-val-4').innerText;
-
-            let csvContent = "\uFEFF";
-            csvContent += "Reporte Financiero - Cerrajería Pro\n";
-            csvContent += "Métrica,Valor\n";
-            csvContent += `"${periodoLabel}","${ingresos}"\n`;
-            csvContent += `"Ganancias Netas","${ganancias}"\n`;
-            csvContent += `"Gastos y Programadores","${gastos}"\n`;
-            csvContent += `"Servicios Realizados","${servicios}"\n`;
+            let csvContent = "\uFEFFReporte Financiero - Cerrajería Pro\nMétrica,Valor\n";
+            csvContent += `"${document.getElementById('fin-label-1').innerText}","${document.getElementById('fin-val-1').innerText}"\n`;
+            csvContent += `"Ganancias Netas","${document.getElementById('fin-val-2').innerText}"\n`;
+            csvContent += `"Gastos y Programadores","${document.getElementById('fin-val-3').innerText}"\n`;
+            csvContent += `"Servicios Realizados","${document.getElementById('fin-val-4').innerText}"\n`;
 
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
-            link.setAttribute('href', url);
+            link.setAttribute('href', URL.createObjectURL(blob));
             link.setAttribute('download', 'reporte_financiero_cerrajeria.csv');
             document.body.appendChild(link);
             link.click();
@@ -2209,11 +2684,8 @@
             const query = document.getElementById('global-search').value.toLowerCase();
             const activeTab = document.querySelector('.tab-content:not(.hidden)');
             if(!activeTab) return;
-            
-            const items = activeTab.querySelectorAll('.searchable-item');
-            items.forEach(item => {
-                const text = item.innerText.toLowerCase();
-                item.classList.toggle('hidden', !text.includes(query));
+            activeTab.querySelectorAll('.searchable-item').forEach(item => {
+                item.classList.toggle('hidden', !item.innerText.toLowerCase().includes(query));
             });
         }
 
@@ -2243,13 +2715,23 @@
             currentCrudType = type;
             currentEditElement = btn ? btn.closest('.searchable-item') : null;
             
-            document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-pen-to-square text-brand-royal"></i> ${action === 'crear' ? 'Registrar' : 'Editar'} Pedido / Servicio`;
+            document.getElementById('modalTitle').innerHTML = `<i class="fa-solid fa-pen-to-square text-brand-royal"></i> ${action === 'crear' ? 'Registrar' : 'Editar'} Cotización / Pedido`;
             
             let htmlForm = `
                 <div class="space-y-3 text-xs">
-                    <div>
-                        <label class="block font-bold mb-1">Cotización / Pedido</label>
-                        <input type="text" id="p-num" placeholder="Ej. COT-303" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block font-bold mb-1">Cotización / Pedido</label>
+                            <input type="text" id="p-num" placeholder="Ej. COT-312" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl">
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">Prioridad Semáforo</label>
+                            <select id="p-prioridad" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl font-semibold">
+                                <option value="Alta">Alta (Rojo)</option>
+                                <option value="Media" selected>Media (Ámbar)</option>
+                                <option value="Baja">Baja (Verde)</option>
+                            </select>
+                        </div>
                     </div>
                     <div>
                         <label class="block font-bold mb-1">Cliente</label>
@@ -2263,9 +2745,15 @@
                         <label class="block font-bold mb-1">Descripción del Servicio</label>
                         <input type="text" id="p-detalles" placeholder="Ej. Estructura de aluminio y vidrio DGU" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl">
                     </div>
-                    <div>
-                        <label class="block font-bold mb-1">Valor ($ USD)</label>
-                        <input type="text" id="p-valor" placeholder="Ej. 350.00" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block font-bold mb-1">Valor Total ($ USD)</label>
+                            <input type="number" step="0.01" id="p-valor" placeholder="Ej. 400.00" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl font-mono">
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">Anticipo Abonado ($ USD)</label>
+                            <input type="number" step="0.01" id="p-abonado" value="0" placeholder="50% req. p/ taller" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-2.5 rounded-xl font-mono">
+                        </div>
                     </div>
                 </div>`;
 
@@ -2277,54 +2765,75 @@
         }
 
         function saveAdvancedCrud() {
-            const num = document.getElementById('p-num').value || 'COT-303';
+            const num = document.getElementById('p-num').value || 'COT-312';
+            const prio = document.getElementById('p-prioridad').value || 'Media';
             const cli = document.getElementById('p-cliente').value || 'Cliente Nuevo';
             const tec = document.getElementById('p-tecnico').value || 'Juan Morales';
             const det = document.getElementById('p-detalles').value || 'Estructura de aluminio y cerrajería general';
-            const val = document.getElementById('p-valor').value || '300.00';
+            const val = parseFloat(document.getElementById('p-valor').value) || 400;
+            const abonado = parseFloat(document.getElementById('p-abonado').value) || 0;
+            const cumple50 = abonado >= val * 0.5;
+
+            const borderPrio = prio === 'Alta' ? 'border-l-red-500' : (prio === 'Media' ? 'border-l-amber-500' : 'border-l-brand-emerald');
+            const badgePrio = prio === 'Alta' ? 'bg-red-500/10 text-red-500' : (prio === 'Media' ? 'bg-amber-500/10 text-amber-500' : 'bg-brand-emerald/10 text-brand-emerald');
 
             const targetContainer = document.getElementById('pedido-list');
             const newHtml = `
-                <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center shadow-sm gap-4 cursor-pointer hover:border-brand-royal transition-colors" data-numpedido="${num}" data-clientepedido="${cli}" data-detallespedido="${det}" data-valorpedido="${val}" data-estado="Pendiente" data-tecnico="${tec}">
-                    
-                    <div onclick="openModal3DFromService(event)" class="w-24 h-24 rounded-xl bg-slate-950 border border-slate-700 flex flex-col items-center justify-center shrink-0 relative group overflow-hidden shadow-inner cursor-pointer" title="Haga clic para abrir el Estudio AluStruct 5D Engine">
-                        <i class="fa-solid fa-cube text-2xl text-cyan-400 group-hover:scale-110 transition-transform"></i>
-                        <span class="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Ver 5D Engine</span>
-                        <div class="absolute inset-0 bg-cyan-500/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <span class="bg-cyan-500 text-slate-950 text-[9px] px-2 py-1 rounded-md font-bold shadow">Abrir</span>
+                <div class="searchable-item bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 border-l-4 ${borderPrio} p-4 rounded-2xl shadow-sm space-y-3 cursor-pointer hover:border-brand-royal transition-colors" data-numpedido="${num}" data-clientepedido="${cli}" data-telefono="573000000000" data-detallespedido="${det}" data-valorpedido="${val.toFixed(2)}" data-abonado="${abonado.toFixed(2)}" data-estado="Pendiente" data-tecnico="${tec}" data-prioridad="${prio}" data-diasrestantes="15" data-notainterna="">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div onclick="openModal3DFromService(event)" class="w-24 h-24 rounded-xl bg-slate-950 border border-slate-700 flex flex-col items-center justify-center shrink-0 relative group overflow-hidden shadow-inner cursor-pointer" title="Abrir AluStruct 5D Engine">
+                            <i class="fa-solid fa-cube text-2xl text-cyan-400 group-hover:scale-110 transition-transform"></i>
+                            <span class="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-wider">Ver 5D Engine</span>
                         </div>
-                    </div>
 
-                    <div class="space-y-1 flex-1" onclick="triggerFloatingInfo('pedido', this, event)">
-                        <div class="flex items-center gap-2">
-                            <h4 class="text-sm font-bold text-brand-royal dark:text-brand-cyan">Cotización #${num} - ${cli}</h4>
-                            <select onchange="updateJobStatus(this, '${num}')" onclick="event.stopPropagation()" class="text-[10px] font-bold px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-amber-500 focus:outline-none">
-                                <option value="Pendiente" selected>Pendiente</option>
-                                <option value="En taller">En taller</option>
-                                <option value="En camino">En camino</option>
-                                <option value="Finalizado">Finalizado</option>
-                            </select>
+                        <div class="space-y-1 flex-1" onclick="triggerFloatingInfo('pedido', this.closest('.searchable-item'), event)">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="px-2 py-0.5 ${badgePrio} text-[10px] font-bold rounded">● Prioridad ${prio}</span>
+                                <h4 class="text-sm font-bold text-brand-royal dark:text-brand-cyan">Cotización #${num} - ${cli}</h4>
+                                <select onchange="updateJobStatus(this, '${num}')" onclick="event.stopPropagation()" class="text-[10px] font-bold px-2 py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-amber-500 focus:outline-none">
+                                    <option value="Pendiente" selected>Pendiente</option>
+                                    <option value="En taller">En taller</option>
+                                    <option value="En camino">En camino</option>
+                                    <option value="Finalizado">Finalizado</option>
+                                </select>
+                                <span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 text-[10px] font-mono rounded"><i class="fa-regular fa-clock mr-1"></i>Vigencia: 15 días</span>
+                            </div>
+                            <p class="text-xs text-slate-600 dark:text-slate-300">${det} • Total: <b>$${val.toFixed(2)} USD</b></p>
+                            <div class="flex flex-wrap items-center gap-3 text-[11px] pt-1">
+                                ${cumple50 ? `
+                                    <span class="abono-badge px-2 py-0.5 bg-brand-emerald/10 text-brand-emerald font-bold rounded">
+                                        <i class="fa-solid fa-circle-check mr-1"></i>Anticipo 50% Pagado ($${abonado.toFixed(2)})
+                                    </span>
+                                ` : `
+                                    <span class="abono-badge px-2 py-0.5 bg-red-500/10 text-red-500 font-bold rounded">
+                                        <i class="fa-solid fa-lock mr-1"></i>Bloqueado: Falta Anticipo 50% ($${(val * 0.5).toFixed(2)})
+                                    </span>
+                                    <button type="button" onclick="registerFiftyPercentDeposit(this, event)" class="admin-only-action px-2.5 py-0.5 bg-brand-emerald hover:opacity-90 text-white font-bold rounded shadow-sm">
+                                        + Confirmar Abono 50%
+                                    </button>
+                                `}
+                                <span class="inline-flex items-center gap-1 font-semibold text-brand-cobalt dark:text-brand-cyan">
+                                    <i class="fa-solid fa-user-gear"></i> Téc: ${tec}
+                                </span>
+                            </div>
                         </div>
-                        <p class="text-xs text-slate-600 dark:text-slate-300">${det} • Valor: $${val} USD</p>
-                        <div class="flex items-center gap-3 text-[11px] text-slate-500 pt-1">
-                            <span class="inline-flex items-center gap-1 font-semibold text-brand-cobalt dark:text-brand-cyan">
-                                <i class="fa-solid fa-user-gear"></i> Téc. Asignado: ${tec}
-                            </span>
+
+                        <div class="flex flex-wrap gap-1.5 self-end sm:self-center" onclick="event.stopPropagation()">
+                            <button onclick="sendWhatsAppQuote(this)" class="p-2 bg-brand-emerald/10 hover:bg-brand-emerald/20 text-brand-emerald rounded-lg text-xs" title="Enviar Propuesta por WhatsApp"><i class="fa-brands fa-whatsapp"></i></button>
+                            <button onclick="openInternalNotesModal(this)" class="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-xs" title="Notas Internas Ocultas"><i class="fa-solid fa-note-sticky"></i></button>
+                            <button onclick="openAdvancedCrud('pedido', 'editar', this)" class="admin-only-action p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="deleteItem(this, 'Cotización eliminada')" class="admin-only-action p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
                         </div>
-                    </div>
-                    <div class="flex gap-2 self-end sm:self-center">
-                        <button onclick="openAdvancedCrud('pedido', 'editar', this)" class="admin-only-action p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs" title="Editar"><i class="fa-solid fa-pen"></i></button>
-                        <button onclick="deleteItem(this, 'Cotización eliminada')" class="admin-only-action p-2 bg-slate-100 dark:bg-slate-800 text-red-500 rounded-lg text-xs" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </div>`;
 
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = newHtml;
-            targetContainer.appendChild(tempDiv.firstElementChild);
+            targetContainer.insertBefore(tempDiv.firstElementChild, targetContainer.firstChild);
 
-            logAudit('Creación de nuevo pedido con acceso a AluStruct 5D Engine');
+            logAudit(`Creación de nueva cotización #${num} (Prioridad ${prio}, Vigencia 15 días).`);
             closeModal();
-            showToast('Pedido y servicio registrado con éxito.');
+            showToast('Cotización registrada con éxito en la bandeja semaforizada.');
         }
 
         function closeModal() {
